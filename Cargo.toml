@@ -1,0 +1,17 @@
+[package]
+name = "gameboy"
+version = "0.1.0"
+authors = ["Kevin Darlington <kevin@outroot.com>"]
+
+[dependencies]
+clap = "2.9"
+simplelog = "0.1"
+log = "0.3"
+
+[lib]
+name = "gameboy"
+path = "src/lib.rs"
+
+[[bin]]
+name = "gameboy"
+path = "src/bin.rs"
