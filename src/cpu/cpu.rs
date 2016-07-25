@@ -1,12 +1,13 @@
 
 #[derive(Default)]
 pub struct CPU {
-  reg_af: u16,
-  reg_bc: u16,
-  reg_de: u16,
-  reg_hl: u16,
-  reg_sp: u16,
-  reg_pc: u16,
+  reg_af: u16, // Accumulator and flags
+  reg_bc: u16, // General purpose
+  reg_de: u16, // General purpose
+  reg_hl: u16, // General purpose
+
+  reg_sp: u16, // Stack pointer
+  reg_pc: u16, // Program counter
 }
 
 impl CPU {
@@ -14,5 +15,7 @@ impl CPU {
     CPU::default()
   }
 
-  fn run() {}
+  pub fn step(&self) {
+    println!("step");
+  }
 }

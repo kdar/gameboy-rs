@@ -45,15 +45,13 @@ fn main() {
       .takes_value(true))
     .get_matches();
 
+  let cart_rom = load_rom(matches.value_of("cart-rom").unwrap());
+  let mut gb = gameboy::GameBoy::new(cart_rom);
 
-  let mut boot_rom: Option<Box<[u8]>> = None;
   if let Some(boot_rom_path) = matches.value_of("boot-rom") {
-    boot_rom = Some(load_rom(boot_rom_path));
+    gb.set_boot_rom(load_rom(boot_rom_path));
   }
 
-  let cart_rom = load_rom(matches.value_of("cart-rom").unwrap());
-
-  let gb = gameboy::GameBoy::new(boot_rom, cart_rom);
   gb.run();
 }
 
