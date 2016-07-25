@@ -20,13 +20,13 @@ impl GameBoy {
   }
 
   pub fn set_boot_rom(&mut self, rom: Box<[u8]>) {
-    // self.system.get_mut().set_boot_rom(rom);
+    self.system.borrow_mut().set_boot_rom(rom);
   }
 
   pub fn run(&mut self) {
-    // loop {
-    self.cpu.step();
-    // }
+    loop {
+      self.cpu.step();
+    }
   }
 }
 

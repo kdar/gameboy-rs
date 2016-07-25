@@ -21,12 +21,12 @@ pub struct Cpu {
 impl fmt::Debug for Cpu {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     try!(write!(f, "\nCPU Registers:"));
-    try!(write!(f, "\nAF: {}", self.reg_af));
-    try!(write!(f, "\nBC: {}", self.reg_bc));
-    try!(write!(f, "\nDE: {}", self.reg_de));
-    try!(write!(f, "\nHL: {}", self.reg_hl));
-    try!(write!(f, "\nSP: {}", self.reg_sp));
-    try!(write!(f, "\nPC: {}", self.reg_pc));
+    try!(write!(f, "\nAF: 0x{:04x}", self.reg_af));
+    try!(write!(f, "\nBC: 0x{:04x}", self.reg_bc));
+    try!(write!(f, "\nDE: 0x{:04x}", self.reg_de));
+    try!(write!(f, "\nHL: 0x{:04x}", self.reg_hl));
+    try!(write!(f, "\nSP: 0x{:04x}", self.reg_sp));
+    try!(write!(f, "\nPC: 0x{:04x}", self.reg_pc));
     try!(write!(f, "\n\nCycles: {}", self.cycles));
     write!(f, "")
   }
@@ -50,9 +50,10 @@ impl Cpu {
     let mut cycles = 0;
 
     let opcode = self.read_pc_byte();
-    println!("{:?}", self);
 
     cycles += self.execute_instruction(opcode);
+
+    println!("{:?}", self);
   }
 
   fn execute_instruction(&mut self, opcode: u8) -> usize {
@@ -64,7 +65,7 @@ impl Cpu {
     } else {
       match opcode {
         0x00 => self.inst_nop(),
-        0x31 => self.inst_ld_nn(),
+        0x31 => self.inst_ld_dd_nn(opcode),
         _ => panic!("instruction not implemented: {}", opcode),
       }
     }
@@ -74,9 +75,20 @@ impl Cpu {
     4
   }
 
-  fn inst_ld_nn(&mut self) -> usize {
-    let nn = self.read_pc_byte();
-    20
+  // LD dd,nn
+  // 00dd0001 nnnnnnnn nnnnnnnn
+  // Page 120
+  fn inst_ld_dd_nn(&mut self, opcode: u8) -> usize {
+    let register = opcode >> 4 & 0x3;
+    match register {
+      0x3 => {
+        self.reg_sp = self.read_pc_word();
+      }
+      _ => {
+        panic!("ld_dd_nn unknown register: {}", register);
+      }
+    }
+    12
   }
 
   fn read_pc_byte(&mut self) -> u8 {
