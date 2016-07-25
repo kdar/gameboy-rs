@@ -20,6 +20,12 @@ impl System {
     self.boot_rom = rom;
   }
 
+  pub fn read_word(&self, addr: u16) -> u16 {
+    let mut val: u16 = (self.read_byte(addr + 1) as u16) << 8;
+    val |= self.read_byte(addr) as u16;
+    val
+  }
+
   pub fn read_byte(&self, addr: u16) -> u8 {
     let mapped = mmu::memory_map(addr);
     match mapped {

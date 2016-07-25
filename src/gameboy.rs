@@ -14,9 +14,9 @@ impl GameBoy {
     }
   }
 
-  pub fn run(&self) {
+  pub fn run(&mut self) {
     // loop {
-    self.cpu.step();
+    self.cpu.step(&self.system);
     // }
   }
 
