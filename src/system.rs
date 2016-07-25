@@ -1,3 +1,4 @@
+use super::cpu;
 use super::mmu;
 
 pub struct System {
@@ -47,4 +48,10 @@ impl System {
       mmu::Addr::InterruptRegister => panic!("not implemented: {:?}", mapped),
     }
   }
+}
+
+#[cfg(test)]
+mod tests {
+  #[test]
+  fn it_works() {}
 }

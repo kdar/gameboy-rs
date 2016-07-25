@@ -1,3 +1,3 @@
 mod cpu;
 
-pub use self::cpu::CPU;
+pub use self::cpu::Cpu;

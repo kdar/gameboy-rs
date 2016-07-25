@@ -1,6 +1,6 @@
 mod gameboy;
 mod cpu;
-mod system;
 mod mmu;
+mod system;
 
 pub use gameboy::GameBoy;
