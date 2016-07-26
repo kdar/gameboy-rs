@@ -14,6 +14,11 @@ const REG_L: usize = 0b101;
 const REG_F: usize = 0b110;
 const REG_A: usize = 0b111;
 
+const REG_PAIR_BC: usize = 0b00;
+const REG_PAIR_DE: usize = 0b01;
+const REG_PAIR_HL: usize = 0b10;
+const REG_PAIR_SP: usize = 0b11;
+
 const FLAG_Z: usize = 0b10000000; // zero flag
 const FLAG_N: usize = 0b01000000; // add/sub flag
 const FLAG_H: usize = 0b00100000; // half carry flag
@@ -125,8 +130,9 @@ impl Cpu {
     } else {
       match opcode {
         0x00 => self.inst_nop(),
-        0x31 => self.inst_ld_dd_nn(opcode),
-        0xAF => self.inst_xor_s(opcode),
+        0x21 => self.inst_ld_hl_nn(),
+        0x31 => self.inst_ld_sp_nn(),
+        0xAF => self.inst_xor_a(),
         _ => panic!("instruction not implemented: 0x{:02x}", opcode),
       }
     };
@@ -134,54 +140,52 @@ impl Cpu {
     self.cycles += cycles;
   }
 
+  // 0x00
+  // NOP
   fn inst_nop(&self) -> u32 {
     4
   }
 
-  // LD dd,nn
-  // 00dd0001 nnnnnnnn nnnnnnnn
-  // Page 120
-  fn inst_ld_dd_nn(&mut self, opcode: u8) -> u32 {
-    let register = opcode >> 4 & 0b11;
-    match register {
-      0x3 => {
-        self.reg_sp = self.read_pc_word();
-      }
-      _ => {
-        panic!("ld_dd_nn unknown register: {}", register);
-      }
-    }
+  // 0x21
+  // LD HL,nn
+  fn inst_ld_hl_nn(&mut self) -> u32 {
+    let h = self.read_pc_byte();
+    let l = self.read_pc_byte();
+    self.write_reg_gpr(REG_H, h);
+    self.write_reg_gpr(REG_L, l);
     12
   }
 
-  // XOR s
-  // s can be any of the registers B, C, D, E, H, L, or A
-  // 10101rrr
-  // I believe the PDF manual for the CPU is wrong, as it
-  // has the same opcode for OR s and XOR s.
-  fn inst_xor_s(&mut self, opcode: u8) -> u32 {
-    // XOR r
-    if opcode >> 3 == 0b10101 {
-      let register = self.read_reg_gpr((opcode & 0b111) as usize);
-      let mut accumulator = self.read_reg_gpr(REG_A);
-      accumulator = accumulator ^ register;
-      self.write_reg_gpr(REG_A, accumulator);
+  // 0x31
+  // LD SP,nn
+  // Page 120
+  fn inst_ld_sp_nn(&mut self) -> u32 {
+    self.reg_sp = self.read_pc_word();
+    12
+  }
 
-      if accumulator == 0 {
-        self.write_flag(FLAG_Z, true);
-      } else {
-        self.write_flag(FLAG_Z, false);
-      }
+  fn xor(&mut self, register: usize) -> u32 {
+    let register = self.read_reg_gpr(register);
+    let mut accumulator = self.read_reg_gpr(REG_A);
+    accumulator = accumulator ^ register;
+    self.write_reg_gpr(REG_A, accumulator);
 
-      self.write_flag(FLAG_N, false);
-      self.write_flag(FLAG_C, false);
-
-      return 4;
+    if accumulator == 0 {
+      self.write_flag(FLAG_Z, true);
     } else {
-      panic!("xor_s unknown opcode: 0x{:04x}", opcode);
+      self.write_flag(FLAG_Z, false);
     }
 
-    0
+    self.write_flag(FLAG_N, false);
+    self.write_flag(FLAG_C, false);
+
+    4
+  }
+
+  // 0xAF
+  // XOR A
+  fn inst_xor_a(&mut self) -> u32 {
+    self.xor(REG_A)
   }
 
   pub fn read_reg_gpr(&self, register: usize) -> u8 {
@@ -230,22 +234,69 @@ mod tests {
   use super::*;
   use super::{REG_A, FLAG_Z, FLAG_N, FLAG_H, FLAG_C};
 
-  #[test]
-  fn test_inst_xor_s() {
-    let mut test_cpu = Cpu::new();
-
-    test_cpu.write_reg_gpr(REG_A, 0b11010110);
-    assert_eq!(test_cpu.cycles, 0);
-    assert_eq!(test_cpu.read_reg_gpr(REG_A), 0b11010110);
-
-    test_cpu.execute(0xAF);
-
-    assert_eq!(test_cpu.read_reg_gpr(REG_A), 0b0);
-    assert_eq!(test_cpu.cycles, 4);
-
-    assert_eq!(test_cpu.read_flag(FLAG_Z), true);
-    assert_eq!(test_cpu.read_flag(FLAG_N), false);
-    assert_eq!(test_cpu.read_flag(FLAG_H), false);
-    assert_eq!(test_cpu.read_flag(FLAG_C), false);
-  }
+  // #[test]
+  // fn test_inst_ld_dd_nn() {
+  //   let mut test_cpu = Cpu::new();
+  //
+  //   assert_eq!(test_cpu.cycles, 0);
+  //   assert_eq!(test_cpu.read_reg_gpr(REG_A), 0b00000000);
+  //
+  //   test_cpu.execute(0xAF);
+  //
+  //   assert_eq!(test_cpu.read_reg_gpr(REG_A), 0b0);
+  //   assert_eq!(test_cpu.cycles, 4);
+  //
+  //   assert_eq!(test_cpu.read_flag(FLAG_Z), true);
+  //   assert_eq!(test_cpu.read_flag(FLAG_N), false);
+  //   assert_eq!(test_cpu.read_flag(FLAG_H), false);
+  //   assert_eq!(test_cpu.read_flag(FLAG_C), false);
+  // }
+  //
+  // #[test]
+  // fn test_inst_nop() {
+  //   let mut test_cpu = Cpu::new();
+  //
+  //   assert_eq!(test_cpu.cycles, 0);
+  //
+  //
+  //   test_cpu.execute(0x00);
+  //
+  //   assert_eq!(test_cpu.cycles, 4);
+  //
+  //   assert_eq!(test_cpu.read_flag(FLAG_Z), true);
+  //   assert_eq!(test_cpu.read_flag(FLAG_N), false);
+  //   assert_eq!(test_cpu.read_flag(FLAG_H), false);
+  //   assert_eq!(test_cpu.read_flag(FLAG_C), false);
+  // }
+  // #[test]
+  // fn test_inst_ld_hl_nn() {
+  //
+  // }
+  // #[test]
+  // fn test_inst_ld_sp_nn() {
+  //
+  // }
+  // #[test]
+  // fn test_inst_xor_a() {
+  //
+  // }
+  //
+  // #[test]
+  // fn test_inst_xor_s() {
+  //   let mut test_cpu = Cpu::new();
+  //
+  //   test_cpu.write_reg_gpr(REG_A, 0b11010110);
+  //   assert_eq!(test_cpu.cycles, 0);
+  //   assert_eq!(test_cpu.read_reg_gpr(REG_A), 0b11010110);
+  //
+  //   test_cpu.execute(0xAF);
+  //
+  //   assert_eq!(test_cpu.read_reg_gpr(REG_A), 0b0);
+  //   assert_eq!(test_cpu.cycles, 4);
+  //
+  //   assert_eq!(test_cpu.read_flag(FLAG_Z), true);
+  //   assert_eq!(test_cpu.read_flag(FLAG_N), false);
+  //   assert_eq!(test_cpu.read_flag(FLAG_H), false);
+  //   assert_eq!(test_cpu.read_flag(FLAG_C), false);
+  // }
 }
