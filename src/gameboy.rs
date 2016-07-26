@@ -3,24 +3,20 @@ use std::cell::RefCell;
 
 use super::cpu;
 use super::mmu;
-use super::system;
 
 pub struct GameBoy {
   cpu: cpu::Cpu,
-  system: Arc<RefCell<system::System>>,
 }
 
 impl GameBoy {
   pub fn new(cart_rom: Box<[u8]>) -> GameBoy {
-    let system = Arc::new(RefCell::new(system::System::new(cart_rom)));
-    GameBoy {
-      cpu: cpu::Cpu::new(system.clone()),
-      system: system.clone(),
-    }
+    let mut cpu = cpu::Cpu::new();
+    cpu.set_cart_rom(cart_rom);
+    GameBoy { cpu: cpu }
   }
 
   pub fn set_boot_rom(&mut self, rom: Box<[u8]>) {
-    self.system.borrow_mut().set_boot_rom(rom);
+    self.cpu.set_boot_rom(rom);
   }
 
   pub fn run(&mut self) {
