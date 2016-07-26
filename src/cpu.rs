@@ -1,6 +1,5 @@
 use std::fmt;
-use std::sync::Arc;
-use std::cell::RefCell;
+use std::cmp::PartialEq;
 
 use super::mmu;
 
@@ -24,6 +23,7 @@ const FLAG_N: usize = 0b01000000; // add/sub flag
 const FLAG_H: usize = 0b00100000; // half carry flag
 const FLAG_C: usize = 0b00010000; // carry flag
 
+#[derive(Default)]
 pub struct Cpu {
   // Contains the registers: A, F, B, C, D, E, H, L
   reg_gpr: [u8; NUM_GPR],
@@ -40,18 +40,18 @@ pub struct Cpu {
 
 impl fmt::Debug for Cpu {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    try!(write!(f, "\nCPU Registers:"));
-    try!(write!(f, "\nA: 0x{:02x}", self.reg_gpr[REG_A]));
-    try!(write!(f, "\nF: 0x{:02x}", self.reg_gpr[REG_F]));
-    try!(write!(f, "\nB: 0x{:02x}", self.reg_gpr[REG_B]));
-    try!(write!(f, "\nC: 0x{:02x}", self.reg_gpr[REG_C]));
-    try!(write!(f, "\nD: 0x{:02x}", self.reg_gpr[REG_D]));
-    try!(write!(f, "\nE: 0x{:02x}", self.reg_gpr[REG_E]));
-    try!(write!(f, "\nH: 0x{:02x}", self.reg_gpr[REG_H]));
-    try!(write!(f, "\nL: 0x{:02x}", self.reg_gpr[REG_L]));
-    try!(write!(f, "\nSP: 0x{:04x}", self.reg_sp));
-    try!(write!(f, "\nPC: 0x{:04x}", self.reg_pc));
-    try!(write!(f, "\n\nCycles: {}", self.cycles));
+    try!(write!(f, "\nA:       0x{:02x}", self.reg_gpr[REG_A]));
+    try!(write!(f, "\nF:       0x{:02x}", self.reg_gpr[REG_F]));
+    try!(write!(f, "\nB:       0x{:02x}", self.reg_gpr[REG_B]));
+    try!(write!(f, "\nC:       0x{:02x}", self.reg_gpr[REG_C]));
+    try!(write!(f, "\nD:       0x{:02x}", self.reg_gpr[REG_D]));
+    try!(write!(f, "\nE:       0x{:02x}", self.reg_gpr[REG_E]));
+    try!(write!(f, "\nH:       0x{:02x}", self.reg_gpr[REG_H]));
+    try!(write!(f, "\nL:       0x{:02x}", self.reg_gpr[REG_L]));
+    try!(write!(f, "\nSP:      0x{:04x}", self.reg_sp));
+    try!(write!(f, "\nPC:      0x{:04x}", self.reg_pc));
+    try!(write!(f, "\nCycles:  {}", self.cycles));
+    try!(write!(f, "\nBooting: {}", self.booting));
     write!(f, "")
   }
 }
@@ -118,7 +118,7 @@ impl Cpu {
     let opcode = self.read_pc_byte();
     self.execute(opcode);
 
-    println!("{:?}", self);
+    // println!("{:?}", self);
   }
 
   fn execute(&mut self, opcode: u8) {
@@ -232,71 +232,74 @@ impl Cpu {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use super::{REG_A, FLAG_Z, FLAG_N, FLAG_H, FLAG_C};
+  use super::{REG_A, REG_H, REG_L, FLAG_Z, FLAG_N, FLAG_H, FLAG_C};
 
-  // #[test]
-  // fn test_inst_ld_dd_nn() {
-  //   let mut test_cpu = Cpu::new();
-  //
-  //   assert_eq!(test_cpu.cycles, 0);
-  //   assert_eq!(test_cpu.read_reg_gpr(REG_A), 0b00000000);
-  //
-  //   test_cpu.execute(0xAF);
-  //
-  //   assert_eq!(test_cpu.read_reg_gpr(REG_A), 0b0);
-  //   assert_eq!(test_cpu.cycles, 4);
-  //
-  //   assert_eq!(test_cpu.read_flag(FLAG_Z), true);
-  //   assert_eq!(test_cpu.read_flag(FLAG_N), false);
-  //   assert_eq!(test_cpu.read_flag(FLAG_H), false);
-  //   assert_eq!(test_cpu.read_flag(FLAG_C), false);
-  // }
-  //
-  // #[test]
-  // fn test_inst_nop() {
-  //   let mut test_cpu = Cpu::new();
-  //
-  //   assert_eq!(test_cpu.cycles, 0);
-  //
-  //
-  //   test_cpu.execute(0x00);
-  //
-  //   assert_eq!(test_cpu.cycles, 4);
-  //
-  //   assert_eq!(test_cpu.read_flag(FLAG_Z), true);
-  //   assert_eq!(test_cpu.read_flag(FLAG_N), false);
-  //   assert_eq!(test_cpu.read_flag(FLAG_H), false);
-  //   assert_eq!(test_cpu.read_flag(FLAG_C), false);
-  // }
-  // #[test]
-  // fn test_inst_ld_hl_nn() {
-  //
-  // }
-  // #[test]
-  // fn test_inst_ld_sp_nn() {
-  //
-  // }
-  // #[test]
-  // fn test_inst_xor_a() {
-  //
-  // }
-  //
-  // #[test]
-  // fn test_inst_xor_s() {
-  //   let mut test_cpu = Cpu::new();
-  //
-  //   test_cpu.write_reg_gpr(REG_A, 0b11010110);
-  //   assert_eq!(test_cpu.cycles, 0);
-  //   assert_eq!(test_cpu.read_reg_gpr(REG_A), 0b11010110);
-  //
-  //   test_cpu.execute(0xAF);
-  //
-  //   assert_eq!(test_cpu.read_reg_gpr(REG_A), 0b0);
-  //   assert_eq!(test_cpu.cycles, 4);
-  //
-  //   assert_eq!(test_cpu.read_flag(FLAG_Z), true);
-  //   assert_eq!(test_cpu.read_flag(FLAG_N), false);
-  //   assert_eq!(test_cpu.read_flag(FLAG_H), false);
-  //   assert_eq!(test_cpu.read_flag(FLAG_C), false);
-  // }
+  // We don't compare the boot_rom or cart_rom for equality.
+  macro_rules! cpu_test {
+    (
+      $name:ident {
+        ins: $ins:expr,
+        before: $before:expr,
+        after:  $after:expr,
+      }
+    ) =>
+    (
+      #[test]
+      fn $name() {
+        let mut cpu = $before;
+        cpu.execute($ins);
+        assert_eq!(cpu.reg_gpr, $after.reg_gpr);
+        assert_eq!(cpu.reg_sp, $after.reg_sp);
+        assert_eq!(cpu.reg_pc, $after.reg_pc);
+        assert_eq!(cpu.cycles, $after.cycles);
+        assert_eq!(cpu.booting, $after.booting);
+      }
+    )
+  }
+
+  cpu_test!(inst_nop {
+    ins: 0x00,
+    before: Cpu::default(),
+    after: Cpu { cycles: 4, ..Cpu::default() },
+  });
+
+  cpu_test!(inst_ld_hl_nn {
+    ins: 0x21,
+    before: Cpu { cart_rom: Box::new([0xFE, 0xD8]), ..Cpu::default() },
+    after: {
+      let mut c = Cpu {
+        cycles: 12,
+        reg_pc: 2,
+        ..Cpu::default()
+      };
+      c.write_reg_gpr(REG_H, 0xFE);
+      c.write_reg_gpr(REG_L, 0xD8);
+      c
+    },
+  });
+
+  cpu_test!(inst_ld_sp_nn {
+    ins: 0x31,
+    before: Cpu { cart_rom: Box::new([0xFE, 0xD8]), ..Cpu::default() },
+    after: Cpu {
+      cycles: 12,
+      reg_pc: 2,
+      reg_sp: 0xD8FE,
+      ..Cpu::default()
+    },
+  });
+
+  cpu_test!(inst_xor_a {
+    ins: 0xAF,
+    before: {
+      let mut c = Cpu::default();
+      c.write_reg_gpr(REG_A, 200);
+      c
+    },
+    after: {
+      let mut c = Cpu { cycles: 4, ..Cpu::default() };
+      c.write_flag(FLAG_Z, true);
+      c
+    },
+  });
 }
