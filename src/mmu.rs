@@ -17,13 +17,15 @@ const EXTERNAL_RAM_START: u16 = 0xA000;
 const EXTERNAL_RAM_END: u16 = 0xBFFF;
 
 // 4KB work RAM bank 0 (WRAM)
-const WORK_RAM_00_START: u16 = 0xC000;
-const WORK_RAM_00_END: u16 = 0xCFFF;
+const WORK_RAM_0_START: u16 = 0xC000;
+const WORK_RAM_0_END: u16 = 0xCFFF;
+pub const WORK_RAM_0_LEN: usize = WORK_RAM_0_END as usize - WORK_RAM_0_START as usize;
 
 // 4KB Work RAM Bank 1 (WRAM)
 // switchable bank 1-7 in CGB Mode
-const WORK_RAM_01_START: u16 = 0xD000;
-const WORK_RAM_01_END: u16 = 0xDFFF;
+const WORK_RAM_1_START: u16 = 0xD000;
+const WORK_RAM_1_END: u16 = 0xDFFF;
+pub const WORK_RAM_1_LEN: usize = WORK_RAM_1_END as usize - WORK_RAM_1_START as usize;
 
 // Same as C000-DDFF (ECHO)
 // typically not used
@@ -56,8 +58,8 @@ pub enum Addr {
   Rom01(u16),
   VideoRam(u16),
   ExternalRam(u16),
-  WorkRam00(u16),
-  WorkRam01(u16),
+  WorkRam0(u16),
+  WorkRam1(u16),
   SpriteTable(u16),
   IoPorts(u16),
   HighRam(u16),
@@ -70,9 +72,9 @@ pub fn memory_map(addr: u16) -> Addr {
     ROM_01_START...ROM_01_END => Addr::Rom01(addr - ROM_01_START),
     VIDEO_RAM_START...VIDEO_RAM_END => Addr::VideoRam(addr - VIDEO_RAM_START),
     EXTERNAL_RAM_START...EXTERNAL_RAM_END => Addr::ExternalRam(addr - EXTERNAL_RAM_START),
-    WORK_RAM_00_START...WORK_RAM_00_END => Addr::WorkRam00(addr - WORK_RAM_00_START),
-    WORK_RAM_01_START...WORK_RAM_01_END => Addr::WorkRam01(addr - WORK_RAM_01_START),
-    ECHO_START...ECHO_END => memory_map(addr - ECHO_START + WORK_RAM_00_START),
+    WORK_RAM_0_START...WORK_RAM_0_END => Addr::WorkRam0(addr - WORK_RAM_0_START),
+    WORK_RAM_1_START...WORK_RAM_1_END => Addr::WorkRam1(addr - WORK_RAM_1_START),
+    ECHO_START...ECHO_END => memory_map(addr - ECHO_START + WORK_RAM_0_START),
     SPRITE_TABLE_START...SPRITE_TABLE_END => Addr::SpriteTable(addr - SPRITE_TABLE_START),
     UNUSABLE_START...UNUSABLE_END => panic!("unusable memory area!"),
     IO_PORTS_START...IO_PORTS_END => Addr::IoPorts(addr - IO_PORTS_START),
