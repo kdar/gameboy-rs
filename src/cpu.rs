@@ -14,6 +14,11 @@ const REG_L: usize = 0b101;
 const REG_F: usize = 0b110;
 const REG_A: usize = 0b111;
 
+const FLAG_Z: usize = 0b10000000; // zero flag
+const FLAG_N: usize = 0b01000000; // add/sub flag
+const FLAG_H: usize = 0b00100000; // half carry flag
+const FLAG_C: usize = 0b00010000; // carry flag
+
 pub struct Cpu {
   // Contains the registers: A, F, B, C, D, E, H, L
   reg_gpr: [u8; NUM_GPR],
@@ -97,12 +102,12 @@ impl Cpu {
     }
   }
 
-  pub fn reset(&mut self) {
-    self.reg_gpr = [0; NUM_GPR];
-    self.reg_sp = 0;
-    self.reg_pc = 0;
-    self.cycles = 0;
-  }
+  // pub fn reset(&mut self) {
+  //   self.reg_gpr = [0; NUM_GPR];
+  //   self.reg_sp = 0;
+  //   self.reg_pc = 0;
+  //   self.cycles = 0;
+  // }
 
   pub fn step(&mut self) {
     let opcode = self.read_pc_byte();
@@ -157,12 +162,19 @@ impl Cpu {
   fn inst_xor_s(&mut self, opcode: u8) -> u32 {
     // XOR r
     if opcode >> 3 == 0b10101 {
-      let register = self.read_reg_gpr(opcode & 0b111);
-      let mut accumulator = self.read_reg_gpr(REG_A as u8);
-
+      let register = self.read_reg_gpr((opcode & 0b111) as usize);
+      let mut accumulator = self.read_reg_gpr(REG_A);
       accumulator = accumulator ^ register;
+      self.write_reg_gpr(REG_A, accumulator);
 
-      self.write_reg_gpr(REG_A as u8, accumulator);
+      if accumulator == 0 {
+        self.write_flag(FLAG_Z, true);
+      } else {
+        self.write_flag(FLAG_Z, false);
+      }
+
+      self.write_flag(FLAG_N, false);
+      self.write_flag(FLAG_C, false);
 
       return 4;
     } else {
@@ -172,7 +184,7 @@ impl Cpu {
     0
   }
 
-  pub fn read_reg_gpr(&self, register: u8) -> u8 {
+  pub fn read_reg_gpr(&self, register: usize) -> u8 {
     match register {
       0b000...0b111 => {
         return self.reg_gpr[register as usize];
@@ -181,7 +193,7 @@ impl Cpu {
     }
   }
 
-  pub fn write_reg_gpr(&mut self, register: u8, value: u8) {
+  pub fn write_reg_gpr(&mut self, register: usize, value: u8) {
     self.reg_gpr[register as usize] = value;
   }
 
@@ -196,26 +208,44 @@ impl Cpu {
     self.reg_pc += 2;
     d
   }
+
+  fn write_flag(&mut self, flag: usize, value: bool) {
+    let mut d = self.read_reg_gpr(REG_F);
+    if value {
+      d |= flag as u8;
+    } else {
+      d &= !flag as u8;
+    }
+    self.write_reg_gpr(REG_F, d);
+  }
+
+  fn read_flag(&self, flag: usize) -> bool {
+    let mut d = self.read_reg_gpr(REG_F);
+    d & flag as u8 > 0
+  }
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
-  use super::REG_A;
+  use super::{REG_A, FLAG_Z, FLAG_N, FLAG_H, FLAG_C};
 
   #[test]
   fn test_inst_xor_s() {
     let mut test_cpu = Cpu::new();
 
-    test_cpu.reset();
-
-    test_cpu.write_reg_gpr(REG_A as u8, 0b11010110);
+    test_cpu.write_reg_gpr(REG_A, 0b11010110);
     assert_eq!(test_cpu.cycles, 0);
-    assert_eq!(test_cpu.read_reg_gpr(REG_A as u8), 0b11010110);
+    assert_eq!(test_cpu.read_reg_gpr(REG_A), 0b11010110);
 
     test_cpu.execute(0xAF);
 
-    assert_eq!(test_cpu.read_reg_gpr(REG_A as u8), 0b0);
+    assert_eq!(test_cpu.read_reg_gpr(REG_A), 0b0);
     assert_eq!(test_cpu.cycles, 4);
+
+    assert_eq!(test_cpu.read_flag(FLAG_Z), true);
+    assert_eq!(test_cpu.read_flag(FLAG_N), false);
+    assert_eq!(test_cpu.read_flag(FLAG_H), false);
+    assert_eq!(test_cpu.read_flag(FLAG_C), false);
   }
 }
