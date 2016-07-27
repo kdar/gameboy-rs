@@ -187,30 +187,31 @@ impl Cpu {
     }
   }
 
-  pub fn write_word(&mut self, addr: u16, value: u16) {
-    self.write_byte(addr + 1, (value >> 8) as u8 & 0b11111111);
-    self.write_byte(addr, value as u8 & 0b11111111);
+  pub fn write_mmu_word(&mut self, addr: u16, value: u16) {
+    self.write_mmu_byte(addr + 1, (value >> 8) as u8 & 0b11111111);
+    self.write_mmu_byte(addr, value as u8 & 0b11111111);
   }
 
-  pub fn write_byte(&mut self, addr: u16, value: u8) {
+  pub fn write_mmu_byte(&mut self, addr: u16, value: u8) {
     let mapped = mmu::memory_map(addr);
     match mapped {
       mmu::Addr::Rom00(offset) => {
-        panic!("write_byte error: trying to write to rom0");
+        panic!("write_mmu_byte error: trying to write to rom0");
       }
-      mmu::Addr::Rom01(offset) => panic!("write_byte not implemented: {:?}", mapped),
-      mmu::Addr::VideoRam(offset) => panic!("write_byte not implemented: {:?}", mapped),
-      mmu::Addr::ExternalRam(offset) => panic!("write_byte not implemented: {:?}", mapped),
+      mmu::Addr::Rom01(offset) => panic!("write_mmu_byte not implemented: {:?}", mapped),
+      mmu::Addr::VideoRam(offset) => panic!("write_mmu_byte not implemented: {:?}", mapped),
+      mmu::Addr::ExternalRam(offset) => panic!("write_mmu_byte not implemented: {:?}", mapped),
       mmu::Addr::WorkRam0(offset) => {
+        println!("{:x} {:x} {:x}", addr, offset, value);
         self.work_ram_0[offset as usize] = value;
       }
       mmu::Addr::WorkRam1(offset) => {
         self.work_ram_1[offset as usize] = value;
       }
-      mmu::Addr::SpriteTable(offset) => panic!("write_byte not implemented: {:?}", mapped),
-      mmu::Addr::IoPorts(offset) => panic!("write_byte not implemented: {:?}", mapped),
-      mmu::Addr::HighRam(offset) => panic!("write_byte not implemented: {:?}", mapped),
-      mmu::Addr::InterruptRegister => panic!("write_byte not implemented: {:?}", mapped),
+      mmu::Addr::SpriteTable(offset) => panic!("write_mmu_byte not implemented: {:?}", mapped),
+      mmu::Addr::IoPorts(offset) => panic!("write_mmu_byte not implemented: {:?}", mapped),
+      mmu::Addr::HighRam(offset) => panic!("write_mmu_byte not implemented: {:?}", mapped),
+      mmu::Addr::InterruptRegister => panic!("write_mmu_byte not implemented: {:?}", mapped),
     };
   }
 
@@ -276,7 +277,10 @@ impl Cpu {
   // LDD (HL),A
   // Page 149
   fn inst_ldd_hl_a(&mut self) -> u32 {
-
+    let hl = self.reg_hl;
+    let a = self.read_reg_byte(Reg::A);
+    self.write_mmu_byte(hl, a);
+    self.reg_hl -= 1;
     8
   }
 
@@ -485,13 +489,16 @@ mod tests {
     before: {
       let mut c = Cpu::default();
       c.write_reg_byte(Reg::A, 0x87);
-      c.write_reg_byte(Reg::H, 0x9F);
-      // c.write_reg_byte(REG_L,
+      c.write_reg_byte(Reg::H, 0xC2);
+      c.write_reg_byte(Reg::L, 0x21);
       c
     },
     after: {
       let mut c = Cpu { cycles: 8, ..Cpu::default() };
-
+      c.write_reg_byte(Reg::A, 0x87);
+      c.write_reg_byte(Reg::H, 0xC2);
+      c.write_reg_byte(Reg::L, 0x20);
+      c.write_mmu_byte(0xC221, 0x87);
       c
     },
   });
