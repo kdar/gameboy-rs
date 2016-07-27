@@ -1,37 +1,15 @@
 use std::fmt;
 use std::default::Default;
 use std::cmp::PartialEq;
-use std::cmp::Eq;
 use md5;
 
 use super::mem_map;
 
 pub enum Flag {
-  Z, // zero flag
-  N, // add/sub flag
-  H, // half carry flag
-  C, // carry flag
-}
-
-impl Flag {
-  pub fn from_byte(v: u8) -> Flag {
-    match v {
-      0b10000000 => Flag::Z,
-      0b01000000 => Flag::N,
-      0b00100000 => Flag::H,
-      0b00010000 => Flag::C,
-      _ => panic!("flag.from_byte unknown value: {}", v),
-    }
-  }
-
-  pub fn to_byte(self) -> u8 {
-    match self {
-      Flag::Z => 0b10000000,
-      Flag::N => 0b01000000,
-      Flag::H => 0b00100000,
-      Flag::C => 0b00010000,
-    }
-  }
+  Z = 0b10000000, // zero flag
+  N = 0b01000000, // add/sub flag
+  H = 0b00100000, // half carry flag
+  C = 0b00010000, // carry flag
 }
 
 #[derive(Debug)]
@@ -82,14 +60,6 @@ fn high_byte(value: u16) -> u8 {
 fn low_byte(value: u16) -> u8 {
   value as u8 & 0b11111111
 }
-
-// struct WorkRam([u8; mem_map::WORK_RAM_0_LEN]);
-//
-// impl PartialEq for WorkRam {
-//   fn eq(&self, x: &WorkRam) -> bool {
-//     self.0[..] == x.0[..]
-//   }
-// }
 
 pub struct Cpu {
   reg_af: u16, // Accumulator and flags
@@ -387,16 +357,16 @@ impl Cpu {
   fn write_flag(&mut self, flag: Flag, value: bool) {
     let mut d = self.read_reg_byte(Reg::F);
     if value {
-      d |= flag.to_byte();
+      d |= flag as u8;
     } else {
-      d &= !flag.to_byte();
+      d &= !(flag as u8);
     }
     self.write_reg_byte(Reg::F, d);
   }
 
   fn read_flag(&self, flag: Flag) -> bool {
     let mut d = self.read_reg_byte(Reg::F);
-    d & flag.to_byte() > 0
+    d & flag as u8 > 0
   }
 }
 
