@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub enum Flag {
   Z = 0b10000000, // zero flag
   N = 0b01000000, // add/sub flag

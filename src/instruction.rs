@@ -1,12 +1,15 @@
 use super::reg::Reg;
+use super::flag::Flag;
 
 #[allow(non_camel_case_types)]
+#[derive(Debug)]
 pub enum Instruction {
   NOP,
   LD_hl_nn,
   LD_sp_nn,
   LDD_hl_a,
   XOR_r(Reg),
+  JR_cc_e(Flag, bool),
 
   BIT_b_r(u8, Reg),
 }

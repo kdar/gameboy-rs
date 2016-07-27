@@ -35,6 +35,7 @@ pub struct Cpu {
   work_ram_1: [u8; mem_map::WORK_RAM_1_LEN],
 }
 
+// We don't compare the boot_rom or cart_rom for equality.
 impl PartialEq for Cpu {
   fn eq(&self, x: &Cpu) -> bool {
     self.reg_af == x.reg_af && self.reg_bc == x.reg_bc && self.reg_de == x.reg_de &&
@@ -173,27 +174,30 @@ impl Cpu {
 
   pub fn step(&mut self) {
     let opcode = self.read_pc_byte();
-    self.execute(opcode);
+    self.execute_opcode(opcode);
 
     // println!("{:?}", self);
   }
 
-  fn execute(&mut self, opcode: u8) {
-    let cycles = if opcode == 0xCB {
+  fn execute_opcode(&mut self, opcode: u8) {
+    if opcode == 0xCB {
       let opcode = self.read_pc_byte();
-      match Instruction::from_cb(opcode) {
-        Instruction::BIT_b_r(b, r) => self.inst_bit_b_r(b, r),
-        _ => panic!("CB instruction not implemented: 0x{:02x}", opcode),
-      }
+      self.execute_instruction(Instruction::from_cb(opcode));
     } else {
-      match Instruction::from(opcode) {
-        Instruction::NOP => self.inst_nop(),
-        Instruction::LD_hl_nn => self.inst_ld_hl_nn(),
-        Instruction::LD_sp_nn => self.inst_ld_sp_nn(),
-        Instruction::LDD_hl_a => self.inst_ldd_hl_a(),
-        Instruction::XOR_r(r) => self.inst_xor_r(r),
-        _ => panic!("instruction not implemented: 0x{:02x}", opcode),
-      }
+      self.execute_instruction(Instruction::from(opcode));
+    }
+  }
+
+  fn execute_instruction(&mut self, ins: Instruction) {
+    let cycles = match ins {
+      Instruction::NOP => self.inst_nop(),
+      Instruction::LD_hl_nn => self.inst_ld_hl_nn(),
+      Instruction::LD_sp_nn => self.inst_ld_sp_nn(),
+      Instruction::LDD_hl_a => self.inst_ldd_hl_a(),
+      Instruction::XOR_r(r) => self.inst_xor_r(r),
+
+      Instruction::BIT_b_r(b, r) => self.inst_bit_b_r(b, r),
+      _ => panic!("instruction not implemented: {:?}", ins),
     };
 
     self.cycles += cycles;
@@ -343,6 +347,7 @@ mod tests {
   use super::*;
   use super::super::reg::Reg;
   use super::super::flag::Flag;
+  use super::super::instruction::Instruction;
   use difference::{self, Difference};
   use std::io::Write;
 
@@ -401,10 +406,10 @@ mod tests {
           // writeln!(w, "{}", x);
         }
         Difference::Add(ref x) => {
-          writeln!(w, "+{}", x);
+          writeln!(w, "Got:\n{}", x);
         }
         Difference::Rem(ref x) => {
-          writeln!(w, "-{}", x);
+          writeln!(w, "Expected:\n{}", x);
         }
       }
     }
@@ -412,33 +417,49 @@ mod tests {
     String::from_utf8(w).unwrap()
   }
 
-  // We don't compare the boot_rom or cart_rom for equality.
+  macro_rules! cpu_inline_test {
+    (
+      {
+        ins: $ins:expr,
+        before: $before:expr,
+        after: $after:expr,
+      }
+    ) =>
+    {
+      let mut cpu = $before;
+      cpu.execute_instruction($ins);
+      assert!(cpu == $after, "\n{}", cpu_diff(&$after, &cpu));
+    }
+  }
+
   macro_rules! cpu_test {
     (
       $name:ident {
         ins: $ins:expr,
         before: $before:expr,
-        after:  $after:expr,
+        after: $after:expr,
       }
     ) =>
     (
       #[test]
       fn $name() {
-        let mut cpu = $before;
-        cpu.execute($ins);
-        assert!(cpu == $after, "\n{}", cpu_diff(&$after, &cpu));
+        cpu_inline_test!({
+          ins: $ins,
+          before: $before,
+          after: $after,
+        });
       }
     )
   }
 
-  cpu_test!(inst_nop {
-    ins: 0x00,
+  cpu_test!(test_inst_nop {
+    ins: Instruction::NOP,
     before: Cpu::default(),
     after: Cpu { cycles: 4, ..Cpu::default() },
   });
 
-  cpu_test!(inst_ld_hl_nn {
-    ins: 0x21,
+  cpu_test!(test_inst_ld_hl_nn {
+    ins: Instruction::LD_hl_nn,
     before: Cpu { cart_rom: Box::new([0xFE, 0xD8]), ..Cpu::default() },
     after: {
       let mut c = Cpu {
@@ -452,8 +473,8 @@ mod tests {
     },
   });
 
-  cpu_test!(inst_ld_sp_nn {
-    ins: 0x31,
+  cpu_test!(test_inst_ld_sp_nn {
+    ins: Instruction::LD_sp_nn,
     before: Cpu { cart_rom: Box::new([0xFE, 0xD8]), ..Cpu::default() },
     after: Cpu {
       cycles: 12,
@@ -463,8 +484,8 @@ mod tests {
     },
   });
 
-  cpu_test!(inst_ldd_hl_a {
-    ins: 0x32,
+  cpu_test!(test_inst_ldd_hl_a {
+    ins: Instruction::LDD_hl_a,
     before: {
       let mut c = Cpu::default();
       c.write_reg_byte(Reg::A, 0x87);
@@ -483,7 +504,7 @@ mod tests {
   });
 
   cpu_test!(inst_xor_a {
-    ins: 0xAF,
+    ins: Instruction::XOR_r(Reg::A),
     before: {
       let mut c = Cpu::default();
       c.write_reg_byte(Reg::A, 200);
@@ -496,7 +517,30 @@ mod tests {
     },
   });
 
-  // cpu_test!(inst_bit_b_r {
-  //   ins:
-  // });
+  #[test]
+  fn test_inst_xor_r() {
+    for r in &[Reg::B, Reg::C, Reg::D, Reg::E, Reg::H, Reg::L] {
+      cpu_inline_test!({
+        ins: Instruction::XOR_r(*r),
+        before: {
+          let mut c = Cpu::default();
+          c.write_reg_byte(*r, 200);
+          c.write_reg_byte(Reg::A, 200);
+          c
+        },
+        after: {
+          let mut c = Cpu { cycles: 4, ..Cpu::default() };
+          c.write_reg_byte(*r, 200);
+          c.write_flag(Flag::Z, true);
+          c
+        },
+      });
+    }
+  }
+
+  // #[test]
+  // fn test_inst_bit_b_r() {
+  //   let mut c = Cpu::default();
+  //
+  // }
 }
