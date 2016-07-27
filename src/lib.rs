@@ -1,5 +1,7 @@
+extern crate md5;
+
 mod gameboy;
 mod cpu;
-mod mmu;
+mod mem_map;
 
 pub use gameboy::GameBoy;

@@ -1,8 +1,10 @@
 use std::fmt;
 use std::default::Default;
 use std::cmp::PartialEq;
+use std::cmp::Eq;
+use md5;
 
-use super::mmu;
+use super::mem_map;
 
 pub enum Flag {
   Z, // zero flag
@@ -81,6 +83,14 @@ fn low_byte(value: u16) -> u8 {
   value as u8 & 0b11111111
 }
 
+// struct WorkRam([u8; mem_map::WORK_RAM_0_LEN]);
+//
+// impl PartialEq for WorkRam {
+//   fn eq(&self, x: &WorkRam) -> bool {
+//     self.0[..] == x.0[..]
+//   }
+// }
+
 pub struct Cpu {
   reg_af: u16, // Accumulator and flags
   reg_bc: u16, // B and C general purpose
@@ -96,15 +106,16 @@ pub struct Cpu {
   cart_rom: Box<[u8]>,
   booting: bool,
 
-  work_ram_0: [u8; mmu::WORK_RAM_0_LEN],
-  work_ram_1: [u8; mmu::WORK_RAM_1_LEN],
+  work_ram_0: [u8; mem_map::WORK_RAM_0_LEN],
+  work_ram_1: [u8; mem_map::WORK_RAM_1_LEN],
 }
 
 impl PartialEq for Cpu {
   fn eq(&self, x: &Cpu) -> bool {
     self.reg_af == x.reg_af && self.reg_bc == x.reg_bc && self.reg_de == x.reg_de &&
     self.reg_hl == x.reg_hl && self.reg_sp == x.reg_sp && self.reg_pc == x.reg_pc &&
-    self.cycles == self.cycles && self.booting == x.booting
+    self.cycles == self.cycles && self.booting == x.booting &&
+    self.work_ram_0[..] == x.work_ram_0[..] && self.work_ram_1[..] == x.work_ram_1[..]
   }
 }
 
@@ -121,8 +132,8 @@ impl Default for Cpu {
       boot_rom: Box::new([]),
       cart_rom: Box::new([]),
       booting: false,
-      work_ram_0: [0; mmu::WORK_RAM_0_LEN],
-      work_ram_1: [0; mmu::WORK_RAM_1_LEN],
+      work_ram_0: [0; mem_map::WORK_RAM_0_LEN],
+      work_ram_1: [0; mem_map::WORK_RAM_1_LEN],
     }
   }
 }
@@ -141,6 +152,12 @@ impl fmt::Debug for Cpu {
     try!(write!(f, "\nPC:      0x{0:04x} [{0:016b}]", self.reg_pc));
     try!(write!(f, "\nCycles:  {}", self.cycles));
     try!(write!(f, "\nBooting: {}", self.booting));
+    try!(write!(f,
+                "\nWork ram 0 checksum: {:?}",
+                md5::compute(&self.work_ram_0[..])));
+    try!(write!(f,
+                "\nWork ram 1 checksum: {:?}",
+                md5::compute(&self.work_ram_1[..])));
     write!(f, "")
   }
 }
@@ -160,58 +177,66 @@ impl Cpu {
   }
 
   pub fn read_word(&self, addr: u16) -> u16 {
-    let mut val: u16 = (self.read_byte(addr + 1) as u16) << 8;
-    val |= self.read_byte(addr) as u16;
+    let mut val: u16 = (self.read_mapped_byte(addr + 1) as u16) << 8;
+    val |= self.read_mapped_byte(addr) as u16;
     val
   }
 
-  pub fn read_byte(&self, addr: u16) -> u8 {
-    let mapped = mmu::memory_map(addr);
+  pub fn read_mapped_byte(&self, addr: u16) -> u8 {
+    let mapped = mem_map::memory_map(addr);
     match mapped {
-      mmu::Addr::Rom00(offset) => {
+      mem_map::Addr::Rom00(offset) => {
         if self.booting {
           self.boot_rom[offset as usize]
         } else {
           self.cart_rom[offset as usize]
         }
       }
-      mmu::Addr::Rom01(offset) => panic!("read_byte not implemented: {:?}", mapped),
-      mmu::Addr::VideoRam(offset) => panic!("read_byte not implemented: {:?}", mapped),
-      mmu::Addr::ExternalRam(offset) => panic!("read_byte not implemented: {:?}", mapped),
-      mmu::Addr::WorkRam0(offset) => self.work_ram_0[offset as usize],
-      mmu::Addr::WorkRam1(offset) => self.work_ram_1[offset as usize],
-      mmu::Addr::SpriteTable(offset) => panic!("read_byte not implemented: {:?}", mapped),
-      mmu::Addr::IoPorts(offset) => panic!("read_byte not implemented: {:?}", mapped),
-      mmu::Addr::HighRam(offset) => panic!("read_byte not implemented: {:?}", mapped),
-      mmu::Addr::InterruptRegister => panic!("read_byte not implemented: {:?}", mapped),
+      mem_map::Addr::Rom01(offset) => panic!("read_mapped_byte not implemented: {:?}", mapped),
+      mem_map::Addr::VideoRam(offset) => panic!("read_mapped_byte not implemented: {:?}", mapped),
+      mem_map::Addr::ExternalRam(offset) => {
+        panic!("read_mapped_byte not implemented: {:?}", mapped)
+      }
+      mem_map::Addr::WorkRam0(offset) => self.work_ram_0[offset as usize],
+      mem_map::Addr::WorkRam1(offset) => self.work_ram_1[offset as usize],
+      mem_map::Addr::SpriteTable(offset) => {
+        panic!("read_mapped_byte not implemented: {:?}", mapped)
+      }
+      mem_map::Addr::IoPorts(offset) => panic!("read_mapped_byte not implemented: {:?}", mapped),
+      mem_map::Addr::HighRam(offset) => panic!("read_mapped_byte not implemented: {:?}", mapped),
+      mem_map::Addr::InterruptRegister => panic!("read_mapped_byte not implemented: {:?}", mapped),
     }
   }
 
-  pub fn write_mmu_word(&mut self, addr: u16, value: u16) {
-    self.write_mmu_byte(addr + 1, (value >> 8) as u8 & 0b11111111);
-    self.write_mmu_byte(addr, value as u8 & 0b11111111);
+  pub fn write_mapped_word(&mut self, addr: u16, value: u16) {
+    self.write_mapped_byte(addr + 1, (value >> 8) as u8 & 0b11111111);
+    self.write_mapped_byte(addr, value as u8 & 0b11111111);
   }
 
-  pub fn write_mmu_byte(&mut self, addr: u16, value: u8) {
-    let mapped = mmu::memory_map(addr);
+  pub fn write_mapped_byte(&mut self, addr: u16, value: u8) {
+    let mapped = mem_map::memory_map(addr);
     match mapped {
-      mmu::Addr::Rom00(offset) => {
-        panic!("write_mmu_byte error: trying to write to rom0");
+      mem_map::Addr::Rom00(offset) => {
+        panic!("write_mapped_byte error: trying to write to rom0");
       }
-      mmu::Addr::Rom01(offset) => panic!("write_mmu_byte not implemented: {:?}", mapped),
-      mmu::Addr::VideoRam(offset) => panic!("write_mmu_byte not implemented: {:?}", mapped),
-      mmu::Addr::ExternalRam(offset) => panic!("write_mmu_byte not implemented: {:?}", mapped),
-      mmu::Addr::WorkRam0(offset) => {
+      mem_map::Addr::Rom01(offset) => panic!("write_mapped_byte not implemented: {:?}", mapped),
+      mem_map::Addr::VideoRam(offset) => panic!("write_mapped_byte not implemented: {:?}", mapped),
+      mem_map::Addr::ExternalRam(offset) => {
+        panic!("write_mapped_byte not implemented: {:?}", mapped)
+      }
+      mem_map::Addr::WorkRam0(offset) => {
         println!("{:x} {:x} {:x}", addr, offset, value);
         self.work_ram_0[offset as usize] = value;
       }
-      mmu::Addr::WorkRam1(offset) => {
+      mem_map::Addr::WorkRam1(offset) => {
         self.work_ram_1[offset as usize] = value;
       }
-      mmu::Addr::SpriteTable(offset) => panic!("write_mmu_byte not implemented: {:?}", mapped),
-      mmu::Addr::IoPorts(offset) => panic!("write_mmu_byte not implemented: {:?}", mapped),
-      mmu::Addr::HighRam(offset) => panic!("write_mmu_byte not implemented: {:?}", mapped),
-      mmu::Addr::InterruptRegister => panic!("write_mmu_byte not implemented: {:?}", mapped),
+      mem_map::Addr::SpriteTable(offset) => {
+        panic!("write_mapped_byte not implemented: {:?}", mapped)
+      }
+      mem_map::Addr::IoPorts(offset) => panic!("write_mapped_byte not implemented: {:?}", mapped),
+      mem_map::Addr::HighRam(offset) => panic!("write_mapped_byte not implemented: {:?}", mapped),
+      mem_map::Addr::InterruptRegister => panic!("write_mapped_byte not implemented: {:?}", mapped),
     };
   }
 
@@ -279,7 +304,7 @@ impl Cpu {
   fn inst_ldd_hl_a(&mut self) -> u32 {
     let hl = self.reg_hl;
     let a = self.read_reg_byte(Reg::A);
-    self.write_mmu_byte(hl, a);
+    self.write_mapped_byte(hl, a);
     self.reg_hl -= 1;
     8
   }
@@ -318,7 +343,7 @@ impl Cpu {
       Reg::L => low_byte(self.reg_hl),
       Reg::A => high_byte(self.reg_af),
       Reg::F => low_byte(self.reg_af),
-      // _ => panic!("read_byte_register unknown register: {:?}", register),
+      // _ => panic!("read_mapped_byte_register unknown register: {:?}", register),
     }
   }
 
@@ -348,7 +373,7 @@ impl Cpu {
   }
 
   fn read_pc_byte(&mut self) -> u8 {
-    let d = self.read_byte(self.reg_pc);
+    let d = self.read_mapped_byte(self.reg_pc);
     self.reg_pc += 1;
     d
   }
@@ -498,7 +523,7 @@ mod tests {
       c.write_reg_byte(Reg::A, 0x87);
       c.write_reg_byte(Reg::H, 0xC2);
       c.write_reg_byte(Reg::L, 0x20);
-      c.write_mmu_byte(0xC221, 0x87);
+      c.write_mapped_byte(0xC221, 0x87);
       c
     },
   });
