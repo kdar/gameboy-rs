@@ -195,9 +195,10 @@ impl Cpu {
       Instruction::LD_sp_nn => self.inst_ld_sp_nn(),
       Instruction::LDD_hl_a => self.inst_ldd_hl_a(),
       Instruction::XOR_r(r) => self.inst_xor_r(r),
+      Instruction::JR_cc_e(cc) => self.inst_jr_cc_e(cc),
 
       Instruction::BIT_b_r(b, r) => self.inst_bit_b_r(b, r),
-      _ => panic!("instruction not implemented: {:?}", ins),
+      // _ => panic!("instruction not implemented: {:?}", ins),
     };
 
     self.cycles += cycles;
@@ -209,8 +210,32 @@ impl Cpu {
     4
   }
 
+  // JR cc,e
+  // Opcode: 000cc000
+  // Page: 266
+  fn inst_jr_cc_e(&mut self, flag: Flag) -> u32 {
+    // signed argument
+    let e = self.read_pc_byte() as i8;
+
+    let mut check = false;
+    match flag {
+      Flag::NZ => check = !self.read_flag(Flag::Z),
+      Flag::Z => check = self.read_flag(Flag::Z),
+      Flag::NC => check = !self.read_flag(Flag::C),
+      Flag::C => check = self.read_flag(Flag::C),
+      _ => panic!("inst_jr_cc_e unsupported flag: {:?}", flag),
+    }
+
+    if check {
+      self.reg_pc = ((self.reg_pc as i16) + (e as i16)) as u16;
+      12
+    } else {
+      8
+    }
+  }
+
   // LD HL,nn
-  // 0x21
+  // Opcode: 0x21
   fn inst_ld_hl_nn(&mut self) -> u32 {
     let h = self.read_pc_byte();
     let l = self.read_pc_byte();
@@ -220,16 +245,16 @@ impl Cpu {
   }
 
   // LD SP,nn
-  // Page 120
-  // 0x31
+  // Opcode: 0x31
+  // Page: 120
   fn inst_ld_sp_nn(&mut self) -> u32 {
     self.reg_sp = self.read_pc_word();
     12
   }
 
   // LDD (HL),A
-  // Page 149
-  // 0x32
+  // Opcode: 0x32
+  // Page: 149
   fn inst_ldd_hl_a(&mut self) -> u32 {
     let hl = self.reg_hl;
     let a = self.read_reg_byte(Reg::A);
@@ -239,7 +264,11 @@ impl Cpu {
   }
 
   // XOR r
-  // 10110rrr
+  // Opcode: 10110rrr
+  // Page: 174
+  // This instruction is a subset of the defined instruction in the pdf.
+  // The superset instruction is XOR s, where s can be r, n, (HL), (IX+d)
+  // or (IY+d).
   fn inst_xor_r(&mut self, register: Reg) -> u32 {
     let register = self.read_reg_byte(register);
     let mut accumulator = self.read_reg_byte(Reg::A);
@@ -259,7 +288,8 @@ impl Cpu {
   }
 
   // BIT b,r
-  // 0xCB 01bbbrrr
+  // Opcode: 0xCB 01bbbrrr
+  // Page: 242
   fn inst_bit_b_r(&mut self, b: u8, r: Reg) -> u32 {
     let d = self.read_reg_byte(r);
 
@@ -457,6 +487,8 @@ mod tests {
     before: Cpu::default(),
     after: Cpu { cycles: 4, ..Cpu::default() },
   });
+
+  cpu_test!(test_inst_jr_cc_e { ins: Instruction::JR_cc_e });
 
   cpu_test!(test_inst_ld_hl_nn {
     ins: Instruction::LD_hl_nn,
