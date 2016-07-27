@@ -1,8 +1,4 @@
-use std::sync::Arc;
-use std::cell::RefCell;
-
 use super::cpu;
-use super::mem_map;
 
 pub struct GameBoy {
   cpu: cpu::Cpu,

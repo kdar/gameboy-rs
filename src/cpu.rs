@@ -4,6 +4,8 @@ use std::cmp::PartialEq;
 use md5;
 
 use super::mem_map;
+use super::reg::Reg;
+use super::instruction::Instruction;
 
 pub enum Flag {
   Z = 0b10000000, // zero flag
@@ -11,63 +13,6 @@ pub enum Flag {
   H = 0b00100000, // half carry flag
   C = 0b00010000, // carry flag
 }
-
-#[derive(Debug)]
-pub enum Reg {
-  B = 0b000,
-  C = 0b001,
-  D = 0b010,
-  E = 0b011,
-  H = 0b100,
-  L = 0b101,
-  F = 0b110,
-  A = 0b111, /* BC,
-              * DE,
-              * HL,
-              * SP, */
-}
-
-impl From<u8> for Reg {
-  fn from(v: u8) -> Reg {
-    match v {
-      0b000 => Reg::B,
-      0b001 => Reg::C,
-      0b010 => Reg::D,
-      0b011 => Reg::E,
-      0b100 => Reg::H,
-      0b101 => Reg::L,
-      0b110 => Reg::F,
-      0b111 => Reg::A,
-      _ => panic!("reg.from_raw_byte unknown register: {}", v),
-    }
-  }
-}
-
-// impl Reg {
-//   pub fn from_byte(r: u8) -> Reg {
-//     match r {
-//       0b000 => Reg::B,
-//       0b001 => Reg::C,
-//       0b010 => Reg::D,
-//       0b011 => Reg::E,
-//       0b100 => Reg::H,
-//       0b101 => Reg::L,
-//       0b110 => Reg::F,
-//       0b111 => Reg::A,
-//       _ => panic!("reg.from_raw_byte unknown register: {}", r),
-//     }
-//   }
-//
-//   pub fn from_word(r: u16) -> Reg {
-//     match r {
-//       0b00 => Reg::BC,
-//       0b01 => Reg::DE,
-//       0b10 => Reg::HL,
-//       0b11 => Reg::SP,
-//       _ => panic!("reg.from_raw_byte unknown register: {}", r),
-//     }
-//   }
-// }
 
 fn high_byte(value: u16) -> u8 {
   (value >> 8) as u8
@@ -242,17 +187,17 @@ impl Cpu {
   fn execute(&mut self, opcode: u8) {
     let cycles = if opcode == 0xCB {
       let opcode = self.read_pc_byte();
-      match opcode {
-        0x7C => self.inst_bit_b_r(opcode),
+      match Instruction::from_cb(opcode) {
+        Instruction::BIT_b_r(b, r) => self.inst_bit_b_r(b, r),
         _ => panic!("CB instruction not implemented: 0x{:02x}", opcode),
       }
     } else {
-      match opcode {
-        0x00 => self.inst_nop(),
-        0x21 => self.inst_ld_hl_nn(),
-        0x31 => self.inst_ld_sp_nn(),
-        0x32 => self.inst_ldd_hl_a(),
-        0xAF => self.inst_xor_a(),
+      match Instruction::from(opcode) {
+        Instruction::NOP => self.inst_nop(),
+        Instruction::LD_hl_nn => self.inst_ld_hl_nn(),
+        Instruction::LD_sp_nn => self.inst_ld_sp_nn(),
+        Instruction::LDD_hl_a => self.inst_ldd_hl_a(),
+        Instruction::XOR_r(r) => self.inst_xor_r(r),
         _ => panic!("instruction not implemented: 0x{:02x}", opcode),
       }
     };
@@ -260,14 +205,14 @@ impl Cpu {
     self.cycles += cycles;
   }
 
-  // 0x00
   // NOP
+  // 0x00
   fn inst_nop(&self) -> u32 {
     4
   }
 
-  // 0x21
   // LD HL,nn
+  // 0x21
   fn inst_ld_hl_nn(&mut self) -> u32 {
     let h = self.read_pc_byte();
     let l = self.read_pc_byte();
@@ -276,17 +221,17 @@ impl Cpu {
     12
   }
 
-  // 0x31
   // LD SP,nn
   // Page 120
+  // 0x31
   fn inst_ld_sp_nn(&mut self) -> u32 {
     self.reg_sp = self.read_pc_word();
     12
   }
 
-  // 0x32
   // LDD (HL),A
   // Page 149
+  // 0x32
   fn inst_ldd_hl_a(&mut self) -> u32 {
     let hl = self.reg_hl;
     let a = self.read_reg_byte(Reg::A);
@@ -295,7 +240,9 @@ impl Cpu {
     8
   }
 
-  fn xor(&mut self, register: Reg) -> u32 {
+  // XOR r
+  // 10110rrr
+  fn inst_xor_r(&mut self, register: Reg) -> u32 {
     let register = self.read_reg_byte(register);
     let mut accumulator = self.read_reg_byte(Reg::A);
     accumulator = accumulator ^ register;
@@ -313,17 +260,9 @@ impl Cpu {
     4
   }
 
-  // 0xAF
-  // XOR A
-  fn inst_xor_a(&mut self) -> u32 {
-    self.xor(Reg::A)
-  }
-
-  // 0xCB 01bbbrrr
   // BIT b,r
-  fn inst_bit_b_r(&mut self, opcode: u8) -> u32 {
-    let b = opcode >> 3 & 0b111;
-    let r = Reg::from(opcode & 0b111);
+  // 0xCB 01bbbrrr
+  fn inst_bit_b_r(&mut self, b: u8, r: Reg) -> u32 {
     let d = self.read_reg_byte(r);
 
     if d & (1 << b) > 0 {
@@ -408,6 +347,7 @@ impl Cpu {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use super::super::reg::Reg;
   use difference::{self, Difference};
   use std::io::Write;
 
@@ -457,7 +397,7 @@ mod tests {
     debug_assert_eq!(c.reg_af, 0b00000000_11110000);
   }
 
-  fn diff(c1: &Cpu, c2: &Cpu) -> String {
+  fn cpu_diff(c1: &Cpu, c2: &Cpu) -> String {
     let mut w = Vec::new();
     let (_, changeset) = difference::diff(&format!("{:?}", c1), &format!("{:?}", c2), "\n");
     for i in 0..changeset.len() {
@@ -491,7 +431,7 @@ mod tests {
       fn $name() {
         let mut cpu = $before;
         cpu.execute($ins);
-        assert!(cpu == $after, "\n{}", diff(&$after, &cpu));
+        assert!(cpu == $after, "\n{}", cpu_diff(&$after, &cpu));
       }
     )
   }
@@ -560,4 +500,8 @@ mod tests {
       c
     },
   });
+
+  // cpu_test!(inst_bit_b_r {
+  //   ins:
+  // });
 }
