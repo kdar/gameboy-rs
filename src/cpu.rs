@@ -519,18 +519,23 @@ mod tests {
 
   #[test]
   fn test_inst_xor_r() {
-    for r in &[Reg::B, Reg::C, Reg::D, Reg::E, Reg::H, Reg::L] {
+    for r in 0..7 {
+      if r == 6 {
+        // skip flag register
+        continue;
+      }
+      let r = Reg::from(r);
       cpu_inline_test!({
-        ins: Instruction::XOR_r(*r),
+        ins: Instruction::XOR_r(r),
         before: {
           let mut c = Cpu::default();
-          c.write_reg_byte(*r, 200);
+          c.write_reg_byte(r, 200);
           c.write_reg_byte(Reg::A, 200);
           c
         },
         after: {
           let mut c = Cpu { cycles: 4, ..Cpu::default() };
-          c.write_reg_byte(*r, 200);
+          c.write_reg_byte(r, 200);
           c.write_flag(Flag::Z, true);
           c
         },
@@ -538,9 +543,57 @@ mod tests {
     }
   }
 
-  // #[test]
-  // fn test_inst_bit_b_r() {
-  //   let mut c = Cpu::default();
-  //
-  // }
+  #[test]
+  fn test_inst_bit_b_r() {
+    let mut c = Cpu::default();
+
+    // Test with setting bit to 1
+    for r in 0..7 {
+      if r == 6 {
+        // skip flag register
+        continue;
+      }
+
+      for b in 0..7 {
+        let r = Reg::from(r);
+        cpu_inline_test!({
+          ins: Instruction::BIT_b_r(b, r),
+          before: {
+            let mut c = Cpu::default();
+            c.write_reg_byte(r, 1 << b);
+            c
+          },
+          after: {
+            let mut c = Cpu { cycles: 8, ..Cpu::default() };
+            c.write_reg_byte(r, 1 << b);
+            c.write_flag(Flag::Z, false);
+            c.write_flag(Flag::H, true);
+            c
+          },
+        });
+      }
+
+      // Test with setting bit to 0
+      for r in 0..7 {
+        if r == 6 {
+          // skip flag register
+          continue;
+        }
+
+        for b in 0..7 {
+          let r = Reg::from(r);
+          cpu_inline_test!({
+            ins: Instruction::BIT_b_r(b, r),
+            before: Cpu::default(),
+            after: {
+              let mut c = Cpu { cycles: 8, ..Cpu::default() };
+              c.write_flag(Flag::Z, true);
+              c.write_flag(Flag::H, true);
+              c
+            },
+          });
+        }
+      }
+    }
+  }
 }

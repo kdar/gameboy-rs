@@ -7,10 +7,7 @@ pub enum Reg {
   H = 0b100,
   L = 0b101,
   F = 0b110,
-  A = 0b111, /* BC,
-              * DE,
-              * HL,
-              * SP, */
+  A = 0b111,
 }
 
 impl From<u8> for Reg {
