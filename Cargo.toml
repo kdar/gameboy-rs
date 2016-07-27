@@ -8,6 +8,7 @@ clap = "2.9"
 simplelog = "0.1"
 log = "0.3"
 md5 = "0.1"
+difference = "0.4"
 
 [lib]
 name = "gameboy"

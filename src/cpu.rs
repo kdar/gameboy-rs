@@ -27,6 +27,22 @@ pub enum Reg {
               * SP, */
 }
 
+impl From<u8> for Reg {
+  fn from(v: u8) -> Reg {
+    match v {
+      0b000 => Reg::B,
+      0b001 => Reg::C,
+      0b010 => Reg::D,
+      0b011 => Reg::E,
+      0b100 => Reg::H,
+      0b101 => Reg::L,
+      0b110 => Reg::F,
+      0b111 => Reg::A,
+      _ => panic!("reg.from_raw_byte unknown register: {}", v),
+    }
+  }
+}
+
 // impl Reg {
 //   pub fn from_byte(r: u8) -> Reg {
 //     match r {
@@ -84,7 +100,7 @@ impl PartialEq for Cpu {
   fn eq(&self, x: &Cpu) -> bool {
     self.reg_af == x.reg_af && self.reg_bc == x.reg_bc && self.reg_de == x.reg_de &&
     self.reg_hl == x.reg_hl && self.reg_sp == x.reg_sp && self.reg_pc == x.reg_pc &&
-    self.cycles == self.cycles && self.booting == x.booting &&
+    self.cycles == x.cycles && self.booting == x.booting &&
     self.work_ram_0[..] == x.work_ram_0[..] && self.work_ram_1[..] == x.work_ram_1[..]
   }
 }
@@ -227,6 +243,7 @@ impl Cpu {
     let cycles = if opcode == 0xCB {
       let opcode = self.read_pc_byte();
       match opcode {
+        0x7C => self.inst_bit_b_r(opcode),
         _ => panic!("CB instruction not implemented: 0x{:02x}", opcode),
       }
     } else {
@@ -302,6 +319,25 @@ impl Cpu {
     self.xor(Reg::A)
   }
 
+  // 0xCB 01bbbrrr
+  // BIT b,r
+  fn inst_bit_b_r(&mut self, opcode: u8) -> u32 {
+    let b = opcode >> 3 & 0b111;
+    let r = Reg::from(opcode & 0b111);
+    let d = self.read_reg_byte(r);
+
+    if d & (1 << b) > 0 {
+      self.write_flag(Flag::Z, false);
+    } else {
+      self.write_flag(Flag::Z, true);
+    }
+
+    self.write_flag(Flag::H, true);
+    self.write_flag(Flag::N, false);
+
+    8
+  }
+
   pub fn read_reg_byte(&self, register: Reg) -> u8 {
     match register {
       Reg::B => high_byte(self.reg_bc),
@@ -372,6 +408,8 @@ impl Cpu {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use difference::{self, Difference};
+  use std::io::Write;
 
   #[test]
   fn test_write_read_reg_byte() {
@@ -419,6 +457,26 @@ mod tests {
     debug_assert_eq!(c.reg_af, 0b00000000_11110000);
   }
 
+  fn diff(c1: &Cpu, c2: &Cpu) -> String {
+    let mut w = Vec::new();
+    let (_, changeset) = difference::diff(&format!("{:?}", c1), &format!("{:?}", c2), "\n");
+    for i in 0..changeset.len() {
+      match changeset[i] {
+        Difference::Same(ref x) => {
+          // writeln!(w, "{}", x);
+        }
+        Difference::Add(ref x) => {
+          writeln!(w, "+{}", x);
+        }
+        Difference::Rem(ref x) => {
+          writeln!(w, "-{}", x);
+        }
+      }
+    }
+
+    String::from_utf8(w).unwrap()
+  }
+
   // We don't compare the boot_rom or cart_rom for equality.
   macro_rules! cpu_test {
     (
@@ -433,15 +491,7 @@ mod tests {
       fn $name() {
         let mut cpu = $before;
         cpu.execute($ins);
-        assert_eq!(cpu, $after);
-        // assert_eq!(cpu.reg_af, $after.reg_af);
-        // assert_eq!(cpu.reg_bc, $after.reg_bc);
-        // assert_eq!(cpu.reg_de, $after.reg_de);
-        // assert_eq!(cpu.reg_hl, $after.reg_hl);
-        // assert_eq!(cpu.reg_sp, $after.reg_sp);
-        // assert_eq!(cpu.reg_pc, $after.reg_pc);
-        // assert_eq!(cpu.cycles, $after.cycles);
-        // assert_eq!(cpu.booting, $after.booting);
+        assert!(cpu == $after, "\n{}", diff(&$after, &cpu));
       }
     )
   }
