@@ -14,17 +14,17 @@ pub enum Flag {
 
 #[derive(Debug)]
 pub enum Reg {
-  B,
-  C,
-  D,
-  E,
-  H,
-  L,
-  F,
-  A, /* BC,
-      * DE,
-      * HL,
-      * SP, */
+  B = 0b000,
+  C = 0b001,
+  D = 0b010,
+  E = 0b011,
+  H = 0b100,
+  L = 0b101,
+  F = 0b110,
+  A = 0b111, /* BC,
+              * DE,
+              * HL,
+              * SP, */
 }
 
 // impl Reg {
@@ -110,16 +110,16 @@ impl Default for Cpu {
 
 impl fmt::Debug for Cpu {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    try!(write!(f, "\nA:       0x{0:02x} [{0:08b}]", high_byte(self.reg_af)));
-    try!(write!(f, "\nF:       0x{0:02x} [{0:08b}]", low_byte(self.reg_af)));
-    try!(write!(f, "\nB:       0x{0:02x} [{0:08b}]", high_byte(self.reg_bc)));
-    try!(write!(f, "\nC:       0x{0:02x} [{0:08b}]", low_byte(self.reg_bc)));
-    try!(write!(f, "\nD:       0x{0:02x} [{0:08b}]", high_byte(self.reg_de)));
-    try!(write!(f, "\nE:       0x{0:02x} [{0:08b}]", low_byte(self.reg_de)));
-    try!(write!(f, "\nH:       0x{0:02x} [{0:08b}]", high_byte(self.reg_hl)));
-    try!(write!(f, "\nL:       0x{0:02x} [{0:08b}]", low_byte(self.reg_hl)));
-    try!(write!(f, "\nSP:      0x{0:04x} [{0:016b}]", self.reg_sp));
-    try!(write!(f, "\nPC:      0x{0:04x} [{0:016b}]", self.reg_pc));
+    try!(write!(f, "\nA:       {0:#04x} [{0:08b}]", high_byte(self.reg_af)));
+    try!(write!(f, "\nF:       {0:#04x} [{0:08b}]", low_byte(self.reg_af)));
+    try!(write!(f, "\nB:       {0:#04x} [{0:08b}]", high_byte(self.reg_bc)));
+    try!(write!(f, "\nC:       {0:#04x} [{0:08b}]", low_byte(self.reg_bc)));
+    try!(write!(f, "\nD:       {0:#04x} [{0:08b}]", high_byte(self.reg_de)));
+    try!(write!(f, "\nE:       {0:#04x} [{0:08b}]", low_byte(self.reg_de)));
+    try!(write!(f, "\nH:       {0:#04x} [{0:08b}]", high_byte(self.reg_hl)));
+    try!(write!(f, "\nL:       {0:#04x} [{0:08b}]", low_byte(self.reg_hl)));
+    try!(write!(f, "\nSP:      {0:#06x} [{0:016b}]", self.reg_sp));
+    try!(write!(f, "\nPC:      {0:#06x} [{0:016b}]", self.reg_pc));
     try!(write!(f, "\nCycles:  {}", self.cycles));
     try!(write!(f, "\nBooting: {}", self.booting));
     try!(write!(f,
@@ -128,7 +128,7 @@ impl fmt::Debug for Cpu {
     try!(write!(f,
                 "\nWork ram 1 checksum: {:?}",
                 md5::compute(&self.work_ram_1[..])));
-    write!(f, "")
+    write!(f, "\n")
   }
 }
 
@@ -195,7 +195,6 @@ impl Cpu {
         panic!("write_mapped_byte not implemented: {:?}", mapped)
       }
       mem_map::Addr::WorkRam0(offset) => {
-        println!("{:x} {:x} {:x}", addr, offset, value);
         self.work_ram_0[offset as usize] = value;
       }
       mem_map::Addr::WorkRam1(offset) => {
