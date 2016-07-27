@@ -195,7 +195,8 @@ impl Cpu {
       Instruction::LD_sp_nn => self.inst_ld_sp_nn(),
       Instruction::LDD_hl_a => self.inst_ldd_hl_a(),
       Instruction::XOR_r(r) => self.inst_xor_r(r),
-      Instruction::JR_cc_e(cc) => self.inst_jr_cc_e(cc),
+      Instruction::JR_nz_e => self.inst_jr_nz_e(),
+      Instruction::JR_z_e => self.inst_jr_z_e(),
 
       Instruction::BIT_b_r(b, r) => self.inst_bit_b_r(b, r),
       // _ => panic!("instruction not implemented: {:?}", ins),
@@ -210,23 +211,58 @@ impl Cpu {
     4
   }
 
-  // JR cc,e
-  // Opcode: 000cc000
+  // // JR cc,e
+  // // Opcode: 000cc000
+  // // Page: 266
+  // // This is a superset of many different instructions:
+  // // JR NZ,e
+  // // JR Z,e
+  // // JR NC,e
+  // // JR C,e
+  // fn inst_jr_cc_e(&mut self, flag: Flag) -> u32 {
+  //   // signed argument
+  //   let e = self.read_pc_byte() as i8;
+  //
+  //   let mut check = false;
+  //   match flag {
+  //     Flag::NZ => check = !self.read_flag(Flag::Z),
+  //     Flag::Z => check = self.read_flag(Flag::Z),
+  //     Flag::NC => check = !self.read_flag(Flag::C),
+  //     Flag::C => check = self.read_flag(Flag::C),
+  //     _ => panic!("inst_jr_cc_e unsupported flag: {:?}", flag),
+  //   }
+  //
+  //   if check {
+  //     self.reg_pc = ((self.reg_pc as i16) + (e as i16)) as u16;
+  //     12
+  //   } else {
+  //     8
+  //   }
+  // }
+
+  // JR NZ,e
+  // Opcode: 0x20
   // Page: 266
-  fn inst_jr_cc_e(&mut self, flag: Flag) -> u32 {
+  fn inst_jr_nz_e(&mut self) -> u32 {
     // signed argument
     let e = self.read_pc_byte() as i8;
 
-    let mut check = false;
-    match flag {
-      Flag::NZ => check = !self.read_flag(Flag::Z),
-      Flag::Z => check = self.read_flag(Flag::Z),
-      Flag::NC => check = !self.read_flag(Flag::C),
-      Flag::C => check = self.read_flag(Flag::C),
-      _ => panic!("inst_jr_cc_e unsupported flag: {:?}", flag),
+    if !self.read_flag(Flag::Z) {
+      self.reg_pc = ((self.reg_pc as i16) + (e as i16)) as u16;
+      12
+    } else {
+      8
     }
+  }
 
-    if check {
+  // JR Z,e
+  // Opcode: 0x28
+  // Page: 266
+  fn inst_jr_z_e(&mut self) -> u32 {
+    // signed argument
+    let e = self.read_pc_byte() as i8;
+
+    if self.read_flag(Flag::Z) {
       self.reg_pc = ((self.reg_pc as i16) + (e as i16)) as u16;
       12
     } else {
@@ -488,7 +524,39 @@ mod tests {
     after: Cpu { cycles: 4, ..Cpu::default() },
   });
 
-  cpu_test!(test_inst_jr_cc_e { ins: Instruction::JR_cc_e });
+  cpu_test!(test_inst_jr_nz_e {
+    ins: Instruction::JR_nz_e,
+    before: {
+      let mut c = Cpu::default();
+      c.cart_rom = Box::new([0x23]);
+      c.write_flag(Flag::Z, false);
+      c
+    },
+    after: Cpu {
+      reg_pc: 0x24, // 0x23 + 1 before jr_nz_e reads from pc
+      cycles: 12,
+      ..Cpu::default()
+    },
+  });
+
+  cpu_test!(test_inst_jr_z_e {
+    ins: Instruction::JR_z_e,
+    before: {
+      let mut c = Cpu::default();
+      c.cart_rom = Box::new([0x23]);
+      c.write_flag(Flag::Z, true);
+      c
+    },
+    after: {
+      let mut c = Cpu {
+        reg_pc: 0x24, // 0x23 + 1 before jr_z_e reads from pc
+        cycles: 12,
+        ..Cpu::default()
+      };
+      c.write_flag(Flag::Z, true);
+      c
+    },
+  });
 
   cpu_test!(test_inst_ld_hl_nn {
     ins: Instruction::LD_hl_nn,
