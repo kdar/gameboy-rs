@@ -524,39 +524,86 @@ mod tests {
     after: Cpu { cycles: 4, ..Cpu::default() },
   });
 
-  cpu_test!(test_inst_jr_nz_e {
-    ins: Instruction::JR_nz_e,
-    before: {
-      let mut c = Cpu::default();
-      c.cart_rom = Box::new([0x23]);
-      c.write_flag(Flag::Z, false);
-      c
-    },
-    after: Cpu {
-      reg_pc: 0x24, // 0x23 + 1 before jr_nz_e reads from pc
-      cycles: 12,
-      ..Cpu::default()
-    },
-  });
+  // cpu_test!(test_inst_jr_nz_e {
+  //   ins: Instruction::JR_nz_e,
+  //   before: {
+  //     let mut c = Cpu::default();
+  //     c.cart_rom = Box::new([0x23]);
+  //     c.write_flag(Flag::Z, false);
+  //     c
+  //   },
+  //   after: Cpu {
+  //     reg_pc: 0x24, // 0x23 + 1 before jr_nz_e reads from pc
+  //     cycles: 12,
+  //     ..Cpu::default()
+  //   },
+  // });
 
-  cpu_test!(test_inst_jr_z_e {
-    ins: Instruction::JR_z_e,
-    before: {
+  #[test]
+  fn test_inst_jr_nz_e() {
+    let addrs = &[0x23, 0x00, 0xFF, 0xE6];
+    let pcs = &[(0x1000 as i16) + (0x23 as i8 as i16) + 1,
+                (0x1000 as i16) + (0x00 as i8 as i16) + 1,
+                (0x1000 as i16) + (0xFF as i8 as i16) + 1,
+                (0x1000 as i16) + (0xE6 as i8 as i16) + 1];
+
+    for i in 0..addrs.len() {
       let mut c = Cpu::default();
-      c.cart_rom = Box::new([0x23]);
+      c.reg_pc = 0x1000;
+      c.cart_rom = Box::new([0; 0x1000 + 1]);
+      c.cart_rom[0x1000] = addrs[i];
+      c.write_flag(Flag::Z, false);
+
+      c.execute_instruction(Instruction::JR_nz_e);
+
+      assert_eq!(c.reg_pc, pcs[i] as u16);
+    }
+
+    for i in 0..addrs.len() {
+      let mut c = Cpu::default();
+      c.reg_pc = 0x1000;
+      c.cart_rom = Box::new([0; 0x1000 + 1]);
+      c.cart_rom[0x1000] = addrs[i];
       c.write_flag(Flag::Z, true);
-      c
-    },
-    after: {
-      let mut c = Cpu {
-        reg_pc: 0x24, // 0x23 + 1 before jr_z_e reads from pc
-        cycles: 12,
-        ..Cpu::default()
-      };
+
+      c.execute_instruction(Instruction::JR_nz_e);
+
+      assert_eq!(c.reg_pc, 0x1001);
+    }
+  }
+
+  #[test]
+  fn test_inst_jr_z_e() {
+    let addrs = &[0x23, 0x00, 0xFF, 0xE6];
+    let pcs = &[(0x1000 as i16) + (0x23 as i8 as i16) + 1,
+                (0x1000 as i16) + (0x00 as i8 as i16) + 1,
+                (0x1000 as i16) + (0xFF as i8 as i16) + 1,
+                (0x1000 as i16) + (0xE6 as i8 as i16) + 1];
+
+    for i in 0..addrs.len() {
+      let mut c = Cpu::default();
+      c.reg_pc = 0x1000;
+      c.cart_rom = Box::new([0; 0x1000 + 1]);
+      c.cart_rom[0x1000] = addrs[i];
       c.write_flag(Flag::Z, true);
-      c
-    },
-  });
+
+      c.execute_instruction(Instruction::JR_z_e);
+
+      assert_eq!(c.reg_pc, pcs[i] as u16);
+    }
+
+    for i in 0..addrs.len() {
+      let mut c = Cpu::default();
+      c.reg_pc = 0x1000;
+      c.cart_rom = Box::new([0; 0x1000 + 1]);
+      c.cart_rom[0x1000] = addrs[i];
+      c.write_flag(Flag::Z, false);
+
+      c.execute_instruction(Instruction::JR_z_e);
+
+      assert_eq!(c.reg_pc, 0x1001);
+    }
+  }
 
   cpu_test!(test_inst_ld_hl_nn {
     ins: Instruction::LD_hl_nn,
