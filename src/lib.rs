@@ -7,5 +7,6 @@ mod cpu;
 mod mem_map;
 mod instruction;
 mod reg;
+mod flag;
 
 pub use gameboy::GameBoy;

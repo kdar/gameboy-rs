@@ -5,14 +5,8 @@ use md5;
 
 use super::mem_map;
 use super::reg::Reg;
+use super::flag::Flag;
 use super::instruction::Instruction;
-
-pub enum Flag {
-  Z = 0b10000000, // zero flag
-  N = 0b01000000, // add/sub flag
-  H = 0b00100000, // half carry flag
-  C = 0b00010000, // carry flag
-}
 
 fn high_byte(value: u16) -> u8 {
   (value >> 8) as u8
@@ -348,6 +342,7 @@ impl Cpu {
 mod tests {
   use super::*;
   use super::super::reg::Reg;
+  use super::super::flag::Flag;
   use difference::{self, Difference};
   use std::io::Write;
 
