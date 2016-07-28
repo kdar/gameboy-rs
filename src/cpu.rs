@@ -459,11 +459,59 @@ mod tests {
     )
   }
 
-  cpu_test!(test_inst_nop {
-    ins: Instruction::NOP,
-    before: Cpu::default(),
-    after: Cpu { cycles: 4, ..Cpu::default() },
-  });
+  #[test]
+  fn test_inst_bit_b_r() {
+    let mut c = Cpu::default();
+
+    // Test with setting bit to 1
+    for r in 0..7 {
+      if r == 6 {
+        // skip flag register
+        continue;
+      }
+
+      for b in 0..7 {
+        let r = Reg::from(r);
+        cpu_inline_test!({
+          ins: Instruction::BIT_b_r(b, r),
+          before: {
+            let mut c = Cpu::default();
+            c.write_reg_byte(r, 1 << b);
+            c
+          },
+          after: {
+            let mut c = Cpu { cycles: 8, ..Cpu::default() };
+            c.write_reg_byte(r, 1 << b);
+            c.write_flag(Flag::Z, false);
+            c.write_flag(Flag::H, true);
+            c
+          },
+        });
+      }
+
+      // Test with setting bit to 0
+      for r in 0..7 {
+        if r == 6 {
+          // skip flag register
+          continue;
+        }
+
+        for b in 0..7 {
+          let r = Reg::from(r);
+          cpu_inline_test!({
+            ins: Instruction::BIT_b_r(b, r),
+            before: Cpu::default(),
+            after: {
+              let mut c = Cpu { cycles: 8, ..Cpu::default() };
+              c.write_flag(Flag::Z, true);
+              c.write_flag(Flag::H, true);
+              c
+            },
+          });
+        }
+      }
+    }
+  }
 
   #[test]
   fn test_inc_r() {
@@ -517,6 +565,23 @@ mod tests {
       }
     }
   }
+
+  cpu_test!(test_inst_ld_0xff00c_a {
+    ins: Instruction::LD_0xff00c_a,
+    before: {
+      let mut c = Cpu::default();
+      c.write_reg_byte(Reg::C, 0x10);
+      c.write_reg_byte(Reg::A, 0xFF);
+      c
+    },
+    after: {
+      let mut c = Cpu { cycles: 8, ..Cpu::default() };
+      c.write_reg_byte(Reg::C, 0x10);
+      c.write_reg_byte(Reg::A, 0xFF);
+      c.mem.write_byte(0xFF10, 0xFF);
+      c
+    },
+  });
 
   #[test]
   fn test_inst_ld_dd_nn() {
@@ -580,23 +645,6 @@ mod tests {
     }
   }
 
-  cpu_test!(test_inst_ld_0xff00c_a {
-    ins: Instruction::LD_0xff00c_a,
-    before: {
-      let mut c = Cpu::default();
-      c.write_reg_byte(Reg::C, 0x10);
-      c.write_reg_byte(Reg::A, 0xFF);
-      c
-    },
-    after: {
-      let mut c = Cpu { cycles: 8, ..Cpu::default() };
-      c.write_reg_byte(Reg::C, 0x10);
-      c.write_reg_byte(Reg::A, 0xFF);
-      c.mem.write_byte(0xFF10, 0xFF);
-      c
-    },
-  });
-
   cpu_test!(test_inst_ldd_hl_a {
     ins: Instruction::LDD_hl_a,
     before: {
@@ -614,6 +662,12 @@ mod tests {
       c.mem.write_byte(0xC221, 0x87);
       c
     },
+  });
+
+  cpu_test!(test_inst_nop {
+    ins: Instruction::NOP,
+    before: Cpu::default(),
+    after: Cpu { cycles: 4, ..Cpu::default() },
   });
 
   cpu_test!(inst_xor_a {
@@ -653,60 +707,6 @@ mod tests {
           c
         },
       });
-    }
-  }
-
-  #[test]
-  fn test_inst_bit_b_r() {
-    let mut c = Cpu::default();
-
-    // Test with setting bit to 1
-    for r in 0..7 {
-      if r == 6 {
-        // skip flag register
-        continue;
-      }
-
-      for b in 0..7 {
-        let r = Reg::from(r);
-        cpu_inline_test!({
-          ins: Instruction::BIT_b_r(b, r),
-          before: {
-            let mut c = Cpu::default();
-            c.write_reg_byte(r, 1 << b);
-            c
-          },
-          after: {
-            let mut c = Cpu { cycles: 8, ..Cpu::default() };
-            c.write_reg_byte(r, 1 << b);
-            c.write_flag(Flag::Z, false);
-            c.write_flag(Flag::H, true);
-            c
-          },
-        });
-      }
-
-      // Test with setting bit to 0
-      for r in 0..7 {
-        if r == 6 {
-          // skip flag register
-          continue;
-        }
-
-        for b in 0..7 {
-          let r = Reg::from(r);
-          cpu_inline_test!({
-            ins: Instruction::BIT_b_r(b, r),
-            before: Cpu::default(),
-            after: {
-              let mut c = Cpu { cycles: 8, ..Cpu::default() };
-              c.write_flag(Flag::Z, true);
-              c.write_flag(Flag::H, true);
-              c
-            },
-          });
-        }
-      }
     }
   }
 }
