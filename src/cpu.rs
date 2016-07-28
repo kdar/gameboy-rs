@@ -204,6 +204,7 @@ impl Cpu {
       Instruction::INC_r(r) => self.inst_INC_r(r),
       Instruction::JR_cc_e(cc) => self.inst_JR_cc_e(cc),
       Instruction::LD_0xFF00C_A => self.inst_LD_0xFF00C_A(),
+      Instruction::LD_0xFF00n_A => self.inst_LD_0xFF00n_A(),
       Instruction::LD_·HL·_r(r) => self.inst_LD_·HL·_r(r),
       Instruction::LD_dd_nn(dd) => self.inst_LD_dd_nn(dd),
       Instruction::LD_r_n(r) => self.inst_LD_r_n(r),
@@ -278,8 +279,20 @@ impl Cpu {
     8
   }
 
+  // LD (0xFF00+n),A
+  // Opcode: 0xE0 nn
+  // Moved instruction.
+  #[allow(non_snake_case)]
+  fn inst_LD_0xFF00n_A(&mut self) -> u32 {
+    let a = self.read_reg_byte(Reg::A);
+    let n = self.read_pc_byte();
+    self.mem.write_byte(0xFF00 + n as u16, a);
+    12
+  }
+
   // LD (HL),r
   // Opcode: 01110rrr
+  #[allow(non_snake_case)]
   fn inst_LD_·HL·_r(&mut self, reg: Reg) -> u32 {
     let hl = self.reg_hl;
     let a = self.read_reg_byte(reg);
@@ -598,6 +611,22 @@ mod tests {
     after: {
       let mut c = Cpu { cycles: 8, ..Cpu::default() };
       c.write_reg_byte(Reg::C, 0x10);
+      c.write_reg_byte(Reg::A, 0xFF);
+      c.mem.write_byte(0xFF10, 0xFF);
+      c
+    },
+  });
+
+  cpu_test!(test_inst_LD_0xFF00n_A {
+    ins: Instruction::LD_0xFF00n_A,
+    before: {
+      let mut c = Cpu::default();
+      c.write_reg_byte(Reg::A, 0xFF);
+      c.mem.write_byte(0, 0x10);
+      c
+    },
+    after: {
+      let mut c = Cpu { cycles: 12, reg_pc: 1, ..Cpu::default() };
       c.write_reg_byte(Reg::A, 0xFF);
       c.mem.write_byte(0xFF10, 0xFF);
       c

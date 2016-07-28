@@ -14,6 +14,7 @@ pub enum Instruction {
   INC_r(Reg),
   JR_cc_e(Flag),
   LD_0xFF00C_A,
+  LD_0xFF00n_A,
   LD_·HL·_r(Reg),
   LD_dd_nn(Reg),
   LD_r_n(Reg),
@@ -34,6 +35,7 @@ impl Instruction {
       0x30 => Instruction::JR_cc_e(Flag::NC),
       0x38 => Instruction::JR_cc_e(Flag::C),
       0xE2 => Instruction::LD_0xFF00C_A,
+      0xE0 => Instruction::LD_0xFF00n_A,
       0x70 if op & 0b11111000 == 0b01110000 => {
         let r = op & 0b111;
         Instruction::LD_·HL·_r(Reg::from(r))
