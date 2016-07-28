@@ -13,10 +13,10 @@ pub enum Instruction {
   BIT_b_r(u8, Reg),
   INC_r(Reg),
   JR_cc_e(Flag),
-  LD_0xff00c_a,
+  LD_0xFF00C_A,
   LD_dd_nn(Reg),
   LD_r_n(Reg),
-  LDD_·hl·_a,
+  LDD_·HL·_A,
   NOP,
   XOR_r(Reg),
 }
@@ -32,7 +32,7 @@ impl Instruction {
       0x28 => Instruction::JR_cc_e(Flag::Z),
       0x30 => Instruction::JR_cc_e(Flag::NC),
       0x38 => Instruction::JR_cc_e(Flag::C),
-      0xE2 => Instruction::LD_0xff00c_a,
+      0xE2 => Instruction::LD_0xFF00C_A,
       0x21 if op & 0b11001111 == 0b00000001 => {
         let r = op >> 4 & 0b11;
         Instruction::LD_dd_nn(Reg::from_pair(r))
@@ -41,7 +41,7 @@ impl Instruction {
         let r = op >> 3 & 0b111;
         Instruction::LD_r_n(Reg::from(r))
       }
-      0x32 => Instruction::LDD_·hl·_a,
+      0x32 => Instruction::LDD_·HL·_A,
       0x00 => Instruction::NOP,
       0xAF => Instruction::XOR_r(Reg::A),
 

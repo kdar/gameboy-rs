@@ -200,15 +200,15 @@ impl Cpu {
 
   fn execute_instruction(&mut self, ins: Instruction) {
     let cycles = match ins {
-      Instruction::BIT_b_r(b, r) => self.inst_bit_b_r(b, r),
-      Instruction::INC_r(r) => self.inst_inc_r(r),
-      Instruction::JR_cc_e(cc) => self.inst_jr_cc_e(cc),
-      Instruction::LD_0xff00c_a => self.inst_ld_0xff00c_a(),
-      Instruction::LD_dd_nn(dd) => self.inst_ld_dd_nn(dd),
-      Instruction::LD_r_n(r) => self.inst_ld_r_n(r),
-      Instruction::LDD_·hl·_a => self.inst_ldd_·hl·_a(),
-      Instruction::NOP => self.inst_nop(),
-      Instruction::XOR_r(r) => self.inst_xor_r(r),
+      Instruction::BIT_b_r(b, r) => self.inst_BIT_b_r(b, r),
+      Instruction::INC_r(r) => self.inst_INC_r(r),
+      Instruction::JR_cc_e(cc) => self.inst_JR_cc_e(cc),
+      Instruction::LD_0xFF00C_A => self.inst_LD_0xFF00C_A(),
+      Instruction::LD_dd_nn(dd) => self.inst_LD_dd_nn(dd),
+      Instruction::LD_r_n(r) => self.inst_LD_r_n(r),
+      Instruction::LDD_·HL·_A => self.inst_LDD_·HL·_A(),
+      Instruction::NOP => self.inst_NOP(),
+      Instruction::XOR_r(r) => self.inst_XOR_r(r),
       // _ => panic!("instruction not implemented: {:?}", ins),
     };
 
@@ -218,7 +218,8 @@ impl Cpu {
   // BIT b,r
   // Opcode: 0xCB 01bbbrrr
   // Page: 242
-  fn inst_bit_b_r(&mut self, b: u8, r: Reg) -> u32 {
+  #[allow(non_snake_case)]
+  fn inst_BIT_b_r(&mut self, b: u8, r: Reg) -> u32 {
     let d = self.read_reg_byte(r);
 
     if d & (1 << b) > 0 {
@@ -236,7 +237,8 @@ impl Cpu {
   // INC r
   // Opcode: 00rrr100
   // Page: 178
-  fn inst_inc_r(&mut self, r: Reg) -> u32 {
+  #[allow(non_snake_case)]
+  fn inst_INC_r(&mut self, r: Reg) -> u32 {
     let mut d = self.read_reg_byte(r);
     d += 1;
     self.write_reg_byte(r, d);
@@ -251,7 +253,8 @@ impl Cpu {
   // JR Z,e
   // JR NC,e
   // JR C,e
-  fn inst_jr_cc_e(&mut self, flag: Flag) -> u32 {
+  #[allow(non_snake_case)]
+  fn inst_JR_cc_e(&mut self, flag: Flag) -> u32 {
     // signed argument
     let e = self.read_pc_byte() as i8;
     if self.read_flag(flag) {
@@ -266,7 +269,8 @@ impl Cpu {
   // LD (0xFF00+C),A
   // Opcode: 0xE2
   // Moved instruction.
-  fn inst_ld_0xff00c_a(&mut self) -> u32 {
+  #[allow(non_snake_case)]
+  fn inst_LD_0xFF00C_A(&mut self) -> u32 {
     let a = self.read_reg_byte(Reg::A);
     let c = self.read_reg_byte(Reg::C);
     self.mem.write_byte(0xFF00 + c as u16, a);
@@ -276,7 +280,8 @@ impl Cpu {
   // LD dd,nn
   // Opcode: 00dd0001
   // Page: 120
-  fn inst_ld_dd_nn(&mut self, reg: Reg) -> u32 {
+  #[allow(non_snake_case)]
+  fn inst_LD_dd_nn(&mut self, reg: Reg) -> u32 {
     let nn = self.read_pc_word();
     self.write_reg_word(reg, nn);
     12
@@ -285,7 +290,8 @@ impl Cpu {
   // LD r,n
   // Opcode: 00rrr110
   // Page: 100
-  fn inst_ld_r_n(&mut self, reg: Reg) -> u32 {
+  #[allow(non_snake_case)]
+  fn inst_LD_r_n(&mut self, reg: Reg) -> u32 {
     let n = self.read_pc_byte();
     self.write_reg_byte(reg, n);
     8
@@ -294,7 +300,8 @@ impl Cpu {
   // LDD (HL),A
   // Opcode: 0x32
   // Page: 149
-  fn inst_ldd_·hl·_a(&mut self) -> u32 {
+  #[allow(non_snake_case)]
+  fn inst_LDD_·HL·_A(&mut self) -> u32 {
     let hl = self.reg_hl;
     let a = self.read_reg_byte(Reg::A);
     self.mem.write_byte(hl, a);
@@ -304,7 +311,8 @@ impl Cpu {
 
   // NOP
   // 0x00
-  fn inst_nop(&self) -> u32 {
+  #[allow(non_snake_case)]
+  fn inst_NOP(&self) -> u32 {
     4
   }
 
@@ -314,7 +322,8 @@ impl Cpu {
   // This instruction is a subset of the defined instruction in the pdf.
   // The superset instruction is XOR s, where s can be r, n, (HL), (IX+d)
   // or (IY+d).
-  fn inst_xor_r(&mut self, register: Reg) -> u32 {
+  #[allow(non_snake_case)]
+  fn inst_XOR_r(&mut self, register: Reg) -> u32 {
     let register = self.read_reg_byte(register);
     let mut accumulator = self.read_reg_byte(Reg::A);
     accumulator = accumulator ^ register;
@@ -409,7 +418,7 @@ mod tests {
     let (_, changeset) = difference::diff(&format!("{:?}", c1), &format!("{:?}", c2), "\n");
     for i in 0..changeset.len() {
       match changeset[i] {
-        Difference::Same(ref x) => {
+        Difference::Same(_) => {
           // writeln!(w, "{}", x);
         }
         Difference::Add(ref x) => {
@@ -449,6 +458,7 @@ mod tests {
     ) =>
     (
       #[test]
+      #[allow(non_snake_case)]
       fn $name() {
         cpu_inline_test!({
           ins: $ins,
@@ -460,9 +470,8 @@ mod tests {
   }
 
   #[test]
-  fn test_inst_bit_b_r() {
-    let mut c = Cpu::default();
-
+  #[allow(non_snake_case)]
+  fn test_inst_BIT_b_r() {
     // Test with setting bit to 1
     for r in 0..7 {
       if r == 6 {
@@ -514,7 +523,8 @@ mod tests {
   }
 
   #[test]
-  fn test_inc_r() {
+  #[allow(non_snake_case)]
+  fn test_INC_r() {
     for i in 0..7 {
       let r = Reg::from(i);
       cpu_inline_test!({
@@ -534,13 +544,14 @@ mod tests {
   }
 
   #[test]
-  fn test_inst_jr_cc_e() {
+  #[allow(non_snake_case)]
+  fn test_inst_JR_cc_e() {
     for flag in &[Flag::Z, Flag::C, Flag::NZ, Flag::NC] {
       let addrs = &[0x23, 0x00, 0xFF, 0xE6];
-      let pcs = &[(0x1000 as i16) + (0x23 as i8 as i16) + 1,
-                  (0x1000 as i16) + (0x00 as i8 as i16) + 1,
-                  (0x1000 as i16) + (0xFF as i8 as i16) + 1,
-                  (0x1000 as i16) + (0xE6 as i8 as i16) + 1];
+      let pcs = &[(0x1000 as i16) + (0x23 as u8 as i8 as i16) + 1,
+                  (0x1000 as i16) + (0x00 as u8 as i8 as i16) + 1,
+                  (0x1000 as i16) + (0xFF as u8 as i8 as i16) + 1,
+                  (0x1000 as i16) + (0xE6 as u8 as i8 as i16) + 1];
 
       for i in 0..addrs.len() {
         let mut c = Cpu::default();
@@ -566,8 +577,8 @@ mod tests {
     }
   }
 
-  cpu_test!(test_inst_ld_0xff00c_a {
-    ins: Instruction::LD_0xff00c_a,
+  cpu_test!(test_inst_LD_0xFF00C_A {
+    ins: Instruction::LD_0xFF00C_A,
     before: {
       let mut c = Cpu::default();
       c.write_reg_byte(Reg::C, 0x10);
@@ -584,7 +595,8 @@ mod tests {
   });
 
   #[test]
-  fn test_inst_ld_dd_nn() {
+  #[allow(non_snake_case)]
+  fn test_inst_LD_dd_nn() {
     cpu_inline_test!({
       ins: Instruction::LD_dd_nn(Reg::HL),
       before: {
@@ -617,7 +629,8 @@ mod tests {
   }
 
   #[test]
-  fn test_inst_ld_r_n() {
+  #[allow(non_snake_case)]
+  fn test_inst_LD_r_n() {
     for i in 0..7 {
       if i == 6 {
         continue;
@@ -645,8 +658,8 @@ mod tests {
     }
   }
 
-  cpu_test!(test_inst_ldd_hl_a {
-    ins: Instruction::LDD_·hl·_a,
+  cpu_test!(test_inst_LDD_HL_A {
+    ins: Instruction::LDD_·HL·_A,
     before: {
       let mut c = Cpu::default();
       c.write_reg_byte(Reg::A, 0x87);
@@ -685,7 +698,8 @@ mod tests {
   });
 
   #[test]
-  fn test_inst_xor_r() {
+  #[allow(non_snake_case)]
+  fn test_inst_XOR_r() {
     for r in 0..7 {
       if r == 6 {
         // skip flag register
