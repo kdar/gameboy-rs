@@ -1,13 +1,19 @@
 #[derive(Debug, Clone, Copy)]
 pub enum Reg {
-  B = 0b000,
-  C = 0b001,
-  D = 0b010,
-  E = 0b011,
-  H = 0b100,
-  L = 0b101,
-  F = 0b110,
-  A = 0b111,
+  B,
+  C,
+  D,
+  E,
+  H,
+  L,
+  F,
+  A,
+  BC,
+  DE,
+  HL,
+  AF,
+  SP,
+  PC,
 }
 
 impl From<u8> for Reg {

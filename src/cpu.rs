@@ -351,19 +351,21 @@ impl Cpu {
       Reg::L => low_byte(self.reg_hl),
       Reg::A => high_byte(self.reg_af),
       Reg::F => low_byte(self.reg_af),
-      // _ => panic!("read_mapped_byte_register unknown register: {:?}", register),
+      _ => panic!("read_mapped_byte_register unknown register: {:?}", register),
     }
   }
 
-  // fn write_reg_word(&mut self, register: Reg, value: u16) {
-  //   match register {
-  //     Reg::BC => self.reg_bc = value,
-  //     Reg::DE => self.reg_de = value,
-  //     Reg::HL => self.reg_hl = value,
-  //     Reg::SP => self.reg_sp = value,
-  //     _ => panic!("write_reg_word unknown register: {:?}", register),
-  //   }
-  // }
+  fn write_reg_word(&mut self, register: Reg, value: u16) {
+    match register {
+      Reg::BC => self.reg_bc = value,
+      Reg::DE => self.reg_de = value,
+      Reg::HL => self.reg_hl = value,
+      Reg::AF => self.reg_af = value,
+      Reg::SP => self.reg_sp = value,
+      Reg::PC => self.reg_pc = value,
+      _ => panic!("write_reg_word unknown register: {:?}", register),
+    }
+  }
 
   pub fn write_reg_byte(&mut self, register: Reg, value: u8) {
     // self.reg_gpr[register as usize] = value;
@@ -376,7 +378,7 @@ impl Cpu {
       Reg::L => self.reg_hl = (high_byte(self.reg_hl) as u16) << 8 | value as u16,
       Reg::A => self.reg_af = (value as u16) << 8 | low_byte(self.reg_af) as u16,
       Reg::F => self.reg_af = (high_byte(self.reg_af) as u16) << 8 | value as u16,
-      // _ => panic!("write_reg_byte unknown register: {:?}", register),
+      _ => panic!("write_reg_byte unknown register: {:?}", register),
     }
   }
 
@@ -392,19 +394,44 @@ impl Cpu {
     d
   }
 
-  fn write_flag(&mut self, flag: Flag, value: bool) {
+  fn write_flag(&mut self, flag: Flag, mut value: bool) {
     let mut d = self.read_reg_byte(Reg::F);
+
+    let pos = match flag {
+      Flag::Z => 0b10000000,
+      Flag::N => 0b01000000,
+      Flag::H => 0b00100000,
+      Flag::C => 0b00010000,
+      Flag::NZ => {
+        value = !value;
+        0b10000000
+      }
+      Flag::NC => {
+        value = !value;
+        0b00010000
+      }
+    };
+
     if value {
-      d |= flag as u8;
+      d |= pos;
     } else {
-      d &= !(flag as u8);
+      d &= !pos;
     }
+
     self.write_reg_byte(Reg::F, d);
   }
 
   fn read_flag(&self, flag: Flag) -> bool {
-    let mut d = self.read_reg_byte(Reg::F);
-    d & flag as u8 > 0
+    let d = self.read_reg_byte(Reg::F);
+
+    match flag {
+      Flag::Z => 0b10000000 & d > 0,
+      Flag::N => 0b01000000 & d > 0,
+      Flag::H => 0b00100000 & d > 0,
+      Flag::C => 0b00010000 & d > 0,
+      Flag::NZ => 0b10000000 & d == 0,
+      Flag::NC => 0b00010000 & d == 0,
+    }
   }
 }
 
