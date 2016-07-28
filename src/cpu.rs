@@ -200,15 +200,15 @@ impl Cpu {
 
   fn execute_instruction(&mut self, ins: Instruction) {
     let cycles = match ins {
-      Instruction::NOP => self.inst_nop(),
+      Instruction::BIT_b_r(b, r) => self.inst_bit_b_r(b, r),
+      Instruction::INC_r(r) => self.inst_inc_r(r),
+      Instruction::JR_cc_e(cc) => self.inst_jr_cc_e(cc),
+      Instruction::LD_0xff00c_a => self.inst_ld_0xff00c_a(),
       Instruction::LD_dd_nn(dd) => self.inst_ld_dd_nn(dd),
       Instruction::LD_r_n(r) => self.inst_ld_r_n(r),
-      Instruction::LD_0xff00c_a => self.inst_ld_0xff00c_a(),
       Instruction::LDD_hl_a => self.inst_ldd_hl_a(),
+      Instruction::NOP => self.inst_nop(),
       Instruction::XOR_r(r) => self.inst_xor_r(r),
-      Instruction::JR_cc_e(cc) => self.inst_jr_cc_e(cc),
-
-      Instruction::BIT_b_r(b, r) => self.inst_bit_b_r(b, r),
       // _ => panic!("instruction not implemented: {:?}", ins),
     };
 
@@ -231,6 +231,16 @@ impl Cpu {
     self.write_flag(Flag::N, false);
 
     8
+  }
+
+  // INC r
+  // Opcode: 00rrr100
+  // Page: 178
+  fn inst_inc_r(&mut self, r: Reg) -> u32 {
+    let mut d = self.read_reg_byte(r);
+    d += 1;
+    self.write_reg_byte(r, d);
+    4
   }
 
   // JR cc,e
@@ -454,6 +464,26 @@ mod tests {
     before: Cpu::default(),
     after: Cpu { cycles: 4, ..Cpu::default() },
   });
+
+  #[test]
+  fn test_inc_r() {
+    for i in 0..7 {
+      let r = Reg::from(i);
+      cpu_inline_test!({
+        ins: Instruction::INC_r(r),
+        before: {
+          let mut c = Cpu::default();
+          c.write_reg_byte(r, 0x10);
+          c
+        },
+        after: {
+          let mut c = Cpu { cycles: 4, ..Cpu::default()};
+          c.write_reg_byte(r, 0x11);
+          c
+        },
+      });
+    }
+  }
 
   #[test]
   fn test_inst_jr_cc_e() {

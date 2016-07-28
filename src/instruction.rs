@@ -11,6 +11,7 @@ macro_rules! bitmask {
 #[derive(Debug)]
 pub enum Instruction {
   BIT_b_r(u8, Reg),
+  INC_r(Reg),
   JR_cc_e(Flag),
   LD_0xff00c_a,
   LD_dd_nn(Reg),
@@ -23,6 +24,10 @@ pub enum Instruction {
 impl Instruction {
   pub fn from(op: u8) -> Instruction {
     match op {
+      0x04 if op & 0b11000111 == 0b00000100 => {
+        let r = op >> 3 & 0b111;
+        Instruction::INC_r(Reg::from(r))
+      }
       0x20 => Instruction::JR_cc_e(Flag::NZ),
       0x28 => Instruction::JR_cc_e(Flag::Z),
       0x30 => Instruction::JR_cc_e(Flag::NC),
