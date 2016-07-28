@@ -1,3 +1,5 @@
+#![feature(non_ascii_idents)]
+
 // mod gameboy;
 // mod cpu;
 extern crate gameboy;
@@ -14,6 +16,7 @@ use simplelog::{TermLogger, LogLevelFilter};
 use std::process::exit;
 
 mod debugger;
+mod disassembler;
 
 macro_rules! try_log {
   ($expr:expr) => (match $expr {
@@ -42,6 +45,10 @@ fn main() {
       .long("debug")
       .use_delimiter(false)
       .help("Go into debug mode"))
+    .arg(Arg::with_name("disassemble")
+      .long("disassemble")
+      .use_delimiter(false)
+      .help("Disassemble the file"))
     .arg(Arg::with_name("boot-rom")
       .short("b")
       .long("boot-rom")
@@ -53,7 +60,10 @@ fn main() {
 
   let cart_rom = load_rom(matches.value_of("cart-rom").unwrap());
 
-  if matches.is_present("debug") {
+  if matches.is_present("disassemble") {
+    let d = disassembler::Disassembler::new(cart_rom);
+    d.print_all();
+  } else if matches.is_present("debug") {
     let mut gb = debugger::Debugger::new(cart_rom);
     if let Some(boot_rom_path) = matches.value_of("boot-rom") {
       gb.set_boot_rom(load_rom(boot_rom_path));

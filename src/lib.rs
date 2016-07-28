@@ -8,7 +8,7 @@ mod gameboy;
 pub mod cpu;
 mod mem;
 mod instruction;
-mod reg;
-mod flag;
+pub mod reg;
+pub mod flag;
 
 pub use gameboy::GameBoy;

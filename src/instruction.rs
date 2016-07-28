@@ -2,12 +2,6 @@ use super::reg::Reg;
 use super::flag::Flag;
 use std::fmt;
 
-macro_rules! bitmask {
-  ($x:ident, $y:expr) => {
-
-  }
-}
-
 #[allow(non_camel_case_types)]
 pub enum Instruction {
   BIT_b_r(u8, Reg),
