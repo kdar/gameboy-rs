@@ -195,11 +195,10 @@ impl Cpu {
       Instruction::LD_sp_nn => self.inst_ld_sp_nn(),
       Instruction::LDD_hl_a => self.inst_ldd_hl_a(),
       Instruction::XOR_r(r) => self.inst_xor_r(r),
-      Instruction::JR_nz_e => self.inst_jr_nz_e(),
-      Instruction::JR_z_e => self.inst_jr_z_e(),
+      Instruction::JR_cc_e(f) => self.inst_jr_cc_e(f),
 
       Instruction::BIT_b_r(b, r) => self.inst_bit_b_r(b, r),
-      // _ => panic!("instruction not implemented: {:?}", ins),
+      _ => panic!("instruction not implemented: {:?}", ins),
     };
 
     self.cycles += cycles;
@@ -211,58 +210,19 @@ impl Cpu {
     4
   }
 
-  // // JR cc,e
-  // // Opcode: 000cc000
-  // // Page: 266
-  // // This is a superset of many different instructions:
-  // // JR NZ,e
-  // // JR Z,e
-  // // JR NC,e
-  // // JR C,e
-  // fn inst_jr_cc_e(&mut self, flag: Flag) -> u32 {
-  //   // signed argument
-  //   let e = self.read_pc_byte() as i8;
-  //
-  //   let mut check = false;
-  //   match flag {
-  //     Flag::NZ => check = !self.read_flag(Flag::Z),
-  //     Flag::Z => check = self.read_flag(Flag::Z),
-  //     Flag::NC => check = !self.read_flag(Flag::C),
-  //     Flag::C => check = self.read_flag(Flag::C),
-  //     _ => panic!("inst_jr_cc_e unsupported flag: {:?}", flag),
-  //   }
-  //
-  //   if check {
-  //     self.reg_pc = ((self.reg_pc as i16) + (e as i16)) as u16;
-  //     12
-  //   } else {
-  //     8
-  //   }
-  // }
-
+  // JR cc,e
+  // Opcode: 000cc000
+  // Page: 266
+  // This is a superset of many different instructions:
   // JR NZ,e
-  // Opcode: 0x20
-  // Page: 266
-  fn inst_jr_nz_e(&mut self) -> u32 {
-    // signed argument
-    let e = self.read_pc_byte() as i8;
-
-    if !self.read_flag(Flag::Z) {
-      self.reg_pc = ((self.reg_pc as i16) + (e as i16)) as u16;
-      12
-    } else {
-      8
-    }
-  }
-
   // JR Z,e
-  // Opcode: 0x28
-  // Page: 266
-  fn inst_jr_z_e(&mut self) -> u32 {
+  // JR NC,e
+  // JR C,e
+  fn inst_jr_cc_e(&mut self, flag: Flag) -> u32 {
     // signed argument
     let e = self.read_pc_byte() as i8;
-
-    if self.read_flag(Flag::Z) {
+    if self.read_flag(flag) {
+      // signed addition (can jump back)
       self.reg_pc = ((self.reg_pc as i16) + (e as i16)) as u16;
       12
     } else {
@@ -481,13 +441,29 @@ mod tests {
   fn test_write_read_flag() {
     let mut c = Cpu::new();
     c.write_flag(Flag::Z, true);
-    debug_assert_eq!(c.reg_af, 0b00000000_10000000);
+    assert_eq!(c.reg_af, 0b00000000_10000000);
     c.write_flag(Flag::N, true);
-    debug_assert_eq!(c.reg_af, 0b00000000_11000000);
+    assert_eq!(c.reg_af, 0b00000000_11000000);
     c.write_flag(Flag::H, true);
-    debug_assert_eq!(c.reg_af, 0b00000000_11100000);
+    assert_eq!(c.reg_af, 0b00000000_11100000);
     c.write_flag(Flag::C, true);
-    debug_assert_eq!(c.reg_af, 0b00000000_11110000);
+    assert_eq!(c.reg_af, 0b00000000_11110000);
+
+    c.reg_af = 0b11111111_11111111;
+    c.write_flag(Flag::NZ, true);
+    assert_eq!(c.reg_af, 0b11111111_01111111);
+
+    c.reg_af = 0b11111111_11111111;
+    c.write_flag(Flag::Z, true);
+    assert_eq!(c.reg_af, 0b11111111_11111111);
+
+    c.reg_af = 0b11111111_11111111;
+    c.write_flag(Flag::NC, true);
+    assert_eq!(c.reg_af, 0b11111111_11101111);
+
+    c.reg_af = 0b11111111_11111111;
+    c.write_flag(Flag::C, true);
+    assert_eq!(c.reg_af, 0b11111111_11111111);
   }
 
   fn cpu_diff(c1: &Cpu, c2: &Cpu) -> String {
@@ -551,84 +527,38 @@ mod tests {
     after: Cpu { cycles: 4, ..Cpu::default() },
   });
 
-  // cpu_test!(test_inst_jr_nz_e {
-  //   ins: Instruction::JR_nz_e,
-  //   before: {
-  //     let mut c = Cpu::default();
-  //     c.cart_rom = Box::new([0x23]);
-  //     c.write_flag(Flag::Z, false);
-  //     c
-  //   },
-  //   after: Cpu {
-  //     reg_pc: 0x24, // 0x23 + 1 before jr_nz_e reads from pc
-  //     cycles: 12,
-  //     ..Cpu::default()
-  //   },
-  // });
-
   #[test]
-  fn test_inst_jr_nz_e() {
-    let addrs = &[0x23, 0x00, 0xFF, 0xE6];
-    let pcs = &[(0x1000 as i16) + (0x23 as i8 as i16) + 1,
-                (0x1000 as i16) + (0x00 as i8 as i16) + 1,
-                (0x1000 as i16) + (0xFF as i8 as i16) + 1,
-                (0x1000 as i16) + (0xE6 as i8 as i16) + 1];
+  fn test_inst_jr_cc_e() {
+    for flag in &[Flag::Z, Flag::C, Flag::NZ, Flag::NC] {
+      let addrs = &[0x23, 0x00, 0xFF, 0xE6];
+      let pcs = &[(0x1000 as i16) + (0x23 as i8 as i16) + 1,
+                  (0x1000 as i16) + (0x00 as i8 as i16) + 1,
+                  (0x1000 as i16) + (0xFF as i8 as i16) + 1,
+                  (0x1000 as i16) + (0xE6 as i8 as i16) + 1];
 
-    for i in 0..addrs.len() {
-      let mut c = Cpu::default();
-      c.reg_pc = 0x1000;
-      c.cart_rom = Box::new([0; 0x1000 + 1]);
-      c.cart_rom[0x1000] = addrs[i];
-      c.write_flag(Flag::Z, false);
+      for i in 0..addrs.len() {
+        let mut c = Cpu::default();
+        c.reg_pc = 0x1000;
+        c.cart_rom = Box::new([0; 0x1000 + 1]);
+        c.cart_rom[0x1000] = addrs[i];
+        c.write_flag(*flag, true);
 
-      c.execute_instruction(Instruction::JR_nz_e);
+        c.execute_instruction(Instruction::JR_cc_e(*flag));
 
-      assert_eq!(c.reg_pc, pcs[i] as u16);
-    }
+        assert_eq!(c.reg_pc, pcs[i] as u16);
+      }
 
-    for i in 0..addrs.len() {
-      let mut c = Cpu::default();
-      c.reg_pc = 0x1000;
-      c.cart_rom = Box::new([0; 0x1000 + 1]);
-      c.cart_rom[0x1000] = addrs[i];
-      c.write_flag(Flag::Z, true);
+      for i in 0..addrs.len() {
+        let mut c = Cpu::default();
+        c.reg_pc = 0x1000;
+        c.cart_rom = Box::new([0; 0x1000 + 1]);
+        c.cart_rom[0x1000] = addrs[i];
+        c.write_flag(*flag, false);
 
-      c.execute_instruction(Instruction::JR_nz_e);
+        c.execute_instruction(Instruction::JR_cc_e(*flag));
 
-      assert_eq!(c.reg_pc, 0x1001);
-    }
-  }
-
-  #[test]
-  fn test_inst_jr_z_e() {
-    let addrs = &[0x23, 0x00, 0xFF, 0xE6];
-    let pcs = &[(0x1000 as i16) + (0x23 as i8 as i16) + 1,
-                (0x1000 as i16) + (0x00 as i8 as i16) + 1,
-                (0x1000 as i16) + (0xFF as i8 as i16) + 1,
-                (0x1000 as i16) + (0xE6 as i8 as i16) + 1];
-
-    for i in 0..addrs.len() {
-      let mut c = Cpu::default();
-      c.reg_pc = 0x1000;
-      c.cart_rom = Box::new([0; 0x1000 + 1]);
-      c.cart_rom[0x1000] = addrs[i];
-      c.write_flag(Flag::Z, true);
-
-      c.execute_instruction(Instruction::JR_z_e);
-
-      assert_eq!(c.reg_pc, pcs[i] as u16);
-    }
-
-    for i in 0..addrs.len() {
-      let mut c = Cpu::default();
-      c.reg_pc = 0x1000;
-      c.cart_rom = Box::new([0; 0x1000 + 1]);
-      c.cart_rom[0x1000] = addrs[i];
-      c.write_flag(Flag::Z, false);
-
-      c.execute_instruction(Instruction::JR_z_e);
-
-      assert_eq!(c.reg_pc, 0x1001);
+        assert_eq!(c.reg_pc, 0x1001);
+      }
     }
   }
 

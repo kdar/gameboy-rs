@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Flag {
   Z, // zero flag
   N, // add/sub flag
