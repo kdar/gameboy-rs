@@ -5,9 +5,7 @@ use super::flag::Flag;
 #[derive(Debug)]
 pub enum Instruction {
   NOP,
-  LD_hl_nn,
-  LD_sp_nn,
-  LD_dd_nn,
+  LD_dd_nn(Reg),
   LDD_hl_a,
   XOR_r(Reg),
   JR_cc_e(Flag),
@@ -22,10 +20,10 @@ impl Instruction {
     match op {
       0x00 => Instruction::NOP,
       0x20 => Instruction::JR_cc_e(Flag::NZ),
-      0x21 => Instruction::LD_hl_nn,
+      0x21 => Instruction::LD_dd_nn(Reg::HL),
       0x28 => Instruction::JR_cc_e(Flag::Z),
       0x30 => Instruction::JR_cc_e(Flag::NC),
-      0x31 => Instruction::LD_sp_nn,
+      0x31 => Instruction::LD_dd_nn(Reg::SP),
       0x32 => Instruction::LDD_hl_a,
       0x38 => Instruction::JR_cc_e(Flag::C),
       0xAF => Instruction::XOR_r(Reg::A),

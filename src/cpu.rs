@@ -102,7 +102,7 @@ impl Cpu {
     self.cart_rom = rom;
   }
 
-  pub fn read_word(&self, addr: u16) -> u16 {
+  pub fn read_mapped_word(&self, addr: u16) -> u16 {
     let mut val: u16 = (self.read_mapped_byte(addr + 1) as u16) << 8;
     val |= self.read_mapped_byte(addr) as u16;
     val
@@ -165,6 +165,99 @@ impl Cpu {
     };
   }
 
+  pub fn read_reg_byte(&self, register: Reg) -> u8 {
+    match register {
+      Reg::B => high_byte(self.reg_bc),
+      Reg::C => low_byte(self.reg_bc),
+      Reg::D => high_byte(self.reg_de),
+      Reg::E => low_byte(self.reg_de),
+      Reg::H => high_byte(self.reg_hl),
+      Reg::L => low_byte(self.reg_hl),
+      Reg::A => high_byte(self.reg_af),
+      Reg::F => low_byte(self.reg_af),
+      _ => panic!("read_mapped_byte_register unknown register: {:?}", register),
+    }
+  }
+
+  fn write_reg_word(&mut self, register: Reg, value: u16) {
+    match register {
+      Reg::BC => self.reg_bc = value,
+      Reg::DE => self.reg_de = value,
+      Reg::HL => self.reg_hl = value,
+      Reg::AF => self.reg_af = value,
+      Reg::SP => self.reg_sp = value,
+      Reg::PC => self.reg_pc = value,
+      _ => panic!("write_reg_word unknown register: {:?}", register),
+    }
+  }
+
+  pub fn write_reg_byte(&mut self, register: Reg, value: u8) {
+    // self.reg_gpr[register as usize] = value;
+    match register {
+      Reg::B => self.reg_bc = (value as u16) << 8 | low_byte(self.reg_bc) as u16,
+      Reg::C => self.reg_bc = (high_byte(self.reg_bc) as u16) << 8 | value as u16,
+      Reg::D => self.reg_de = (value as u16) << 8 | low_byte(self.reg_de) as u16,
+      Reg::E => self.reg_de = (high_byte(self.reg_de) as u16) << 8 | value as u16,
+      Reg::H => self.reg_hl = (value as u16) << 8 | low_byte(self.reg_hl) as u16,
+      Reg::L => self.reg_hl = (high_byte(self.reg_hl) as u16) << 8 | value as u16,
+      Reg::A => self.reg_af = (value as u16) << 8 | low_byte(self.reg_af) as u16,
+      Reg::F => self.reg_af = (high_byte(self.reg_af) as u16) << 8 | value as u16,
+      _ => panic!("write_reg_byte unknown register: {:?}", register),
+    }
+  }
+
+  fn read_pc_byte(&mut self) -> u8 {
+    let d = self.read_mapped_byte(self.reg_pc);
+    self.reg_pc += 1;
+    d
+  }
+
+  fn read_pc_word(&mut self) -> u16 {
+    let d = self.read_mapped_word(self.reg_pc);
+    self.reg_pc += 2;
+    d
+  }
+
+  fn write_flag(&mut self, flag: Flag, mut value: bool) {
+    let mut d = self.read_reg_byte(Reg::F);
+
+    let pos = match flag {
+      Flag::Z => 0b10000000,
+      Flag::N => 0b01000000,
+      Flag::H => 0b00100000,
+      Flag::C => 0b00010000,
+      Flag::NZ => {
+        value = !value;
+        0b10000000
+      }
+      Flag::NC => {
+        value = !value;
+        0b00010000
+      }
+    };
+
+    if value {
+      d |= pos;
+    } else {
+      d &= !pos;
+    }
+
+    self.write_reg_byte(Reg::F, d);
+  }
+
+  fn read_flag(&self, flag: Flag) -> bool {
+    let d = self.read_reg_byte(Reg::F);
+
+    match flag {
+      Flag::Z => 0b10000000 & d > 0,
+      Flag::N => 0b01000000 & d > 0,
+      Flag::H => 0b00100000 & d > 0,
+      Flag::C => 0b00010000 & d > 0,
+      Flag::NZ => 0b10000000 & d == 0,
+      Flag::NC => 0b00010000 & d == 0,
+    }
+  }
+
   // pub fn reset(&mut self) {
   //   self.reg_gpr = [0; NUM_GPR];
   //   self.reg_sp = 0;
@@ -191,14 +284,13 @@ impl Cpu {
   fn execute_instruction(&mut self, ins: Instruction) {
     let cycles = match ins {
       Instruction::NOP => self.inst_nop(),
-      Instruction::LD_hl_nn => self.inst_ld_hl_nn(),
-      Instruction::LD_sp_nn => self.inst_ld_sp_nn(),
+      Instruction::LD_dd_nn(dd) => self.inst_ld_dd_nn(dd),
       Instruction::LDD_hl_a => self.inst_ldd_hl_a(),
       Instruction::XOR_r(r) => self.inst_xor_r(r),
-      Instruction::JR_cc_e(f) => self.inst_jr_cc_e(f),
+      Instruction::JR_cc_e(cc) => self.inst_jr_cc_e(cc),
 
       Instruction::BIT_b_r(b, r) => self.inst_bit_b_r(b, r),
-      _ => panic!("instruction not implemented: {:?}", ins),
+      // _ => panic!("instruction not implemented: {:?}", ins),
     };
 
     self.cycles += cycles;
@@ -230,21 +322,21 @@ impl Cpu {
     }
   }
 
-  // LD HL,nn
-  // Opcode: 0x21
-  fn inst_ld_hl_nn(&mut self) -> u32 {
-    let h = self.read_pc_byte();
-    let l = self.read_pc_byte();
-    self.write_reg_byte(Reg::H, h);
-    self.write_reg_byte(Reg::L, l);
+  // LD dd,nn
+  // Opcode: 00dd0001
+  // Page: 120
+  fn inst_ld_dd_nn(&mut self, reg: Reg) -> u32 {
+    let nn = self.read_pc_word();
+    self.write_reg_word(reg, nn);
     12
   }
 
-  // LD SP,nn
-  // Opcode: 0x31
-  // Page: 120
-  fn inst_ld_sp_nn(&mut self) -> u32 {
-    self.reg_sp = self.read_pc_word();
+  // LD r,n
+  // Opcode: 00rrr110
+  // Page: 100
+  fn inst_ld_r_n(&mut self, reg: Reg) -> u32 {
+    let n = self.read_pc_byte();
+    self.write_reg_byte(reg, n);
     12
   }
 
@@ -299,99 +391,6 @@ impl Cpu {
     self.write_flag(Flag::N, false);
 
     8
-  }
-
-  pub fn read_reg_byte(&self, register: Reg) -> u8 {
-    match register {
-      Reg::B => high_byte(self.reg_bc),
-      Reg::C => low_byte(self.reg_bc),
-      Reg::D => high_byte(self.reg_de),
-      Reg::E => low_byte(self.reg_de),
-      Reg::H => high_byte(self.reg_hl),
-      Reg::L => low_byte(self.reg_hl),
-      Reg::A => high_byte(self.reg_af),
-      Reg::F => low_byte(self.reg_af),
-      _ => panic!("read_mapped_byte_register unknown register: {:?}", register),
-    }
-  }
-
-  fn write_reg_word(&mut self, register: Reg, value: u16) {
-    match register {
-      Reg::BC => self.reg_bc = value,
-      Reg::DE => self.reg_de = value,
-      Reg::HL => self.reg_hl = value,
-      Reg::AF => self.reg_af = value,
-      Reg::SP => self.reg_sp = value,
-      Reg::PC => self.reg_pc = value,
-      _ => panic!("write_reg_word unknown register: {:?}", register),
-    }
-  }
-
-  pub fn write_reg_byte(&mut self, register: Reg, value: u8) {
-    // self.reg_gpr[register as usize] = value;
-    match register {
-      Reg::B => self.reg_bc = (value as u16) << 8 | low_byte(self.reg_bc) as u16,
-      Reg::C => self.reg_bc = (high_byte(self.reg_bc) as u16) << 8 | value as u16,
-      Reg::D => self.reg_de = (value as u16) << 8 | low_byte(self.reg_de) as u16,
-      Reg::E => self.reg_de = (high_byte(self.reg_de) as u16) << 8 | value as u16,
-      Reg::H => self.reg_hl = (value as u16) << 8 | low_byte(self.reg_hl) as u16,
-      Reg::L => self.reg_hl = (high_byte(self.reg_hl) as u16) << 8 | value as u16,
-      Reg::A => self.reg_af = (value as u16) << 8 | low_byte(self.reg_af) as u16,
-      Reg::F => self.reg_af = (high_byte(self.reg_af) as u16) << 8 | value as u16,
-      _ => panic!("write_reg_byte unknown register: {:?}", register),
-    }
-  }
-
-  fn read_pc_byte(&mut self) -> u8 {
-    let d = self.read_mapped_byte(self.reg_pc);
-    self.reg_pc += 1;
-    d
-  }
-
-  fn read_pc_word(&mut self) -> u16 {
-    let d = self.read_word(self.reg_pc);
-    self.reg_pc += 2;
-    d
-  }
-
-  fn write_flag(&mut self, flag: Flag, mut value: bool) {
-    let mut d = self.read_reg_byte(Reg::F);
-
-    let pos = match flag {
-      Flag::Z => 0b10000000,
-      Flag::N => 0b01000000,
-      Flag::H => 0b00100000,
-      Flag::C => 0b00010000,
-      Flag::NZ => {
-        value = !value;
-        0b10000000
-      }
-      Flag::NC => {
-        value = !value;
-        0b00010000
-      }
-    };
-
-    if value {
-      d |= pos;
-    } else {
-      d &= !pos;
-    }
-
-    self.write_reg_byte(Reg::F, d);
-  }
-
-  fn read_flag(&self, flag: Flag) -> bool {
-    let d = self.read_reg_byte(Reg::F);
-
-    match flag {
-      Flag::Z => 0b10000000 & d > 0,
-      Flag::N => 0b01000000 & d > 0,
-      Flag::H => 0b00100000 & d > 0,
-      Flag::C => 0b00010000 & d > 0,
-      Flag::NZ => 0b10000000 & d == 0,
-      Flag::NC => 0b00010000 & d == 0,
-    }
   }
 }
 
@@ -562,31 +561,30 @@ mod tests {
     }
   }
 
-  cpu_test!(test_inst_ld_hl_nn {
-    ins: Instruction::LD_hl_nn,
-    before: Cpu { cart_rom: Box::new([0xFE, 0xD8]), ..Cpu::default() },
-    after: {
-      let mut c = Cpu {
+  #[test]
+  fn test_inst_ld_dd_nn() {
+    cpu_inline_test!({
+      ins: Instruction::LD_dd_nn(Reg::HL),
+      before: Cpu { cart_rom: Box::new([0xFE, 0xD8]), ..Cpu::default() },
+      after: Cpu {
         cycles: 12,
         reg_pc: 2,
+        reg_hl: 0xD8FE,
         ..Cpu::default()
-      };
-      c.write_reg_byte(Reg::H, 0xFE);
-      c.write_reg_byte(Reg::L, 0xD8);
-      c
-    },
-  });
+      },
+    });
 
-  cpu_test!(test_inst_ld_sp_nn {
-    ins: Instruction::LD_sp_nn,
-    before: Cpu { cart_rom: Box::new([0xFE, 0xD8]), ..Cpu::default() },
-    after: Cpu {
-      cycles: 12,
-      reg_pc: 2,
-      reg_sp: 0xD8FE,
-      ..Cpu::default()
-    },
-  });
+    cpu_inline_test!({
+      ins: Instruction::LD_dd_nn(Reg::SP),
+      before: Cpu { cart_rom: Box::new([0xFE, 0xD8]), ..Cpu::default() },
+      after: Cpu {
+        cycles: 12,
+        reg_pc: 2,
+        reg_sp: 0xD8FE,
+        ..Cpu::default()
+      },
+    });
+  }
 
   cpu_test!(test_inst_ldd_hl_a {
     ins: Instruction::LDD_hl_a,
