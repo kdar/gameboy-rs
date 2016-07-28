@@ -5,7 +5,7 @@ extern crate md5;
 extern crate difference;
 
 mod gameboy;
-mod cpu;
+pub mod cpu;
 mod mem;
 mod instruction;
 mod reg;

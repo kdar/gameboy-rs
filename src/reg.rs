@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug, Clone, Copy)]
 pub enum Reg {
   B,
@@ -14,6 +16,27 @@ pub enum Reg {
   AF,
   SP,
   PC,
+}
+
+impl fmt::Display for Reg {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match *self {
+      Reg::B => write!(f, "B"),
+      Reg::C => write!(f, "C"),
+      Reg::D => write!(f, "D"),
+      Reg::E => write!(f, "E"),
+      Reg::H => write!(f, "H"),
+      Reg::L => write!(f, "L"),
+      Reg::F => write!(f, "F"),
+      Reg::A => write!(f, "A"),
+      Reg::BC => write!(f, "BC"),
+      Reg::DE => write!(f, "DE"),
+      Reg::HL => write!(f, "HL"),
+      Reg::AF => write!(f, "AF"),
+      Reg::SP => write!(f, "SP"),
+      Reg::PC => write!(f, "PC"),
+    }
+  }
 }
 
 impl From<u8> for Reg {

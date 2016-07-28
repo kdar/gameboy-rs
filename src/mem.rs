@@ -44,7 +44,7 @@ mod constants {
   pub const UNUSABLE_START: u16 = 0xFEA0;
   pub const UNUSABLE_END: u16 = 0xFEFF;
 
-  // I/O Ports (gamepad buttons)
+  // I/O Ports (gamepad buttons, sound, etc..)
   pub const IO_PORTS_START: u16 = 0xFF00;
   pub const IO_PORTS_END: u16 = 0xFF7F;
 
@@ -162,12 +162,12 @@ mod module {
           }
         }
         Addr::Rom01(offset) => panic!("read_byte not implemented: {:?}", mapped),
-        Addr::VideoRam(offset) => panic!("read_byte not implemented: {:?}", mapped),
+        Addr::VideoRam(offset) => 0, // panic!("read_byte not implemented: {:?}", mapped),
         Addr::ExternalRam(offset) => panic!("read_byte not implemented: {:?}", mapped),
         Addr::WorkRam0(offset) => self.work_ram_0[offset as usize],
         Addr::WorkRam1(offset) => self.work_ram_1[offset as usize],
         Addr::SpriteTable(offset) => panic!("read_byte not implemented: {:?}", mapped),
-        Addr::IoPorts(offset) => panic!("read_byte not implemented: {:?}", mapped),
+        Addr::IoPorts(offset) => 0, // panic!("read_byte not implemented: {:?}", mapped),
         Addr::HighRam(offset) => panic!("read_byte not implemented: {:?}", mapped),
         Addr::InterruptRegister => panic!("read_byte not implemented: {:?}", mapped),
       }
@@ -180,7 +180,7 @@ mod module {
           panic!("write_byte error: trying to write to rom0");
         }
         Addr::Rom01(offset) => panic!("write_byte not implemented: {:?}", mapped),
-        Addr::VideoRam(offset) => panic!("write_byte not implemented: {:?}", mapped),
+        Addr::VideoRam(offset) => (), // panic!("write_byte not implemented: {:?}", mapped),
         Addr::ExternalRam(offset) => panic!("write_byte not implemented: {:?}", mapped),
         Addr::WorkRam0(offset) => {
           self.work_ram_0[offset as usize] = value;
@@ -189,7 +189,7 @@ mod module {
           self.work_ram_1[offset as usize] = value;
         }
         Addr::SpriteTable(offset) => panic!("write_byte not implemented: {:?}", mapped),
-        Addr::IoPorts(offset) => panic!("write_byte not implemented: {:?}", mapped),
+        Addr::IoPorts(offset) => (), // panic!("write_byte not implemented: {:?}", mapped),
         Addr::HighRam(offset) => panic!("write_byte not implemented: {:?}", mapped),
         Addr::InterruptRegister => panic!("write_byte not implemented: {:?}", mapped),
       };

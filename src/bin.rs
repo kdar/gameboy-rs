@@ -13,6 +13,8 @@ use clap::{Arg, App};
 use simplelog::{TermLogger, LogLevelFilter};
 use std::process::exit;
 
+mod debugger;
+
 macro_rules! try_log {
   ($expr:expr) => (match $expr {
     std::result::Result::Ok(val) => val,
@@ -36,6 +38,10 @@ fn main() {
       .use_delimiter(false)
       .required(true)
       .index(1))
+    .arg(Arg::with_name("debug")
+      .long("debug")
+      .use_delimiter(false)
+      .help("Go into debug mode"))
     .arg(Arg::with_name("boot-rom")
       .short("b")
       .long("boot-rom")
@@ -46,13 +52,22 @@ fn main() {
     .get_matches();
 
   let cart_rom = load_rom(matches.value_of("cart-rom").unwrap());
-  let mut gb = gameboy::GameBoy::new(cart_rom);
 
-  if let Some(boot_rom_path) = matches.value_of("boot-rom") {
-    gb.set_boot_rom(load_rom(boot_rom_path));
+  if matches.is_present("debug") {
+    let mut gb = debugger::Debugger::new(cart_rom);
+    if let Some(boot_rom_path) = matches.value_of("boot-rom") {
+      gb.set_boot_rom(load_rom(boot_rom_path));
+    }
+
+    gb.run();
+  } else {
+    let mut gb = gameboy::GameBoy::new(cart_rom);
+    if let Some(boot_rom_path) = matches.value_of("boot-rom") {
+      gb.set_boot_rom(load_rom(boot_rom_path));
+    }
+
+    gb.run();
   }
-
-  gb.run();
 }
 
 fn load_rom<P: AsRef<Path>>(path: P) -> Box<[u8]> {
