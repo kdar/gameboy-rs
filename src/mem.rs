@@ -255,12 +255,13 @@ mod module {
     }
 
     fn set_boot_rom(&mut self, rom: Box<[u8]>) {
-      self.booting = true;
-      self.boot_rom = rom;
+      panic!("set_boot_rom should not be used for testing. use write_byte to write the rom to \
+              memory");
     }
 
     fn set_cart_rom(&mut self, rom: Box<[u8]>) {
-      self.cart_rom = rom;
+      panic!("set_cart_rom should not be used for testing. use write_byte to write the rom to \
+              memory");
     }
   }
 }

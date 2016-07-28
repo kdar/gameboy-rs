@@ -467,7 +467,6 @@ mod tests {
       for i in 0..addrs.len() {
         let mut c = Cpu::default();
         c.reg_pc = 0x1000;
-        c.mem.set_cart_rom(Box::new([0; 0x1000 + 1]));
         c.mem.write_byte(0x1000, addrs[i]);
         c.write_flag(*flag, true);
 
@@ -479,7 +478,6 @@ mod tests {
       for i in 0..addrs.len() {
         let mut c = Cpu::default();
         c.reg_pc = 0x1000;
-        c.mem.set_cart_rom(Box::new([0; 0x1000 + 1]));
         c.mem.write_byte(0x1000, addrs[i]);
         c.write_flag(*flag, false);
 
