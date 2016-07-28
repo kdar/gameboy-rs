@@ -9,8 +9,8 @@ pub enum Flag {
 }
 
 // impl Flag {
-//   pub fn pos(&self) -> u8 {
-//     match *self {
+//   pub fn from(&self, v: u8) -> Flag {
+//     match v {
 //       // Flag::NZ => 0b10000000,
 //       Flag::Z => 0b10000000,
 //       Flag::N => 0b01000000,

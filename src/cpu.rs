@@ -290,7 +290,7 @@ impl Cpu {
       Instruction::JR_cc_e(cc) => self.inst_jr_cc_e(cc),
 
       Instruction::BIT_b_r(b, r) => self.inst_bit_b_r(b, r),
-      // _ => panic!("instruction not implemented: {:?}", ins),
+      _ => panic!("instruction not implemented: {:?}", ins),
     };
 
     self.cycles += cycles;

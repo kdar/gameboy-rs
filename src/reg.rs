@@ -32,6 +32,18 @@ impl From<u8> for Reg {
   }
 }
 
+impl Reg {
+  pub fn from_pair(v: u8) -> Reg {
+    match v {
+      0b00 => Reg::BC,
+      0b01 => Reg::DE,
+      0b10 => Reg::HL,
+      0b11 => Reg::SP,
+      _ => panic!("reg.from_raw_byte unknown register: {}", v),
+    }
+  }
+}
+
 // impl Reg {
 //   pub fn from_byte(r: u8) -> Reg {
 //     match r {

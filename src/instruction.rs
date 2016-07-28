@@ -1,11 +1,18 @@
 use super::reg::Reg;
 use super::flag::Flag;
 
+macro_rules! bitmask {
+  ($x:ident, $y:expr) => {
+
+  }
+}
+
 #[allow(non_camel_case_types)]
 #[derive(Debug)]
 pub enum Instruction {
   NOP,
   LD_dd_nn(Reg),
+  LD_r_n(Reg),
   LDD_hl_a,
   XOR_r(Reg),
   JR_cc_e(Flag),
@@ -19,13 +26,23 @@ impl Instruction {
   pub fn from(op: u8) -> Instruction {
     match op {
       0x00 => Instruction::NOP,
+
       0x20 => Instruction::JR_cc_e(Flag::NZ),
-      0x21 => Instruction::LD_dd_nn(Reg::HL),
       0x28 => Instruction::JR_cc_e(Flag::Z),
       0x30 => Instruction::JR_cc_e(Flag::NC),
-      0x31 => Instruction::LD_dd_nn(Reg::SP),
-      0x32 => Instruction::LDD_hl_a,
       0x38 => Instruction::JR_cc_e(Flag::C),
+
+      0x21 if op & 0b11001111 == 0b00000001 => {
+        let r = op >> 4 & 0b11;
+        Instruction::LD_dd_nn(Reg::from_pair(r))
+      }
+
+      0x06 if op & 0b11000111 == 0b00000110 => {
+        let r = op >> 3 & 0b111;
+        Instruction::LD_r_n(Reg::from(r))
+      }
+
+      0x32 => Instruction::LDD_hl_a,
       0xAF => Instruction::XOR_r(Reg::A),
       _ => panic!("instruction.from instruction not implemented: 0x{:02x}", op),
     }

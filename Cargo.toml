@@ -9,7 +9,6 @@ simplelog = "0.1"
 log = "0.3"
 md5 = "0.1"
 difference = "0.4"
-byteorder = "0.5"
 
 [lib]
 name = "gameboy"
