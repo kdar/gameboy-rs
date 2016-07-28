@@ -4,7 +4,7 @@ extern crate difference;
 
 mod gameboy;
 mod cpu;
-mod mem_map;
+mod mem;
 mod instruction;
 mod reg;
 mod flag;

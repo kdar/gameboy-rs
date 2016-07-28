@@ -13,6 +13,7 @@ pub enum Instruction {
   NOP,
   LD_dd_nn(Reg),
   LD_r_n(Reg),
+  LD_0xff00c_a,
   LDD_hl_a,
   XOR_r(Reg),
   JR_cc_e(Flag),
@@ -41,6 +42,7 @@ impl Instruction {
 
       0x32 => Instruction::LDD_hl_a,
       0xAF => Instruction::XOR_r(Reg::A),
+      0xE2 => Instruction::LD_0xff00c_a,
       _ => panic!("instruction.from instruction not implemented: 0x{:02x}", op),
     }
   }

@@ -1,4 +1,5 @@
 use super::cpu;
+use super::mem;
 
 pub struct GameBoy {
   cpu: cpu::Cpu,

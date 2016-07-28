@@ -1,9 +1,8 @@
 use std::fmt;
 use std::default::Default;
 use std::cmp::PartialEq;
-use md5;
 
-use super::mem_map;
+use super::mem;
 use super::reg::Reg;
 use super::flag::Flag;
 use super::instruction::Instruction;
@@ -27,21 +26,14 @@ pub struct Cpu {
 
   cycles: u32, // Current number of clock cycles
 
-  boot_rom: Box<[u8]>,
-  cart_rom: Box<[u8]>,
-  booting: bool,
-
-  work_ram_0: [u8; mem_map::WORK_RAM_0_LEN],
-  work_ram_1: [u8; mem_map::WORK_RAM_1_LEN],
+  mem: Box<mem::Memory>,
 }
 
-// We don't compare the boot_rom or cart_rom for equality.
 impl PartialEq for Cpu {
   fn eq(&self, x: &Cpu) -> bool {
     self.reg_af == x.reg_af && self.reg_bc == x.reg_bc && self.reg_de == x.reg_de &&
     self.reg_hl == x.reg_hl && self.reg_sp == x.reg_sp && self.reg_pc == x.reg_pc &&
-    self.cycles == x.cycles && self.booting == x.booting &&
-    self.work_ram_0[..] == x.work_ram_0[..] && self.work_ram_1[..] == x.work_ram_1[..]
+    self.cycles == x.cycles
   }
 }
 
@@ -55,11 +47,7 @@ impl Default for Cpu {
       reg_sp: 0,
       reg_pc: 0,
       cycles: 0,
-      boot_rom: Box::new([]),
-      cart_rom: Box::new([]),
-      booting: false,
-      work_ram_0: [0; mem_map::WORK_RAM_0_LEN],
-      work_ram_1: [0; mem_map::WORK_RAM_1_LEN],
+      mem: Box::new(mem::Mem::new()),
     }
   }
 }
@@ -77,13 +65,6 @@ impl fmt::Debug for Cpu {
     try!(write!(f, "\nSP:      {0:#06x} [{0:016b}]", self.reg_sp));
     try!(write!(f, "\nPC:      {0:#06x} [{0:016b}]", self.reg_pc));
     try!(write!(f, "\nCycles:  {}", self.cycles));
-    try!(write!(f, "\nBooting: {}", self.booting));
-    try!(write!(f,
-                "\nWork ram 0 checksum: {:?}",
-                md5::compute(&self.work_ram_0[..])));
-    try!(write!(f,
-                "\nWork ram 1 checksum: {:?}",
-                md5::compute(&self.work_ram_1[..])));
     write!(f, "\n")
   }
 }
@@ -94,75 +75,11 @@ impl Cpu {
   }
 
   pub fn set_boot_rom(&mut self, rom: Box<[u8]>) {
-    self.booting = true;
-    self.boot_rom = rom;
+    self.mem.set_boot_rom(rom);
   }
 
   pub fn set_cart_rom(&mut self, rom: Box<[u8]>) {
-    self.cart_rom = rom;
-  }
-
-  pub fn read_mapped_word(&self, addr: u16) -> u16 {
-    let mut val: u16 = (self.read_mapped_byte(addr + 1) as u16) << 8;
-    val |= self.read_mapped_byte(addr) as u16;
-    val
-  }
-
-  pub fn read_mapped_byte(&self, addr: u16) -> u8 {
-    let mapped = mem_map::memory_map(addr);
-    match mapped {
-      mem_map::Addr::Rom00(offset) => {
-        if self.booting {
-          self.boot_rom[offset as usize]
-        } else {
-          self.cart_rom[offset as usize]
-        }
-      }
-      mem_map::Addr::Rom01(offset) => panic!("read_mapped_byte not implemented: {:?}", mapped),
-      mem_map::Addr::VideoRam(offset) => panic!("read_mapped_byte not implemented: {:?}", mapped),
-      mem_map::Addr::ExternalRam(offset) => {
-        panic!("read_mapped_byte not implemented: {:?}", mapped)
-      }
-      mem_map::Addr::WorkRam0(offset) => self.work_ram_0[offset as usize],
-      mem_map::Addr::WorkRam1(offset) => self.work_ram_1[offset as usize],
-      mem_map::Addr::SpriteTable(offset) => {
-        panic!("read_mapped_byte not implemented: {:?}", mapped)
-      }
-      mem_map::Addr::IoPorts(offset) => panic!("read_mapped_byte not implemented: {:?}", mapped),
-      mem_map::Addr::HighRam(offset) => panic!("read_mapped_byte not implemented: {:?}", mapped),
-      mem_map::Addr::InterruptRegister => panic!("read_mapped_byte not implemented: {:?}", mapped),
-    }
-  }
-
-  pub fn write_mapped_word(&mut self, addr: u16, value: u16) {
-    self.write_mapped_byte(addr + 1, (value >> 8) as u8 & 0b11111111);
-    self.write_mapped_byte(addr, value as u8 & 0b11111111);
-  }
-
-  pub fn write_mapped_byte(&mut self, addr: u16, value: u8) {
-    let mapped = mem_map::memory_map(addr);
-    match mapped {
-      mem_map::Addr::Rom00(offset) => {
-        panic!("write_mapped_byte error: trying to write to rom0");
-      }
-      mem_map::Addr::Rom01(offset) => panic!("write_mapped_byte not implemented: {:?}", mapped),
-      mem_map::Addr::VideoRam(offset) => panic!("write_mapped_byte not implemented: {:?}", mapped),
-      mem_map::Addr::ExternalRam(offset) => {
-        panic!("write_mapped_byte not implemented: {:?}", mapped)
-      }
-      mem_map::Addr::WorkRam0(offset) => {
-        self.work_ram_0[offset as usize] = value;
-      }
-      mem_map::Addr::WorkRam1(offset) => {
-        self.work_ram_1[offset as usize] = value;
-      }
-      mem_map::Addr::SpriteTable(offset) => {
-        panic!("write_mapped_byte not implemented: {:?}", mapped)
-      }
-      mem_map::Addr::IoPorts(offset) => panic!("write_mapped_byte not implemented: {:?}", mapped),
-      mem_map::Addr::HighRam(offset) => panic!("write_mapped_byte not implemented: {:?}", mapped),
-      mem_map::Addr::InterruptRegister => panic!("write_mapped_byte not implemented: {:?}", mapped),
-    };
+    self.mem.set_cart_rom(rom);
   }
 
   pub fn read_reg_byte(&self, register: Reg) -> u8 {
@@ -175,7 +92,7 @@ impl Cpu {
       Reg::L => low_byte(self.reg_hl),
       Reg::A => high_byte(self.reg_af),
       Reg::F => low_byte(self.reg_af),
-      _ => panic!("read_mapped_byte_register unknown register: {:?}", register),
+      _ => panic!("read_byte_register unknown register: {:?}", register),
     }
   }
 
@@ -207,13 +124,13 @@ impl Cpu {
   }
 
   fn read_pc_byte(&mut self) -> u8 {
-    let d = self.read_mapped_byte(self.reg_pc);
+    let d = self.mem.read_byte(self.reg_pc);
     self.reg_pc += 1;
     d
   }
 
   fn read_pc_word(&mut self) -> u16 {
-    let d = self.read_mapped_word(self.reg_pc);
+    let d = self.mem.read_word(self.reg_pc);
     self.reg_pc += 2;
     d
   }
@@ -286,6 +203,7 @@ impl Cpu {
       Instruction::NOP => self.inst_nop(),
       Instruction::LD_dd_nn(dd) => self.inst_ld_dd_nn(dd),
       Instruction::LD_r_n(r) => self.inst_ld_r_n(r),
+      Instruction::LD_0xff00c_a => self.inst_ld_0xff00c_a(),
       Instruction::LDD_hl_a => self.inst_ldd_hl_a(),
       Instruction::XOR_r(r) => self.inst_xor_r(r),
       Instruction::JR_cc_e(cc) => self.inst_jr_cc_e(cc),
@@ -341,13 +259,23 @@ impl Cpu {
     8
   }
 
+  // LD (0xFF00+C),A
+  // Opcode: 0xE2
+  // Moved instruction.
+  fn inst_ld_0xff00c_a(&mut self) -> u32 {
+    let a = self.read_reg_byte(Reg::A);
+    let c = self.read_reg_byte(Reg::C);
+    self.mem.write_byte(0xFF00 + c as u16, a);
+    8
+  }
+
   // LDD (HL),A
   // Opcode: 0x32
   // Page: 149
   fn inst_ldd_hl_a(&mut self) -> u32 {
     let hl = self.reg_hl;
     let a = self.read_reg_byte(Reg::A);
-    self.write_mapped_byte(hl, a);
+    self.mem.write_byte(hl, a);
     self.reg_hl -= 1;
     8
   }
@@ -539,8 +467,8 @@ mod tests {
       for i in 0..addrs.len() {
         let mut c = Cpu::default();
         c.reg_pc = 0x1000;
-        c.cart_rom = Box::new([0; 0x1000 + 1]);
-        c.cart_rom[0x1000] = addrs[i];
+        c.mem.set_cart_rom(Box::new([0; 0x1000 + 1]));
+        c.mem.write_byte(0x1000, addrs[i]);
         c.write_flag(*flag, true);
 
         c.execute_instruction(Instruction::JR_cc_e(*flag));
@@ -551,8 +479,8 @@ mod tests {
       for i in 0..addrs.len() {
         let mut c = Cpu::default();
         c.reg_pc = 0x1000;
-        c.cart_rom = Box::new([0; 0x1000 + 1]);
-        c.cart_rom[0x1000] = addrs[i];
+        c.mem.set_cart_rom(Box::new([0; 0x1000 + 1]));
+        c.mem.write_byte(0x1000, addrs[i]);
         c.write_flag(*flag, false);
 
         c.execute_instruction(Instruction::JR_cc_e(*flag));
@@ -566,7 +494,11 @@ mod tests {
   fn test_inst_ld_dd_nn() {
     cpu_inline_test!({
       ins: Instruction::LD_dd_nn(Reg::HL),
-      before: Cpu { cart_rom: Box::new([0xFE, 0xD8]), ..Cpu::default() },
+      before: {
+        let mut c = Cpu::default();
+        c.mem.write_word(0, 0xD8FE);
+        c
+      },
       after: Cpu {
         cycles: 12,
         reg_pc: 2,
@@ -577,7 +509,11 @@ mod tests {
 
     cpu_inline_test!({
       ins: Instruction::LD_dd_nn(Reg::SP),
-      before: Cpu { cart_rom: Box::new([0xFE, 0xD8]), ..Cpu::default() },
+      before: {
+        let mut c = Cpu::default();
+        c.mem.write_word(0, 0xD8FE);
+        c
+      },
       after: Cpu {
         cycles: 12,
         reg_pc: 2,
@@ -598,7 +534,11 @@ mod tests {
 
       cpu_inline_test!({
         ins: Instruction::LD_r_n(r),
-        before: Cpu { cart_rom: Box::new([0xFE]), ..Cpu::default() },
+        before: {
+          let mut c = Cpu::default();
+          c.mem.write_byte(0, 0xFE);
+          c
+        },
         after: {
           let mut c = Cpu{
             cycles: 8,
@@ -611,6 +551,23 @@ mod tests {
       });
     }
   }
+
+  cpu_test!(test_inst_ld_0xff00c_a {
+    ins: Instruction::LD_0xff00c_a,
+    before: {
+      let mut c = Cpu::default();
+      c.write_reg_byte(Reg::C, 0x10);
+      c.write_reg_byte(Reg::A, 0xFF);
+      c
+    },
+    after: {
+      let mut c = Cpu { cycles: 8, ..Cpu::default() };
+      c.write_reg_byte(Reg::C, 0x10);
+      c.write_reg_byte(Reg::A, 0xFF);
+      c.mem.write_byte(0xFF10, 0xFF);
+      c
+    },
+  });
 
   cpu_test!(test_inst_ldd_hl_a {
     ins: Instruction::LDD_hl_a,
@@ -626,7 +583,7 @@ mod tests {
       c.write_reg_byte(Reg::A, 0x87);
       c.write_reg_byte(Reg::H, 0xC2);
       c.write_reg_byte(Reg::L, 0x20);
-      c.write_mapped_byte(0xC221, 0x87);
+      c.mem.write_byte(0xC221, 0x87);
       c
     },
   });
