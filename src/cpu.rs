@@ -215,10 +215,22 @@ impl Cpu {
     self.cycles += cycles;
   }
 
-  // NOP
-  // 0x00
-  fn inst_nop(&self) -> u32 {
-    4
+  // BIT b,r
+  // Opcode: 0xCB 01bbbrrr
+  // Page: 242
+  fn inst_bit_b_r(&mut self, b: u8, r: Reg) -> u32 {
+    let d = self.read_reg_byte(r);
+
+    if d & (1 << b) > 0 {
+      self.write_flag(Flag::Z, false);
+    } else {
+      self.write_flag(Flag::Z, true);
+    }
+
+    self.write_flag(Flag::H, true);
+    self.write_flag(Flag::N, false);
+
+    8
   }
 
   // JR cc,e
@@ -241,6 +253,16 @@ impl Cpu {
     }
   }
 
+  // LD (0xFF00+C),A
+  // Opcode: 0xE2
+  // Moved instruction.
+  fn inst_ld_0xff00c_a(&mut self) -> u32 {
+    let a = self.read_reg_byte(Reg::A);
+    let c = self.read_reg_byte(Reg::C);
+    self.mem.write_byte(0xFF00 + c as u16, a);
+    8
+  }
+
   // LD dd,nn
   // Opcode: 00dd0001
   // Page: 120
@@ -259,16 +281,6 @@ impl Cpu {
     8
   }
 
-  // LD (0xFF00+C),A
-  // Opcode: 0xE2
-  // Moved instruction.
-  fn inst_ld_0xff00c_a(&mut self) -> u32 {
-    let a = self.read_reg_byte(Reg::A);
-    let c = self.read_reg_byte(Reg::C);
-    self.mem.write_byte(0xFF00 + c as u16, a);
-    8
-  }
-
   // LDD (HL),A
   // Opcode: 0x32
   // Page: 149
@@ -278,6 +290,12 @@ impl Cpu {
     self.mem.write_byte(hl, a);
     self.reg_hl -= 1;
     8
+  }
+
+  // NOP
+  // 0x00
+  fn inst_nop(&self) -> u32 {
+    4
   }
 
   // XOR r
@@ -302,24 +320,6 @@ impl Cpu {
     self.write_flag(Flag::C, false);
 
     4
-  }
-
-  // BIT b,r
-  // Opcode: 0xCB 01bbbrrr
-  // Page: 242
-  fn inst_bit_b_r(&mut self, b: u8, r: Reg) -> u32 {
-    let d = self.read_reg_byte(r);
-
-    if d & (1 << b) > 0 {
-      self.write_flag(Flag::Z, false);
-    } else {
-      self.write_flag(Flag::Z, true);
-    }
-
-    self.write_flag(Flag::H, true);
-    self.write_flag(Flag::N, false);
-
-    8
   }
 }
 
