@@ -199,6 +199,7 @@ impl Cpu {
   }
 
   fn execute_instruction(&mut self, ins: Instruction) {
+    println!("{:?}", ins);
     let cycles = match ins {
       Instruction::BIT_b_r(b, r) => self.inst_BIT_b_r(b, r),
       Instruction::INC_r(r) => self.inst_INC_r(r),
