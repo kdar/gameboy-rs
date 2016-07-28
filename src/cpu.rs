@@ -204,6 +204,7 @@ impl Cpu {
       Instruction::INC_r(r) => self.inst_INC_r(r),
       Instruction::JR_cc_e(cc) => self.inst_JR_cc_e(cc),
       Instruction::LD_0xFF00C_A => self.inst_LD_0xFF00C_A(),
+      Instruction::LD_·HL·_r(r) => self.inst_LD_·HL·_r(r),
       Instruction::LD_dd_nn(dd) => self.inst_LD_dd_nn(dd),
       Instruction::LD_r_n(r) => self.inst_LD_r_n(r),
       Instruction::LDD_·HL·_A => self.inst_LDD_·HL·_A(),
@@ -274,6 +275,15 @@ impl Cpu {
     let a = self.read_reg_byte(Reg::A);
     let c = self.read_reg_byte(Reg::C);
     self.mem.write_byte(0xFF00 + c as u16, a);
+    8
+  }
+
+  // LD (HL),r
+  // Opcode: 01110rrr
+  fn inst_LD_·HL·_r(&mut self, reg: Reg) -> u32 {
+    let hl = self.reg_hl;
+    let a = self.read_reg_byte(reg);
+    self.mem.write_byte(hl, a);
     8
   }
 
@@ -593,6 +603,36 @@ mod tests {
       c
     },
   });
+
+  #[test]
+  #[allow(non_snake_case)]
+  fn test_inst_LD_·HL·_r() {
+    for i in 0..7 {
+      if i == 6 {
+        continue;
+      }
+
+      let r = Reg::from(i);
+      cpu_inline_test!({
+        ins: Instruction::LD_·HL·_r(r),
+        before: {
+          let mut c = Cpu::default();
+          c.write_reg_byte(r, 0x87);
+          c.write_reg_byte(Reg::H, 0xC2);
+          c.write_reg_byte(Reg::L, 0x21);
+          c
+        },
+        after: {
+          let mut c = Cpu { cycles: 8, ..Cpu::default() };
+          c.write_reg_byte(r, 0x87);
+          c.write_reg_byte(Reg::H, 0xC2);
+          c.write_reg_byte(Reg::L, 0x21);
+          c.mem.write_byte(0xC221, 0x87);
+          c
+        },
+      });
+    }
+  }
 
   #[test]
   #[allow(non_snake_case)]
