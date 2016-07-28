@@ -285,12 +285,13 @@ impl Cpu {
     let cycles = match ins {
       Instruction::NOP => self.inst_nop(),
       Instruction::LD_dd_nn(dd) => self.inst_ld_dd_nn(dd),
+      Instruction::LD_r_n(r) => self.inst_ld_r_n(r),
       Instruction::LDD_hl_a => self.inst_ldd_hl_a(),
       Instruction::XOR_r(r) => self.inst_xor_r(r),
       Instruction::JR_cc_e(cc) => self.inst_jr_cc_e(cc),
 
       Instruction::BIT_b_r(b, r) => self.inst_bit_b_r(b, r),
-      _ => panic!("instruction not implemented: {:?}", ins),
+      // _ => panic!("instruction not implemented: {:?}", ins),
     };
 
     self.cycles += cycles;
@@ -337,7 +338,7 @@ impl Cpu {
   fn inst_ld_r_n(&mut self, reg: Reg) -> u32 {
     let n = self.read_pc_byte();
     self.write_reg_byte(reg, n);
-    12
+    8
   }
 
   // LDD (HL),A
@@ -584,6 +585,31 @@ mod tests {
         ..Cpu::default()
       },
     });
+  }
+
+  #[test]
+  fn test_inst_ld_r_n() {
+    for i in 0..7 {
+      if i == 6 {
+        continue;
+      }
+
+      let r = Reg::from(i);
+
+      cpu_inline_test!({
+        ins: Instruction::LD_r_n(r),
+        before: Cpu { cart_rom: Box::new([0xFE]), ..Cpu::default() },
+        after: {
+          let mut c = Cpu{
+            cycles: 8,
+            reg_pc: 1,
+            ..Cpu::default()
+          };
+          c.write_reg_byte(r, 0xFE);
+          c
+        },
+      });
+    }
   }
 
   cpu_test!(test_inst_ldd_hl_a {

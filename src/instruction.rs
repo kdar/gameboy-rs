@@ -16,9 +16,6 @@ pub enum Instruction {
   LDD_hl_a,
   XOR_r(Reg),
   JR_cc_e(Flag),
-  // JR_nz_e,
-  // JR_z_e,
-  // LD_r_n,
   BIT_b_r(u8, Reg),
 }
 
