@@ -16,6 +16,7 @@ pub enum Instruction {
   LD_0xFF00C_A,
   LD_0xFF00n_A,
   LD_·HL·_r(Reg),
+  LD_A_·DE·,
   LD_dd_nn(Reg),
   LD_r_n(Reg),
   LDD_·HL·_A,
@@ -40,6 +41,7 @@ impl Instruction {
         let r = op & 0b111;
         Instruction::LD_·HL·_r(Reg::from(r))
       }
+      0x1A => Instruction::LD_A_·DE·,
       0x21 if op & 0b11001111 == 0b00000001 => {
         let r = op >> 4 & 0b11;
         Instruction::LD_dd_nn(Reg::from_pair(r))
