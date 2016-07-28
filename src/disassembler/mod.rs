@@ -1,10 +1,22 @@
 #![feature(non_ascii_idents)]
 
+extern crate hex_slice;
+
 use gameboy::reg::Reg;
 use gameboy::flag::Flag;
+use std::io::Write;
 
 mod instruction;
 use self::instruction::Instruction;
+
+fn to_hex(v: &[u8]) -> String {
+  let mut f = vec![];
+  for val in v {
+    write!(f, "{:x}", val).unwrap();
+  }
+
+  String::from_utf8(f).unwrap()
+}
 
 pub struct Disassembler {
   rom: Box<[u8]>,
@@ -20,7 +32,8 @@ impl Disassembler {
 
     while pc < self.rom.len() as u16 {
       let (ins, inc) = self.instruction_at(pc);
-      println!("{:?}", ins);
+      let hex = to_hex(&self.rom[(pc as usize)..(pc as usize) + inc as usize]);
+      println!("{:04x} {:12} {:?}", pc, hex, ins);
       pc += inc;
     }
   }
@@ -68,6 +81,10 @@ impl Disassembler {
         let n = self.read_byte(addr + pc);
         pc += 1;
         (Instruction::LD_r_n(Reg::from(r), n), pc)
+      } else if op & 0b11000000 == 0b01000000 {
+        let r1 = op >> 3 & 0b111;
+        let r2 = op & 0b111;
+        (Instruction::LD_r_r(Reg::from(r1), Reg::from(r2)), pc)
       } else {
         match op {
           0x20 => {
