@@ -1,7 +1,5 @@
 #![feature(non_ascii_idents)]
 
-extern crate hex_slice;
-
 use gameboy::reg::Reg;
 use gameboy::flag::Flag;
 use std::io::Write;
