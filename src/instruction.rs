@@ -16,7 +16,7 @@ pub enum Instruction {
   LD_0xff00c_a,
   LD_dd_nn(Reg),
   LD_r_n(Reg),
-  LDD_hl_a,
+  LDD_·hl·_a,
   NOP,
   XOR_r(Reg),
 }
@@ -41,7 +41,7 @@ impl Instruction {
         let r = op >> 3 & 0b111;
         Instruction::LD_r_n(Reg::from(r))
       }
-      0x32 => Instruction::LDD_hl_a,
+      0x32 => Instruction::LDD_·hl·_a,
       0x00 => Instruction::NOP,
       0xAF => Instruction::XOR_r(Reg::A),
 

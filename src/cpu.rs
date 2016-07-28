@@ -206,7 +206,7 @@ impl Cpu {
       Instruction::LD_0xff00c_a => self.inst_ld_0xff00c_a(),
       Instruction::LD_dd_nn(dd) => self.inst_ld_dd_nn(dd),
       Instruction::LD_r_n(r) => self.inst_ld_r_n(r),
-      Instruction::LDD_hl_a => self.inst_ldd_hl_a(),
+      Instruction::LDD_·hl·_a => self.inst_ldd_·hl·_a(),
       Instruction::NOP => self.inst_nop(),
       Instruction::XOR_r(r) => self.inst_xor_r(r),
       // _ => panic!("instruction not implemented: {:?}", ins),
@@ -294,7 +294,7 @@ impl Cpu {
   // LDD (HL),A
   // Opcode: 0x32
   // Page: 149
-  fn inst_ldd_hl_a(&mut self) -> u32 {
+  fn inst_ldd_·hl·_a(&mut self) -> u32 {
     let hl = self.reg_hl;
     let a = self.read_reg_byte(Reg::A);
     self.mem.write_byte(hl, a);
@@ -646,7 +646,7 @@ mod tests {
   }
 
   cpu_test!(test_inst_ldd_hl_a {
-    ins: Instruction::LDD_hl_a,
+    ins: Instruction::LDD_·hl·_a,
     before: {
       let mut c = Cpu::default();
       c.write_reg_byte(Reg::A, 0x87);
