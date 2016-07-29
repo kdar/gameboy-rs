@@ -204,6 +204,7 @@ impl Cpu {
   fn execute_instruction(&mut self, ins: Instruction) {
     let cycles = match ins {
       Instruction::BIT_b_r(b, r) => self.inst_BIT_b_r(b, r),
+      Instruction::CALL_nn(nn) => self.inst_CALL_nn(nn),
       Instruction::INC_r(r) => self.inst_INC_r(r),
       Instruction::JR_cc_e(cc, e) => self.inst_JR_cc_e(cc, e),
       Instruction::LD_0xFF00C_A => self.inst_LD_0xFF00C_A(),
@@ -238,6 +239,17 @@ impl Cpu {
     self.write_flag(Flag::N, false);
 
     8
+  }
+
+  // CALL nn
+  // Opcode: 0xCD
+  // Page: 273
+  #[allow(non_snake_case)]
+  fn inst_CALL_nn(&mut self, nn: u16) -> u32 {
+    self.reg_sp -= 2;
+    self.mem.write_word(self.reg_sp, self.reg_pc);
+    self.reg_pc = nn;
+    24
   }
 
   // INC r

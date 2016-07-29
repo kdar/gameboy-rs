@@ -90,6 +90,11 @@ impl Disassembler {
             pc += 1;
             Some((Instruction::JR_cc_e(Flag::C, e as i8), pc))
           }
+          0xCD => {
+            let nn = try_o!(m.read_word(addr + pc));
+            pc += 2;
+            Some((Instruction::CALL_nn(nn), pc))
+          }
           0xE2 => Some((Instruction::LD_0xFF00C_A, pc)),
           0xE0 => Some((Instruction::LD_0xFF00n_A, pc)),
           0x1A => Some((Instruction::LD_A_·DE·, pc)),

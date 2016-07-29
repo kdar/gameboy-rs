@@ -51,6 +51,7 @@ mod constants {
   // High RAM (HRAM)
   pub const HIGH_RAM_START: u16 = 0xFF80;
   pub const HIGH_RAM_END: u16 = 0xFFFE;
+  pub const HIGH_RAM_LEN: usize = HIGH_RAM_END as usize - HIGH_RAM_START as usize;
 
   // Interrupt Enable Register
   pub const INTERRUPT_REGISTER_START: u16 = 0xFFFF;
@@ -125,6 +126,8 @@ mod module {
 
     work_ram_0: [u8; WORK_RAM_0_LEN],
     work_ram_1: [u8; WORK_RAM_1_LEN],
+
+    high_ram: [u8; HIGH_RAM_LEN],
   }
 
   impl Mem {
@@ -135,6 +138,7 @@ mod module {
         booting: false,
         work_ram_0: [0; WORK_RAM_0_LEN],
         work_ram_1: [0; WORK_RAM_1_LEN],
+        high_ram: [0; HIGH_RAM_LEN],
       }
     }
 
@@ -190,7 +194,7 @@ mod module {
         Addr::WorkRam1(offset) => self.work_ram_1.get(offset as usize).and_then(|&x| Some(x)),
         Addr::SpriteTable(offset) => panic!("read_byte not implemented: {:?}", mapped),
         Addr::IoPorts(offset) => panic!("read_byte not implemented: {:?}", mapped),
-        Addr::HighRam(offset) => panic!("read_byte not implemented: {:?}", mapped),
+        Addr::HighRam(offset) => self.high_ram.get(offset as usize).and_then(|&x| Some(x)),
         Addr::InterruptRegister => panic!("read_byte not implemented: {:?}", mapped),
       }
     }
@@ -212,7 +216,9 @@ mod module {
         }
         Addr::SpriteTable(offset) => panic!("write_byte not implemented: {:?}", mapped),
         Addr::IoPorts(offset) => (), // panic!("write_byte not implemented: {:?}", mapped),
-        Addr::HighRam(offset) => panic!("write_byte not implemented: {:?}", mapped),
+        Addr::HighRam(offset) => {
+          self.high_ram[offset as usize] = value;
+        }
         Addr::InterruptRegister => panic!("write_byte not implemented: {:?}", mapped),
       };
     }
