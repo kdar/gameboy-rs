@@ -213,6 +213,7 @@ impl Cpu {
       Instruction::LD_A_·DE· => self.inst_LD_A_·DE·(),
       Instruction::LD_dd_nn(dd, nn) => self.inst_LD_dd_nn(dd, nn),
       Instruction::LD_r_n(r, n) => self.inst_LD_r_n(r, n),
+      Instruction::LD_r_r(r1, r2) => self.inst_LD_r_r(r1, r2),
       Instruction::LDD_·HL·_A => self.inst_LDD_·HL·_A(),
       Instruction::NOP => self.inst_NOP(),
       Instruction::XOR_r(r) => self.inst_XOR_r(r),
@@ -339,6 +340,16 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_LD_dd_nn(&mut self, dd: Reg, nn: u16) -> u32 {
     self.write_reg_word(dd, nn);
+    12
+  }
+
+  // LD r,r
+  // Opcode: 01_rrr_rrr
+  // Page: 120
+  #[allow(non_snake_case)]
+  fn inst_LD_r_r(&mut self, r1: Reg, r2: Reg) -> u32 {
+    let tmp = self.read_reg_byte(r2);
+    self.write_reg_byte(r1, tmp);
     12
   }
 
@@ -575,6 +586,23 @@ mod tests {
       }
     }
   }
+
+  cpu_test!(test_inst_CALL_nn {
+    ins: Instruction::CALL_nn(0x0095),
+    before: {
+      let mut c = Cpu::default();
+      c.reg_sp = 100;
+      c.reg_pc = 200;
+      c
+    },
+    after: {
+      let mut c = Cpu { cycles: 24, ..Cpu::default() };
+      c.reg_sp = 98;
+      c.mem.write_byte(98, 200);
+      c.reg_pc = 0x0095;
+      c
+    },
+  });
 
   #[test]
   #[allow(non_snake_case)]

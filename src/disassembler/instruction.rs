@@ -26,7 +26,7 @@ impl fmt::Debug for Instruction {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match *self {
       Instruction::BIT_b_r(b, r) => write!(f, "BIT {},{}", b, r),
-      Instruction::CALL_nn(nn) => write!(f, "CALL {}", nn),
+      Instruction::CALL_nn(nn) => write!(f, "CALL ${:04x}", nn),
       Instruction::INC_r(r) => write!(f, "INC {}", r),
       Instruction::JR_cc_e(cc, e) => write!(f, "JR {},{}", cc, e),
       Instruction::LD_0xFF00C_A => write!(f, "LD (0xFF00+C),A"),
