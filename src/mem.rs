@@ -177,7 +177,7 @@ mod module {
       let mapped = self.memory_map(addr);
       match mapped {
         Addr::Rom00(offset) => {
-          if self.booting {
+          if self.booting && offset <= 0xFF {
             self.boot_rom.get(offset as usize).and_then(|&x| Some(x))
           } else {
             self.cart_rom.get(offset as usize).and_then(|&x| Some(x))
