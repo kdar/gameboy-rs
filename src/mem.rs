@@ -184,12 +184,12 @@ mod module {
           }
         }
         Addr::Rom01(offset) => panic!("read_byte not implemented: {:?}", mapped),
-        Addr::VideoRam(offset) => None, // panic!("read_byte not implemented: {:?}", mapped),
+        Addr::VideoRam(offset) => panic!("read_byte not implemented: {:?}", mapped),
         Addr::ExternalRam(offset) => panic!("read_byte not implemented: {:?}", mapped),
         Addr::WorkRam0(offset) => self.work_ram_0.get(offset as usize).and_then(|&x| Some(x)),
         Addr::WorkRam1(offset) => self.work_ram_1.get(offset as usize).and_then(|&x| Some(x)),
         Addr::SpriteTable(offset) => panic!("read_byte not implemented: {:?}", mapped),
-        Addr::IoPorts(offset) => None, // panic!("read_byte not implemented: {:?}", mapped),
+        Addr::IoPorts(offset) => panic!("read_byte not implemented: {:?}", mapped),
         Addr::HighRam(offset) => panic!("read_byte not implemented: {:?}", mapped),
         Addr::InterruptRegister => panic!("read_byte not implemented: {:?}", mapped),
       }

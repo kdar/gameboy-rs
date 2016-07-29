@@ -1,8 +1,9 @@
 use super::rustyline::error::ReadlineError;
 use super::rustyline::Editor;
-use super::shlex;
+use std::process::exit;
 
 use super::super::cpu;
+use super::command::Command;
 
 pub struct Debugger {
   cpu: cpu::Cpu,
@@ -34,22 +35,24 @@ impl Debugger {
           }
 
           rl.add_history_entry(&line);
-          let mut sh = shlex::Shlex::new(&line);
-          match sh.nth(0).unwrap().as_ref() {
-            "step" | "s" => {
-              let steps: usize = match sh.nth(0) {
-                Some(s) => s.parse().unwrap(),
-                None => 1,
-              };
 
-              for _ in 0..steps {
+          let c = match Command::parse(&line) {
+            Ok(c) => c,
+            Err(_) => {
+              println!("Unable to parse: {}", line);
+              continue;
+            }
+          };
+
+          match c {
+            Command::Step(s) => {
+              for _ in 0..s {
                 self.cpu.step();
               }
             }
-            _ => {
-              println!("unknown command: {}", line);
-            }
-          }
+            Command::Breakpoint(l) => {}
+            Command::Exit => exit(0),
+          };
         }
         Err(ReadlineError::Interrupted) => {
           println!("CTRL-C");

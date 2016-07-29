@@ -3,6 +3,8 @@
 extern crate md5;
 #[cfg(test)]
 extern crate difference;
+#[macro_use]
+extern crate nom;
 
 mod gameboy;
 pub mod mem;

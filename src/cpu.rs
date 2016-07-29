@@ -186,26 +186,11 @@ impl Cpu {
   // }
 
   pub fn step(&mut self) {
-    // let opcode = self.read_pc_byte();
-    // self.execute_opcode(opcode);
-
-    // let (inst, inc) = self.disasm.instruction_at(self.reg_pc, &self.boot_rom);
     if let Some((inst, inc)) = self.disasm.at(&self.mem, self.reg_pc) {
       self.reg_pc += inc;
       self.execute_instruction(inst);
     }
-
-    // println!("{:?}", self);
   }
-
-  // fn execute_opcode(&mut self, opcode: u8) {
-  //   if opcode == 0xCB {
-  //     let opcode = self.read_pc_byte();
-  //     self.execute_instruction(Instruction::from_cb(opcode));
-  //   } else {
-  //     self.execute_instruction(Instruction::from(opcode));
-  //   }
-  // }
 
   fn execute_instruction(&mut self, ins: Instruction) {
     let cycles = match ins {
