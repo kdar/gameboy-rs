@@ -1,15 +1,16 @@
-use nom::{self, eof, space, digit};
+use nom::{self, multispace, eof, space, digit};
 use std::str::{self, FromStr};
 use std::fmt;
 use std::error;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Command {
-  Step(usize),
-  Continue,
   Breakpoint(Option<usize>),
   Breakpoints,
+  Continue,
+  Debug,
   Exit,
+  Step(usize),
 }
 
 impl Command {
@@ -51,42 +52,12 @@ named!(command<Command>,
         continue_ |
         breakpoints |
         breakpoint |
-        exit) ~
-        eof,
-    || c
-  )
-);
-
-named!(step<Command>,
-  chain!(
-    alt_complete!(
-      tag!("step") |
-      tag!("s")
+        debug |
+        exit
     ) ~
-    count: opt!(preceded!(space, usize_parser)),
-    || Command::Step(count.unwrap_or(1))
-  )
-);
-
-named!(exit<Command>,
-  map!(
-    alt_complete!(
-      tag!("exit") |
-      tag!("quit") |
-      tag!("e") |
-      tag!("q")
-    ),
-    |_| Command::Exit
-  )
-);
-
-named!(continue_<Command>,
-  map!(
-    alt_complete!(
-      tag!("c") |
-      tag!("continue")
-    ),
-    |_| Command::Continue
+    multispace? ~
+    eof,
+    || c
   )
 );
 
@@ -108,6 +79,49 @@ named!(breakpoints<Command>,
       tag!("breakpoints")
     ),
     |_| Command::Breakpoints
+  )
+);
+
+named!(continue_<Command>,
+  map!(
+    alt_complete!(
+      tag!("continue") |
+      tag!("c")
+    ),
+    |_| Command::Continue
+  )
+);
+
+named!(debug<Command>,
+  map!(
+    alt_complete!(
+      tag!("debug") |
+      tag!("d")
+    ),
+    |_| Command::Debug
+  )
+);
+
+named!(exit<Command>,
+  map!(
+    alt_complete!(
+      tag!("exit") |
+      tag!("quit") |
+      tag!("e") |
+      tag!("q")
+    ),
+    |_| Command::Exit
+  )
+);
+
+named!(step<Command>,
+  chain!(
+    alt_complete!(
+      tag!("step") |
+      tag!("s")
+    ) ~
+    count: opt!(preceded!(space, usize_parser)),
+    || Command::Step(count.unwrap_or(1))
   )
 );
 

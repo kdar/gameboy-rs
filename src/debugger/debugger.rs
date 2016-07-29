@@ -11,13 +11,16 @@ pub struct Debugger {
 }
 
 impl Debugger {
-  pub fn new(cart_rom: Box<[u8]>) -> Debugger {
+  pub fn new() -> Debugger {
     let mut cpu = cpu::Cpu::new();
-    cpu.set_cart_rom(cart_rom);
     Debugger {
       cpu: cpu,
       breakpoints: vec![],
     }
+  }
+
+  pub fn set_cart_rom(&mut self, rom: Box<[u8]>) {
+    self.cpu.set_cart_rom(rom);
   }
 
   pub fn set_boot_rom(&mut self, rom: Box<[u8]>) {
@@ -25,6 +28,18 @@ impl Debugger {
   }
 
   fn step(&mut self) -> bool {
+    // let result = panic::catch_unwind(|| {
+    //   return self.cpu.step();
+    // });
+    //
+    // let (inst, pc) = match result {
+    //   Ok(v) => v,
+    //   Err(e) => {
+    //     println!("{:?}", e);
+    //     return true;
+    //   }
+    // };
+
     let (inst, pc) = self.cpu.step();
     println!("{:?}", inst);
     for &b in self.breakpoints.iter() {
@@ -68,6 +83,9 @@ impl Debugger {
                   break;
                 }
               }
+            }
+            Command::Debug => {
+              println!("{:?}", self.cpu);
             }
             Command::Step(s) => {
               for _ in 0..s {
