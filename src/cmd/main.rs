@@ -15,6 +15,7 @@ use std::process::exit;
 
 use gameboy::debugger;
 use gameboy::disassembler;
+use gameboy::mem::{self, Memory};
 
 macro_rules! try_log {
   ($expr:expr) => (match $expr {
@@ -59,8 +60,10 @@ fn main() {
   let cart_rom = load_rom(matches.value_of("cart-rom").unwrap());
 
   if matches.is_present("disassemble") {
+    let mut m: Box<mem::Memory> = Box::new(mem::Mem::new());
+    m.set_boot_rom(cart_rom);
     let d = disassembler::Disassembler::new();
-    d.print_all(&*cart_rom);
+    d.print_all(&m);
   } else if matches.is_present("debug") {
     let mut gb = debugger::Debugger::new(cart_rom);
     if let Some(boot_rom_path) = matches.value_of("boot-rom") {

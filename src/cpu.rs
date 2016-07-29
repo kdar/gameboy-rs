@@ -129,13 +129,13 @@ impl Cpu {
   fn read_pc_byte(&mut self) -> u8 {
     let d = self.mem.read_byte(self.reg_pc);
     self.reg_pc += 1;
-    d
+    d.unwrap()
   }
 
   fn read_pc_word(&mut self) -> u16 {
     let d = self.mem.read_word(self.reg_pc);
     self.reg_pc += 2;
-    d
+    d.unwrap()
   }
 
   fn write_flag(&mut self, flag: Flag, mut value: bool) {
@@ -186,20 +186,25 @@ impl Cpu {
   // }
 
   pub fn step(&mut self) {
-    let opcode = self.read_pc_byte();
-    self.execute_opcode(opcode);
+    // let opcode = self.read_pc_byte();
+    // self.execute_opcode(opcode);
+
+    // let (inst, inc) = self.disasm.instruction_at(self.reg_pc, &self.boot_rom);
+    // if let Some((inst, inc)) = self.disasm.step(&self.mem) {
+    //
+    // }
 
     // println!("{:?}", self);
   }
 
-  fn execute_opcode(&mut self, opcode: u8) {
-    if opcode == 0xCB {
-      let opcode = self.read_pc_byte();
-      self.execute_instruction(Instruction::from_cb(opcode));
-    } else {
-      self.execute_instruction(Instruction::from(opcode));
-    }
-  }
+  // fn execute_opcode(&mut self, opcode: u8) {
+  //   if opcode == 0xCB {
+  //     let opcode = self.read_pc_byte();
+  //     self.execute_instruction(Instruction::from_cb(opcode));
+  //   } else {
+  //     self.execute_instruction(Instruction::from(opcode));
+  //   }
+  // }
 
   fn execute_instruction(&mut self, ins: Instruction) {
     let cycles = match ins {
@@ -311,7 +316,7 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_LD_A_·DE·(&mut self) -> u32 {
     let de = self.reg_de;
-    let val = self.mem.read_byte(de);
+    let val = self.mem.read_byte(de).unwrap();
     self.write_reg_byte(Reg::A, val);
     8
   }
