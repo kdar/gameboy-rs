@@ -1,5 +1,3 @@
-#![feature(non_ascii_idents)]
-
 use gameboy::reg::Reg;
 use gameboy::flag::Flag;
 use std::io::Write;
