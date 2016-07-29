@@ -185,11 +185,14 @@ impl Cpu {
   //   self.cycles = 0;
   // }
 
-  pub fn step(&mut self) {
+  pub fn step(&mut self) -> (Instruction, u16) {
     if let Some((inst, inc)) = self.disasm.at(&self.mem, self.reg_pc) {
       self.reg_pc += inc;
-      self.execute_instruction(inst);
+      self.execute_instruction(inst.clone());
+      return (inst, self.reg_pc);
     }
+
+    (Instruction::Invalid, self.reg_pc)
   }
 
   fn execute_instruction(&mut self, ins: Instruction) {

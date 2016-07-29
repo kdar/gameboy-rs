@@ -3,7 +3,9 @@ use super::super::flag::Flag;
 use std::fmt;
 
 #[allow(non_camel_case_types)]
+#[derive(Copy, Clone)]
 pub enum Instruction {
+  Invalid,
   BIT_b_r(u8, Reg),
   INC_r(Reg),
   JR_cc_e(Flag, i8),
@@ -35,6 +37,7 @@ impl fmt::Debug for Instruction {
       Instruction::LDD_·HL·_A => write!(f, "LDD (HL),A"),
       Instruction::NOP => write!(f, "NOP"),
       Instruction::XOR_r(r) => write!(f, "XOR {}", r),
+      Instruction::Invalid => write!(f, "INVALID"),
     }
   }
 }

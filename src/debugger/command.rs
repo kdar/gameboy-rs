@@ -6,7 +6,9 @@ use std::error;
 #[derive(Debug, Clone, Copy)]
 pub enum Command {
   Step(usize),
+  Continue,
   Breakpoint(Option<usize>),
+  Breakpoints,
   Exit,
 }
 
@@ -46,6 +48,8 @@ named!(command<Command>,
   chain!(
     c: alt_complete!(
         step |
+        continue_ |
+        breakpoints |
         breakpoint |
         exit) ~
         eof,
@@ -76,6 +80,16 @@ named!(exit<Command>,
   )
 );
 
+named!(continue_<Command>,
+  map!(
+    alt_complete!(
+      tag!("c") |
+      tag!("continue")
+    ),
+    |_| Command::Continue
+  )
+);
+
 named!(breakpoint<Command>,
   chain!(
     alt_complete!(
@@ -85,6 +99,15 @@ named!(breakpoint<Command>,
     ) ~
     loc: opt!(preceded!(space, usize_parser)),
     || Command::Breakpoint(loc)
+  )
+);
+
+named!(breakpoints<Command>,
+  map!(
+    complete!(
+      tag!("breakpoints")
+    ),
+    |_| Command::Breakpoints
   )
 );
 

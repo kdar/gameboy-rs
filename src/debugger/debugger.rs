@@ -7,17 +7,34 @@ use super::command::Command;
 
 pub struct Debugger {
   cpu: cpu::Cpu,
+  breakpoints: Vec<usize>,
 }
 
 impl Debugger {
   pub fn new(cart_rom: Box<[u8]>) -> Debugger {
     let mut cpu = cpu::Cpu::new();
     cpu.set_cart_rom(cart_rom);
-    Debugger { cpu: cpu }
+    Debugger {
+      cpu: cpu,
+      breakpoints: vec![],
+    }
   }
 
   pub fn set_boot_rom(&mut self, rom: Box<[u8]>) {
     self.cpu.set_boot_rom(rom);
+  }
+
+  fn step(&mut self) -> bool {
+    let (inst, pc) = self.cpu.step();
+    println!("{:?}", inst);
+    for &b in self.breakpoints.iter() {
+      if pc as usize == b {
+        println!("Breakpoint hit @ {}", pc);
+        return true;
+      }
+    }
+
+    false
   }
 
   pub fn run(&mut self) {
@@ -27,7 +44,7 @@ impl Debugger {
     }
 
     loop {
-      let readline = rl.readline("gameboy> ");
+      let readline = rl.readline("(gameboy) ");
       match readline {
         Ok(line) => {
           if line.len() == 0 {
@@ -38,20 +55,37 @@ impl Debugger {
 
           let c = match Command::parse(&line) {
             Ok(c) => c,
-            Err(_) => {
-              println!("Unable to parse: {}", line);
+            Err(e) => {
+              println!("Unable to parse \"{}\": {}", line, e);
               continue;
             }
           };
 
           match c {
-            Command::Step(s) => {
-              for _ in 0..s {
-                self.cpu.step();
+            Command::Continue => {
+              loop {
+                if self.step() {
+                  break;
+                }
               }
             }
-            Command::Breakpoint(l) => {}
+            Command::Step(s) => {
+              for _ in 0..s {
+                if self.step() {
+                  break;
+                }
+              }
+            }
+            Command::Breakpoint(Some(l)) => {
+              self.breakpoints.push(l as usize);
+            }
+            Command::Breakpoints => {
+              for loc in self.breakpoints.iter() {
+                println!("Breakpoint @ {}", loc);
+              }
+            }
             Command::Exit => exit(0),
+            _ => {}
           };
         }
         Err(ReadlineError::Interrupted) => {
