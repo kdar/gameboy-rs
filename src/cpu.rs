@@ -129,13 +129,19 @@ impl Cpu {
   fn read_pc_byte(&mut self) -> u8 {
     let d = self.mem.read_byte(self.reg_pc);
     self.reg_pc += 1;
-    d.unwrap()
+    match d {
+      Some(v) => v,
+      None => panic!("read_by_byte: could not read byte at {:#04x}", self.reg_pc),
+    }
   }
 
   fn read_pc_word(&mut self) -> u16 {
     let d = self.mem.read_word(self.reg_pc);
     self.reg_pc += 2;
-    d.unwrap()
+    match d {
+      Some(v) => v,
+      None => panic!("read_by_byte: could not read byte at {:#04x}", self.reg_pc),
+    }
   }
 
   fn write_flag(&mut self, flag: Flag, mut value: bool) {
@@ -304,7 +310,13 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_LD_A_·DE·(&mut self) -> u32 {
     let de = self.reg_de;
-    let val = self.mem.read_byte(de).unwrap();
+    let val = match self.mem.read_byte(de) {
+      Some(v) => v,
+      None => {
+        panic!("inst_LD_A_·DE·: could not read (DE) byte (memory address {:#04x})",
+               de)
+      }
+    };
     self.write_reg_byte(Reg::A, val);
     8
   }

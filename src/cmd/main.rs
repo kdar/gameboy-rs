@@ -65,7 +65,8 @@ fn main() {
     let d = disassembler::Disassembler::new();
     d.print_all(&m);
   } else if matches.is_present("debug") {
-    let mut gb = debugger::Debugger::new(cart_rom);
+    let mut gb = debugger::Debugger::new();
+    gb.set_boot_rom(cart_rom);
     if let Some(boot_rom_path) = matches.value_of("boot-rom") {
       gb.set_boot_rom(load_rom(boot_rom_path));
     }
