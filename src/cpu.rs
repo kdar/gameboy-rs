@@ -5,7 +5,7 @@ use std::cmp::PartialEq;
 use super::mem;
 use super::reg::Reg;
 use super::flag::Flag;
-use super::instruction::Instruction;
+use super::disassembler::Instruction;
 use super::disassembler::Disassembler;
 
 fn high_byte(value: u16) -> u8 {
@@ -190,9 +190,10 @@ impl Cpu {
     // self.execute_opcode(opcode);
 
     // let (inst, inc) = self.disasm.instruction_at(self.reg_pc, &self.boot_rom);
-    // if let Some((inst, inc)) = self.disasm.step(&self.mem) {
-    //
-    // }
+    if let Some((inst, inc)) = self.disasm.at(&self.mem, self.reg_pc) {
+      self.reg_pc += inc;
+      self.execute_instruction(inst);
+    }
 
     // println!("{:?}", self);
   }
@@ -210,17 +211,17 @@ impl Cpu {
     let cycles = match ins {
       Instruction::BIT_b_r(b, r) => self.inst_BIT_b_r(b, r),
       Instruction::INC_r(r) => self.inst_INC_r(r),
-      Instruction::JR_cc_e(cc) => self.inst_JR_cc_e(cc),
+      Instruction::JR_cc_e(cc, e) => self.inst_JR_cc_e(cc, e),
       Instruction::LD_0xFF00C_A => self.inst_LD_0xFF00C_A(),
       Instruction::LD_0xFF00n_A => self.inst_LD_0xFF00n_A(),
       Instruction::LD_·HL·_r(r) => self.inst_LD_·HL·_r(r),
       Instruction::LD_A_·DE· => self.inst_LD_A_·DE·(),
-      Instruction::LD_dd_nn(dd) => self.inst_LD_dd_nn(dd),
-      Instruction::LD_r_n(r) => self.inst_LD_r_n(r),
+      Instruction::LD_dd_nn(dd, nn) => self.inst_LD_dd_nn(dd, nn),
+      Instruction::LD_r_n(r, n) => self.inst_LD_r_n(r, n),
       Instruction::LDD_·HL·_A => self.inst_LDD_·HL·_A(),
       Instruction::NOP => self.inst_NOP(),
       Instruction::XOR_r(r) => self.inst_XOR_r(r),
-      // _ => panic!("instruction not implemented: {:?}", ins),
+      _ => panic!("instruction not implemented: {:?}", ins),
     };
 
     self.cycles += cycles;
@@ -265,10 +266,9 @@ impl Cpu {
   // JR NC,e
   // JR C,e
   #[allow(non_snake_case)]
-  fn inst_JR_cc_e(&mut self, flag: Flag) -> u32 {
+  fn inst_JR_cc_e(&mut self, cc: Flag, e: i8) -> u32 {
     // signed argument
-    let e = self.read_pc_byte() as i8;
-    if self.read_flag(flag) {
+    if self.read_flag(cc) {
       // signed addition (can jump back)
       self.reg_pc = ((self.reg_pc as i16) + (e as i16)) as u16;
       12
@@ -325,9 +325,8 @@ impl Cpu {
   // Opcode: 00dd0001
   // Page: 120
   #[allow(non_snake_case)]
-  fn inst_LD_dd_nn(&mut self, reg: Reg) -> u32 {
-    let nn = self.read_pc_word();
-    self.write_reg_word(reg, nn);
+  fn inst_LD_dd_nn(&mut self, dd: Reg, nn: u16) -> u32 {
+    self.write_reg_word(dd, nn);
     12
   }
 
@@ -335,9 +334,8 @@ impl Cpu {
   // Opcode: 00rrr110
   // Page: 100
   #[allow(non_snake_case)]
-  fn inst_LD_r_n(&mut self, reg: Reg) -> u32 {
-    let n = self.read_pc_byte();
-    self.write_reg_byte(reg, n);
+  fn inst_LD_r_n(&mut self, r: Reg, n: u8) -> u32 {
+    self.write_reg_byte(r, n);
     8
   }
 
@@ -391,7 +389,7 @@ mod tests {
   use super::*;
   use super::super::reg::Reg;
   use super::super::flag::Flag;
-  use super::super::instruction::Instruction;
+  use super::super::disassembler::Instruction;
   use difference::{self, Difference};
   use std::io::Write;
 
@@ -592,18 +590,18 @@ mod tests {
   fn test_inst_JR_cc_e() {
     for flag in &[Flag::Z, Flag::C, Flag::NZ, Flag::NC] {
       let addrs = &[0x23, 0x00, 0xFF, 0xE6];
-      let pcs = &[(0x1000 as i16) + (0x23 as u8 as i8 as i16) + 1,
-                  (0x1000 as i16) + (0x00 as u8 as i8 as i16) + 1,
-                  (0x1000 as i16) + (0xFF as u8 as i8 as i16) + 1,
-                  (0x1000 as i16) + (0xE6 as u8 as i8 as i16) + 1];
+      let pcs = &[(0x1000 as i16) + (0x23 as u8 as i8 as i16),
+                  (0x1000 as i16) + (0x00 as u8 as i8 as i16),
+                  (0x1000 as i16) + (0xFF as u8 as i8 as i16),
+                  (0x1000 as i16) + (0xE6 as u8 as i8 as i16)];
 
       for i in 0..addrs.len() {
         let mut c = Cpu::default();
         c.reg_pc = 0x1000;
-        c.mem.write_byte(0x1000, addrs[i]);
+        // c.mem.write_byte(0x1000, addrs[i]);
         c.write_flag(*flag, true);
 
-        c.execute_instruction(Instruction::JR_cc_e(*flag));
+        c.execute_instruction(Instruction::JR_cc_e(*flag, addrs[i]));
 
         assert_eq!(c.reg_pc, pcs[i] as u16);
       }
@@ -611,12 +609,12 @@ mod tests {
       for i in 0..addrs.len() {
         let mut c = Cpu::default();
         c.reg_pc = 0x1000;
-        c.mem.write_byte(0x1000, addrs[i]);
+        // c.mem.write_byte(0x1000, addrs[i]);
         c.write_flag(*flag, false);
 
-        c.execute_instruction(Instruction::JR_cc_e(*flag));
+        c.execute_instruction(Instruction::JR_cc_e(*flag, addrs[i]));
 
-        assert_eq!(c.reg_pc, 0x1001);
+        assert_eq!(c.reg_pc, 0x1000);
       }
     }
   }
@@ -705,30 +703,20 @@ mod tests {
   #[allow(non_snake_case)]
   fn test_inst_LD_dd_nn() {
     cpu_inline_test!({
-      ins: Instruction::LD_dd_nn(Reg::HL),
-      before: {
-        let mut c = Cpu::default();
-        c.mem.write_word(0, 0xD8FE);
-        c
-      },
+      ins: Instruction::LD_dd_nn(Reg::HL, 0xD8FE),
+      before: Cpu::default(),
       after: Cpu {
         cycles: 12,
-        reg_pc: 2,
         reg_hl: 0xD8FE,
         ..Cpu::default()
       },
     });
 
     cpu_inline_test!({
-      ins: Instruction::LD_dd_nn(Reg::SP),
-      before: {
-        let mut c = Cpu::default();
-        c.mem.write_word(0, 0xD8FE);
-        c
-      },
+      ins: Instruction::LD_dd_nn(Reg::SP, 0xD8FE),
+      before: Cpu::default(),
       after: Cpu {
         cycles: 12,
-        reg_pc: 2,
         reg_sp: 0xD8FE,
         ..Cpu::default()
       },
@@ -746,16 +734,11 @@ mod tests {
       let r = Reg::from(i);
 
       cpu_inline_test!({
-        ins: Instruction::LD_r_n(r),
-        before: {
-          let mut c = Cpu::default();
-          c.mem.write_byte(0, 0xFE);
-          c
-        },
+        ins: Instruction::LD_r_n(r, 0xFE),
+        before: Cpu::default(),
         after: {
           let mut c = Cpu{
             cycles: 8,
-            reg_pc: 1,
             ..Cpu::default()
           };
           c.write_reg_byte(r, 0xFE);

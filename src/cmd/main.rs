@@ -15,7 +15,7 @@ use std::process::exit;
 
 use gameboy::debugger;
 use gameboy::disassembler;
-use gameboy::mem::{self, Memory};
+use gameboy::mem;
 
 macro_rules! try_log {
   ($expr:expr) => (match $expr {

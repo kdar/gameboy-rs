@@ -269,7 +269,7 @@ mod module {
 
   impl Memory for Mem {
     fn read_byte(&self, addr: u16) -> Option<u8> {
-      self.ram.get(addr as usize)
+      self.ram.get(addr as usize).and_then(|&x| Some(x))
     }
 
     fn write_byte(&mut self, addr: u16, value: u8) {

@@ -6,7 +6,6 @@ extern crate difference;
 
 mod gameboy;
 pub mod mem;
-mod instruction;
 pub mod cpu;
 pub mod reg;
 pub mod flag;
