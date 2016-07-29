@@ -31,7 +31,16 @@ impl Disassembler {
     while pc < self.rom.len() as u16 {
       let (ins, inc) = self.instruction_at(pc);
       let hex = to_hex(&self.rom[(pc as usize)..(pc as usize) + inc as usize]);
-      println!("{:04x} {:12} {:?}", pc, hex, ins);
+      match ins {
+        Instruction::JR_cc_e(_, e) => {
+          println!("{:04x} {:12} {:20} ; Addr: {}",
+                   pc,
+                   hex,
+                   format!("{:?}", ins),
+                   (pc as i16) + (e as i16) + inc as i16)
+        }
+        _ => println!("{:04x} {:12} {:12?}", pc, hex, ins),
+      }
       pc += inc;
     }
   }
