@@ -6,6 +6,7 @@ use super::mem;
 use super::reg::Reg;
 use super::flag::Flag;
 use super::instruction::Instruction;
+use super::disassembler::Disassembler;
 
 fn high_byte(value: u16) -> u8 {
   (value >> 8) as u8
@@ -27,6 +28,7 @@ pub struct Cpu {
   cycles: u32, // Current number of clock cycles
 
   mem: Box<mem::Memory>,
+  disasm: Disassembler,
 }
 
 impl PartialEq for Cpu {
@@ -48,6 +50,7 @@ impl Default for Cpu {
       reg_pc: 0,
       cycles: 0,
       mem: Box::new(mem::Mem::new()),
+      disasm: Disassembler::new(),
     }
   }
 }
@@ -199,7 +202,6 @@ impl Cpu {
   }
 
   fn execute_instruction(&mut self, ins: Instruction) {
-    println!("{:?}", ins);
     let cycles = match ins {
       Instruction::BIT_b_r(b, r) => self.inst_BIT_b_r(b, r),
       Instruction::INC_r(r) => self.inst_INC_r(r),

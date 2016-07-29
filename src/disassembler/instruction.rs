@@ -1,5 +1,5 @@
-use gameboy::reg::Reg;
-use gameboy::flag::Flag;
+use super::super::reg::Reg;
+use super::super::flag::Flag;
 use std::fmt;
 
 #[allow(non_camel_case_types)]

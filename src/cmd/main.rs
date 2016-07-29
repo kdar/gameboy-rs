@@ -1,7 +1,5 @@
 #![feature(non_ascii_idents)]
 
-// mod gameboy;
-// mod cpu;
 extern crate gameboy;
 extern crate clap;
 #[macro_use]
@@ -15,8 +13,8 @@ use clap::{Arg, App};
 use simplelog::{TermLogger, LogLevelFilter};
 use std::process::exit;
 
-mod debugger;
-mod disassembler;
+use gameboy::debugger;
+use gameboy::disassembler;
 
 macro_rules! try_log {
   ($expr:expr) => (match $expr {
@@ -61,8 +59,8 @@ fn main() {
   let cart_rom = load_rom(matches.value_of("cart-rom").unwrap());
 
   if matches.is_present("disassemble") {
-    let d = disassembler::Disassembler::new(cart_rom);
-    d.print_all();
+    let d = disassembler::Disassembler::new();
+    d.print_all(&*cart_rom);
   } else if matches.is_present("debug") {
     let mut gb = debugger::Debugger::new(cart_rom);
     if let Some(boot_rom_path) = matches.value_of("boot-rom") {

@@ -1,6 +1,6 @@
-use gameboy::reg::Reg;
-use gameboy::flag::Flag;
 use std::io::Write;
+use super::super::Reg;
+use super::super::Flag;
 
 use super::instruction::Instruction;
 
@@ -13,21 +13,19 @@ fn to_hex(v: &[u8]) -> String {
   String::from_utf8(f).unwrap()
 }
 
-pub struct Disassembler {
-  rom: Box<[u8]>,
-}
+pub struct Disassembler;
 
 impl Disassembler {
-  pub fn new(rom: Box<[u8]>) -> Disassembler {
-    Disassembler { rom: rom }
+  pub fn new() -> Disassembler {
+    Disassembler
   }
 
-  pub fn print_all(&self) {
+  pub fn print_all(&self, rom: &[u8]) {
     let mut pc = 0u16;
 
-    while pc < self.rom.len() as u16 {
-      let (ins, inc) = self.instruction_at(pc);
-      let hex = to_hex(&self.rom[(pc as usize)..(pc as usize) + inc as usize]);
+    while pc < rom.len() as u16 {
+      let (ins, inc) = self.instruction_at(pc, rom);
+      let hex = to_hex(&rom[(pc as usize)..(pc as usize) + inc as usize]);
       match ins {
         Instruction::JR_cc_e(_, e) => {
           println!("{:04x} {:12} {:20} ; Addr: {}",
@@ -42,24 +40,24 @@ impl Disassembler {
     }
   }
 
-  fn read_byte(&self, addr: u16) -> u8 {
-    self.rom[addr as usize]
+  fn read_byte(&self, addr: u16, rom: &[u8]) -> u8 {
+    rom[addr as usize]
   }
 
-  fn read_word(&self, addr: u16) -> u16 {
-    let mut val: u16 = (self.read_byte(addr + 1) as u16) << 8;
-    val |= self.read_byte(addr) as u16;
+  fn read_word(&self, addr: u16, rom: &[u8]) -> u16 {
+    let mut val: u16 = (self.read_byte(addr + 1, rom) as u16) << 8;
+    val |= self.read_byte(addr, rom) as u16;
     val
   }
 
-  pub fn instruction_at(&self, addr: u16) -> (Instruction, u16) {
+  pub fn instruction_at(&self, addr: u16, rom: &[u8]) -> (Instruction, u16) {
     let mut pc = 0u16;
 
-    let op = self.read_byte(addr + pc);
+    let op = self.read_byte(addr + pc, rom);
     pc += 1;
 
     if op == 0xCB {
-      let op = self.read_byte(addr + pc);
+      let op = self.read_byte(addr + pc, rom);
       pc += 1;
       match op {
         0x7C => (Instruction::BIT_b_r(7, Reg::H), pc),
@@ -77,12 +75,12 @@ impl Disassembler {
         (Instruction::LD_·HL·_r(Reg::from(r)), pc)
       } else if op & 0b11001111 == 0b00000001 {
         let r = op >> 4 & 0b11;
-        let nn = self.read_word(addr + pc);
+        let nn = self.read_word(addr + pc, rom);
         pc += 2;
         (Instruction::LD_dd_nn(Reg::from_pair(r), nn), pc)
       } else if op & 0b11000111 == 0b00000110 {
         let r = op >> 3 & 0b111;
-        let n = self.read_byte(addr + pc);
+        let n = self.read_byte(addr + pc, rom);
         pc += 1;
         (Instruction::LD_r_n(Reg::from(r), n), pc)
       } else if op & 0b11000000 == 0b01000000 {
@@ -92,22 +90,22 @@ impl Disassembler {
       } else {
         match op {
           0x20 => {
-            let e = self.read_byte(addr + pc);
+            let e = self.read_byte(addr + pc, rom);
             pc += 1;
             (Instruction::JR_cc_e(Flag::NZ, e as i8), pc)
           }
           0x28 => {
-            let e = self.read_byte(addr + pc);
+            let e = self.read_byte(addr + pc, rom);
             pc += 1;
             (Instruction::JR_cc_e(Flag::Z, e as i8), pc)
           }
           0x30 => {
-            let e = self.read_byte(addr + pc);
+            let e = self.read_byte(addr + pc, rom);
             pc += 1;
             (Instruction::JR_cc_e(Flag::NC, e as i8), pc)
           }
           0x38 => {
-            let e = self.read_byte(addr + pc);
+            let e = self.read_byte(addr + pc, rom);
             pc += 1;
             (Instruction::JR_cc_e(Flag::C, e as i8), pc)
           }

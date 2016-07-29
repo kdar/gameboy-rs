@@ -2,7 +2,7 @@ use super::rustyline::error::ReadlineError;
 use super::rustyline::Editor;
 use super::shlex;
 
-use gameboy::cpu;
+use super::super::cpu;
 
 pub struct Debugger {
   cpu: cpu::Cpu,

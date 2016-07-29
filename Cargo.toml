@@ -17,5 +17,5 @@ name = "gameboy"
 path = "src/lib.rs"
 
 [[bin]]
-name = "gameboy"
-path = "src/bin.rs"
+name = "gameboy-emu"
+path = "src/cmd/main.rs"
