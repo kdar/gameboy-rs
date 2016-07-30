@@ -216,6 +216,7 @@ impl Cpu {
   fn execute_instruction(&mut self, ins: Instruction) {
     let cycles = match ins {
       Instruction::Invalid => panic!("execute_instruction: Invalid instruction encountered"),
+      Instruction::Data(_) => 0,
 
       // 0xCB instructions
       Instruction::BIT_b_r(b, r) => self.inst_BIT_b_r(b, r),

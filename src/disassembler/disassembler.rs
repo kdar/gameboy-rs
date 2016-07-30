@@ -180,7 +180,8 @@ impl Disassembler {
         0x00 => Some((Instruction::NOP, pc)),
         0xAF => Some((Instruction::XOR_r(Reg::A), pc)),
 
-        _ => panic!("instruction_at: instruction not implemented: 0x{:02x}", op),
+        _ => Some((Instruction::Data(op), pc)),
+        // _ => panic!("instruction_at: instruction not implemented: 0x{:02x}", op),
       }
     }
   }
