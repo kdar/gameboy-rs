@@ -220,6 +220,7 @@ impl Cpu {
       // 0xCB instructions
       Instruction::BIT_b_r(b, r) => self.inst_BIT_b_r(b, r),
       Instruction::RL_r(r) => self.inst_RL_r(r),
+      Instruction::RLA => self.inst_RLA(),
 
       Instruction::CALL_nn(nn) => self.inst_CALL_nn(nn),
       Instruction::CP_n(n) => self.inst_CP_n(n),
@@ -275,7 +276,7 @@ impl Cpu {
 
     self.write_flag(Flag::C, d & (1 << 7) > 0);
 
-    d = d << 1;
+    d <<= 1;
 
     if carry {
       d |= 1;
@@ -290,6 +291,33 @@ impl Cpu {
     self.write_flag(Flag::H, false);
 
     8
+  }
+
+  // RLA
+  // Opcode: 0xCB 0x17
+  // Page: 209
+  #[allow(non_snake_case)]
+  fn inst_RLA(&mut self) -> u32 {
+    let mut d = self.read_reg_byte(Reg::A);
+
+    let carry = self.read_flag(Flag::C);
+
+    self.write_flag(Flag::C, d & (1 << 7) > 0);
+
+    d <<= 1;
+
+    if carry {
+      d |= 1;
+    } else {
+      d &= !1;
+    }
+
+    self.write_reg_byte(Reg::A, d);
+
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, false);
+
+    4
   }
 
   // CALL nn

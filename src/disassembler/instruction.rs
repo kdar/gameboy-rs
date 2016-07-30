@@ -11,7 +11,6 @@ pub enum Instruction {
   BIT_b_r(u8, Reg),
   RL_r(Reg),
 
-  // RLA,
   CALL_nn(u16),
   CP_n(u8),
   DEC_r(Reg),
@@ -32,6 +31,7 @@ pub enum Instruction {
   LDI_·HL·_A, // Moved: LD (nn),HL -> LDI (HL),A
   NOP,
   PUSH_rr(Reg),
+  RLA,
   SUB_r(Reg),
   XOR_r(Reg),
 }
@@ -43,7 +43,7 @@ impl fmt::Debug for Instruction {
 
       Instruction::BIT_b_r(b, r) => write!(f, "BIT {},{}", b, r),
       Instruction::RL_r(r) => write!(f, "RL {}", r),
-      // Instruction::RLA => write!(f, "RLA"),
+
       Instruction::CALL_nn(nn) => write!(f, "CALL {}", nn),
       Instruction::CP_n(n) => write!(f, "CP ${:02x}", n),
       Instruction::DEC_r(r) => write!(f, "DEC {}", r),
@@ -64,6 +64,7 @@ impl fmt::Debug for Instruction {
       Instruction::LDI_·HL·_A => write!(f, "LDI (HL),A"),
       Instruction::NOP => write!(f, "NOP"),
       Instruction::PUSH_rr(rr) => write!(f, "PUSH {}", rr),
+      Instruction::RLA => write!(f, "RLA"),
       Instruction::SUB_r(r) => write!(f, "SUB {}", r),
       Instruction::XOR_r(r) => write!(f, "XOR {}", r),
     }

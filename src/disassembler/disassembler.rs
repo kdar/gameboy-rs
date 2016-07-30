@@ -47,7 +47,6 @@ impl Disassembler {
           Some((Instruction::RL_r(Reg::from(r)), pc))
         }
 
-        // 0x17 => Some((Instruction::RLA, pc)),
         _ => {
           panic!("instruction_at: 0xCB instruction not implemented: 0x{:02x}",
                  op)
@@ -163,6 +162,8 @@ impl Disassembler {
           let rr = op >> 4 & 0b11;
           Some((Instruction::PUSH_rr(Reg::from_pair(rr)), pc))
         }
+
+        0x17 => Some((Instruction::RLA, pc)),
 
         0x90 | 0x91 | 0x92 | 0x93 | 0x94 | 0x95 | 0x96 | 0x97 => {
           let r = op & 0b111;
