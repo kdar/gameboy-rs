@@ -751,8 +751,38 @@ mod tests {
 
   #[test]
   #[allow(non_snake_case)]
+  fn test_DEC_r() {
+    for i in 0..7 {
+      if i == 6 {
+        continue;
+      }
+
+      let r = Reg::from(i);
+      cpu_inline_test!({
+        ins: Instruction::DEC_r(r),
+        before: {
+          let mut c = Cpu::default();
+          c.write_reg_byte(r, 0x10);
+          c
+        },
+        after: {
+          let mut c = Cpu { cycles: 4, ..Cpu::default()};
+          c.write_flag(Flag::H, true);
+          c.write_reg_byte(r, 0x0F);
+          c
+        },
+      });
+    }
+  }
+
+  #[test]
+  #[allow(non_snake_case)]
   fn test_INC_r() {
     for i in 0..7 {
+      if i == 6 {
+        continue;
+      }
+
       let r = Reg::from(i);
       cpu_inline_test!({
         ins: Instruction::INC_r(r),
