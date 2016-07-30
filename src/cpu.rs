@@ -437,6 +437,10 @@ impl Cpu {
     let a = self.read_reg_byte(Reg::A);
     self.mem.write_byte(hl, a);
     self.reg_hl -= 1;
+
+    self.write_flag(Flag::H, false);
+    self.write_flag(Flag::N, false);
+
     8
   }
 
