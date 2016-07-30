@@ -432,6 +432,8 @@ impl Cpu {
   // Moved: JP PE,nn => LD (nn),A
   #[allow(non_snake_case)]
   fn inst_LD_·nn·_A(&mut self, nn: u16) -> u32 {
+    let d = self.read_reg_byte(Reg::A);
+    self.mem.write_byte(nn, d);
     16
   }
 
