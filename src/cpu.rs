@@ -219,7 +219,7 @@ impl Cpu {
       Instruction::BIT_b_r(b, r) => self.inst_BIT_b_r(b, r),
       Instruction::CALL_nn(nn) => self.inst_CALL_nn(nn),
       Instruction::INC_r(r) => self.inst_INC_r(r),
-      Instruction::INC_ss(ss) => self.inst_INC_ss(ss),
+      Instruction::INC_rr(ss) => self.inst_INC_rr(ss),
       Instruction::JR_cc_e(cc, e) => self.inst_JR_cc_e(cc, e),
       Instruction::LD_0xFF00C_A => self.inst_LD_0xFF00C_A(),
       Instruction::LD_0xFF00n_A => self.inst_LD_0xFF00n_A(),
@@ -278,12 +278,12 @@ impl Cpu {
     4
   }
 
-  // INC ss
   // INC rr
   // Opcode: 00ss0011
   // Page: 202
+  // Originally called INC ss
   #[allow(non_snake_case)]
-  fn inst_INC_ss(&mut self, ss: Reg) -> u32 {
+  fn inst_INC_rr(&mut self, ss: Reg) -> u32 {
     let mut d = self.read_reg_word(ss);
     d += 1;
     self.write_reg_word(ss, d);
@@ -653,11 +653,11 @@ mod tests {
 
   #[test]
   #[allow(non_snake_case)]
-  fn test_INC_ss() {
+  fn test_INC_rr() {
     for i in 0..3 {
       let r = Reg::from_pair(i);
       cpu_inline_test!({
-        ins: Instruction::INC_ss(r),
+        ins: Instruction::INC_rr(r),
         before: {
           let mut c = Cpu::default();
           c.write_reg_word(r, 0x10);

@@ -69,7 +69,7 @@ impl Disassembler {
         Some((Instruction::LD_r_r(Reg::from(r1), Reg::from(r2)), pc))
       } else if op & 0b11001111 == 0b00000011 {
         let ss = op >> 4 & 0b11;
-        Some((Instruction::INC_ss(Reg::from_pair(ss)), pc))
+        Some((Instruction::INC_rr(Reg::from_pair(ss)), pc))
       } else {
         match op {
           0x20 => {
