@@ -41,6 +41,13 @@ impl Disassembler {
       pc += 1;
       match op {
         0x7C => Some((Instruction::BIT_b_r(7, Reg::H), pc)),
+
+        // 0x10 | 0x11 | 0x12 | 0x13 | 0x14 | 0x15 | 0x16 | 0x17 => {
+        //   let r = op & 0b111;
+        //   Some((Instruction::RL_r(Reg::from(r)), pc))
+        // }
+        //
+        // 0x17 => Some((Instruction::RLA, pc)),
         _ => {
           panic!("instruction_at: 0xCB instruction not implemented: 0x{:02x}",
                  op)
@@ -155,6 +162,11 @@ impl Disassembler {
         0xc5 | 0xd5 | 0xe5 | 0xf5 => {
           let rr = op >> 4 & 0b11;
           Some((Instruction::PUSH_rr(Reg::from_pair(rr)), pc))
+        }
+
+        0x90 | 0x91 | 0x92 | 0x93 | 0x94 | 0x95 | 0x96 | 0x97 => {
+          let r = op & 0b111;
+          Some((Instruction::SUB_r(Reg::from(r)), pc))
         }
 
         0x00 => Some((Instruction::NOP, pc)),

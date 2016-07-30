@@ -216,7 +216,10 @@ impl Cpu {
   fn execute_instruction(&mut self, ins: Instruction) {
     let cycles = match ins {
       Instruction::Invalid => panic!("execute_instruction: Invalid instruction encountered"),
+
+      // 0xCB instructions
       Instruction::BIT_b_r(b, r) => self.inst_BIT_b_r(b, r),
+      // Instruction::RL_r(r) => self.inst_RL_r(r),
       Instruction::CALL_nn(nn) => self.inst_CALL_nn(nn),
       Instruction::CP_n(n) => self.inst_CP_n(n),
       Instruction::DEC_r(r) => self.inst_DEC_r(r),
@@ -236,6 +239,7 @@ impl Cpu {
       Instruction::LDD_·HL·_A => self.inst_LDD_·HL·_A(),
       Instruction::LDI_·HL·_A => self.inst_LDI_·HL·_A(),
       Instruction::PUSH_rr(rr) => self.inst_PUSH_rr(rr),
+      Instruction::SUB_r(r) => self.inst_SUB_r(r),
       Instruction::NOP => self.inst_NOP(),
       Instruction::XOR_r(r) => self.inst_XOR_r(r),
       // _ => panic!("instruction not implemented: {:?}", ins),
@@ -251,17 +255,41 @@ impl Cpu {
   fn inst_BIT_b_r(&mut self, b: u8, r: Reg) -> u32 {
     let d = self.read_reg_byte(r);
 
-    if d & (1 << b) > 0 {
-      self.write_flag(Flag::Z, false);
-    } else {
-      self.write_flag(Flag::Z, true);
-    }
+    self.write_flag(Flag::Z, d & (1 << b) == 0);
 
     self.write_flag(Flag::H, true);
     self.write_flag(Flag::N, false);
 
     8
   }
+
+  // // RL r
+  // // Opcode: 0xCB 000010xxx
+  // // Page: 220
+  // #[allow(non_snake_case)]
+  // fn inst_RL_r(&mut self, r: Reg) -> u32 {
+  //   let mut d = self.read_reg_byte(r);
+  //
+  //   let carry = self.read_flag(Flag::C);
+  //
+  //   self.write_flag(Flag::C, d & (1 << 7) > 0);
+  //
+  //   d = d << 1;
+  //
+  //   if carry {
+  //     d |= 1;
+  //   } else {
+  //     d &= !1;
+  //   }
+  //
+  //   self.write_reg_byte(r, d);
+  //
+  //   self.write_flag(Flag::Z, d == 0);
+  //   self.write_flag(Flag::N, false);
+  //   self.write_flag(Flag::H, false);
+  //
+  //   8
+  // }
 
   // CALL nn
   // Opcode: 0xCD
@@ -282,27 +310,15 @@ impl Cpu {
     let a = self.read_reg_byte(Reg::A);
     let result = (a as i8 - n as i8) as u8;
 
-    if result == 0 {
-      self.write_flag(Flag::Z, true);
-    } else {
-      self.write_flag(Flag::Z, false);
-    }
+    self.write_flag(Flag::Z, result == 0);
 
     // Set the carry flag if the A register is less than n.
     // (for the full value).
-    if a & 0xFF < n & 0xFF {
-      self.write_flag(Flag::C, true);
-    } else {
-      self.write_flag(Flag::C, false);
-    }
+    self.write_flag(Flag::C, a & 0xFF < n & 0xFF);
 
     // Set the half carry flag if half of register A is less than
     // half of n.
-    if a & 0x0F < n & 0x0F {
-      self.write_flag(Flag::H, true);
-    } else {
-      self.write_flag(Flag::H, false);
-    }
+    self.write_flag(Flag::H, a & 0x0F < n & 0x0F);
 
     self.write_flag(Flag::N, true);
 
@@ -318,17 +334,8 @@ impl Cpu {
     let newd = d - 1;
     self.write_reg_byte(r, newd);
 
-    if (newd ^ 0x01 ^ d) & 0x10 > 0 {
-      self.write_flag(Flag::H, true);
-    } else {
-      self.write_flag(Flag::H, false);
-    }
-
-    if newd == 0 {
-      self.write_flag(Flag::Z, true);
-    } else {
-      self.write_flag(Flag::Z, false);
-    }
+    self.write_flag(Flag::H, (newd ^ 0x01 ^ d) & 0x10 > 0);
+    self.write_flag(Flag::Z, newd == 0);
 
     self.write_flag(Flag::N, false);
 
@@ -344,17 +351,8 @@ impl Cpu {
     let newd = d + 1;
     self.write_reg_byte(r, newd);
 
-    if (d & 0xF + 1 & 0xF) & 0x10 > 0 {
-      self.write_flag(Flag::H, true);
-    } else {
-      self.write_flag(Flag::H, false);
-    }
-
-    if newd == 0 {
-      self.write_flag(Flag::Z, true);
-    } else {
-      self.write_flag(Flag::Z, false);
-    }
+    self.write_flag(Flag::H, (d & 0xF + 1 & 0xF) & 0x10 > 0);
+    self.write_flag(Flag::Z, newd == 0);
 
     self.write_flag(Flag::N, false);
 
@@ -544,6 +542,13 @@ impl Cpu {
     8
   }
 
+  // NOP
+  // 0x00
+  #[allow(non_snake_case)]
+  fn inst_NOP(&self) -> u32 {
+    4
+  }
+
   // PUSH rr
   // Opcode: 11rr0101
   // Page: 134
@@ -555,10 +560,20 @@ impl Cpu {
     16
   }
 
-  // NOP
-  // 0x00
-  #[allow(non_snake_case)]
-  fn inst_NOP(&self) -> u32 {
+  // SUB r
+  // Opcode: 10010rrr
+  // Page: 166
+  fn inst_SUB_r(&mut self, r: Reg) -> u32 {
+    let a = self.read_reg_byte(Reg::A);
+    let d = self.read_reg_byte(r);
+    let result = a - d;
+
+    self.write_flag(Flag::Z, result == 0);
+    self.write_flag(Flag::N, false);
+
+    self.write_flag(Flag::H, a & 0x0F < d & 0x0F);
+    self.write_flag(Flag::C, a & 0xFF < d & 0xFF);
+
     4
   }
 
@@ -575,11 +590,7 @@ impl Cpu {
     accumulator = accumulator ^ register;
     self.write_reg_byte(Reg::A, accumulator);
 
-    if accumulator == 0 {
-      self.write_flag(Flag::Z, true);
-    } else {
-      self.write_flag(Flag::Z, false);
-    }
+    self.write_flag(Flag::Z, accumulator == 0);
 
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::C, false);
