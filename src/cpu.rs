@@ -278,7 +278,8 @@ impl Cpu {
     4
   }
 
-  // INC r
+  // INC ss
+  // INC rr
   // Opcode: 00ss0011
   // Page: 202
   #[allow(non_snake_case)]
