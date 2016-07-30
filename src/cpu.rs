@@ -219,6 +219,7 @@ impl Cpu {
       Instruction::BIT_b_r(b, r) => self.inst_BIT_b_r(b, r),
       Instruction::CALL_nn(nn) => self.inst_CALL_nn(nn),
       Instruction::CP_n(n) => self.inst_CP_n(n),
+      Instruction::DEC_r(r) => self.inst_DEC_r(r),
       Instruction::INC_r(r) => self.inst_INC_r(r),
       Instruction::INC_rr(ss) => self.inst_INC_rr(ss),
       Instruction::JR_cc_e(cc, e) => self.inst_JR_cc_e(cc, e),
@@ -304,14 +305,55 @@ impl Cpu {
     4
   }
 
+  // DEC r
+  // Opcode: 00rrr101
+  // Page: 182
+  #[allow(non_snake_case)]
+  fn inst_DEC_r(&mut self, r: Reg) -> u32 {
+    let d = self.read_reg_byte(r);
+    let newd = d - 1;
+    self.write_reg_byte(r, newd);
+
+    if (newd ^ 0x01 ^ d) & 0x10 > 0 {
+      self.write_flag(Flag::H, true);
+    } else {
+      self.write_flag(Flag::H, false);
+    }
+
+    if newd == 0 {
+      self.write_flag(Flag::Z, true);
+    } else {
+      self.write_flag(Flag::Z, false);
+    }
+
+    self.write_flag(Flag::N, false);
+
+    4
+  }
+
   // INC r
   // Opcode: 00rrr100
   // Page: 178
   #[allow(non_snake_case)]
   fn inst_INC_r(&mut self, r: Reg) -> u32 {
-    let mut d = self.read_reg_byte(r);
-    d += 1;
-    self.write_reg_byte(r, d);
+    let d = self.read_reg_byte(r);
+    let newd = d + 1;
+    self.write_reg_byte(r, newd);
+
+    if (d & 0xF + 1 & 0xF) & 0x10 > 0 {
+      self.write_flag(Flag::H, true);
+    } else {
+      self.write_flag(Flag::H, false);
+    }
+
+    if newd == 0 {
+      self.write_flag(Flag::Z, true);
+    } else {
+      self.write_flag(Flag::Z, false);
+    }
+
+    self.write_flag(Flag::N, false);
+
     4
   }
 
