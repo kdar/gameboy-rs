@@ -226,12 +226,14 @@ impl Cpu {
       Instruction::LD_0xFF00C_A => self.inst_LD_0xFF00C_A(),
       Instruction::LD_0xFF00n_A => self.inst_LD_0xFF00n_A(),
       Instruction::LD_·HL·_r(r) => self.inst_LD_·HL·_r(r),
+      Instruction::LD_·nn·_A(nn) => self.inst_LD_·nn·_A(nn),
       Instruction::LD_A_·DE· => self.inst_LD_A_·DE·(),
       Instruction::LD_dd_nn(dd, nn) => self.inst_LD_dd_nn(dd, nn),
       Instruction::LD_r_n(r, n) => self.inst_LD_r_n(r, n),
       Instruction::LD_r_r(r1, r2) => self.inst_LD_r_r(r1, r2),
       Instruction::LDD_·HL·_A => self.inst_LDD_·HL·_A(),
       Instruction::LDI_·HL·_A => self.inst_LDI_·HL·_A(),
+      Instruction::PUSH_rr(rr) => self.inst_PUSH_rr(rr),
       Instruction::NOP => self.inst_NOP(),
       Instruction::XOR_r(r) => self.inst_XOR_r(r),
       // _ => panic!("instruction not implemented: {:?}", ins),
@@ -424,6 +426,15 @@ impl Cpu {
     8
   }
 
+  // LD (nn),A
+  // Opcode: 0xEA
+  // Page: 115
+  // Moved: JP PE,nn => LD (nn),A
+  #[allow(non_snake_case)]
+  fn inst_LD_·nn·_A(&mut self, nn: u16) -> u32 {
+    16
+  }
+
   // LD A,(DE)
   // Opcode: 0x1A
   // Page: 111
@@ -501,6 +512,17 @@ impl Cpu {
     self.write_flag(Flag::N, false);
 
     8
+  }
+
+  // PUSH rr
+  // Opcode: 11rr0101
+  // Page: 134
+  #[allow(non_snake_case)]
+  fn inst_PUSH_rr(&mut self, rr: Reg) -> u32 {
+    let d = self.read_reg_word(rr);
+    self.reg_sp -= 2;
+    self.mem.write_word(self.reg_sp, d);
+    16
   }
 
   // NOP

@@ -129,6 +129,12 @@ impl Disassembler {
 
         0x32 => Some((Instruction::LDD_·HL·_A, pc)),
         0x22 => Some((Instruction::LDI_·HL·_A, pc)),
+
+        0xc5 | 0xd5 | 0xe5 | 0xf5 => {
+          let rr = op >> 4 & 0b11;
+          Some((Instruction::PUSH_rr(Reg::from_pair(rr)), pc))
+        }
+
         0x00 => Some((Instruction::NOP, pc)),
         0xAF => Some((Instruction::XOR_r(Reg::A), pc)),
 
