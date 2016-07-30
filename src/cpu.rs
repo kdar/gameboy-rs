@@ -99,6 +99,18 @@ impl Cpu {
     }
   }
 
+  fn read_reg_word(&mut self, register: Reg) -> u16 {
+    match register {
+      Reg::BC => self.reg_bc,
+      Reg::DE => self.reg_de,
+      Reg::HL => self.reg_hl,
+      Reg::AF => self.reg_af,
+      Reg::SP => self.reg_sp,
+      Reg::PC => self.reg_pc,
+      _ => panic!("read_reg_word unknown register: {:?}", register),
+    }
+  }
+
   fn write_reg_word(&mut self, register: Reg, value: u16) {
     match register {
       Reg::BC => self.reg_bc = value,
@@ -203,9 +215,11 @@ impl Cpu {
 
   fn execute_instruction(&mut self, ins: Instruction) {
     let cycles = match ins {
+      Instruction::Invalid => panic!("execute_instruction: Invalid instruction encountered"),
       Instruction::BIT_b_r(b, r) => self.inst_BIT_b_r(b, r),
       Instruction::CALL_nn(nn) => self.inst_CALL_nn(nn),
       Instruction::INC_r(r) => self.inst_INC_r(r),
+      Instruction::INC_ss(ss) => self.inst_INC_ss(ss),
       Instruction::JR_cc_e(cc, e) => self.inst_JR_cc_e(cc, e),
       Instruction::LD_0xFF00C_A => self.inst_LD_0xFF00C_A(),
       Instruction::LD_0xFF00n_A => self.inst_LD_0xFF00n_A(),
@@ -217,7 +231,7 @@ impl Cpu {
       Instruction::LDD_·HL·_A => self.inst_LDD_·HL·_A(),
       Instruction::NOP => self.inst_NOP(),
       Instruction::XOR_r(r) => self.inst_XOR_r(r),
-      _ => panic!("instruction not implemented: {:?}", ins),
+      // _ => panic!("instruction not implemented: {:?}", ins),
     };
 
     self.cycles += cycles;
@@ -261,6 +275,17 @@ impl Cpu {
     let mut d = self.read_reg_byte(r);
     d += 1;
     self.write_reg_byte(r, d);
+    4
+  }
+
+  // INC r
+  // Opcode: 00ss0011
+  // Page: 202
+  #[allow(non_snake_case)]
+  fn inst_INC_ss(&mut self, ss: Reg) -> u32 {
+    let mut d = self.read_reg_word(ss);
+    d += 1;
+    self.write_reg_word(ss, d);
     4
   }
 
@@ -619,6 +644,27 @@ mod tests {
         after: {
           let mut c = Cpu { cycles: 4, ..Cpu::default()};
           c.write_reg_byte(r, 0x11);
+          c
+        },
+      });
+    }
+  }
+
+  #[test]
+  #[allow(non_snake_case)]
+  fn test_INC_ss() {
+    for i in 0..3 {
+      let r = Reg::from_pair(i);
+      cpu_inline_test!({
+        ins: Instruction::INC_ss(r),
+        before: {
+          let mut c = Cpu::default();
+          c.write_reg_word(r, 0x10);
+          c
+        },
+        after: {
+          let mut c = Cpu { cycles: 4, ..Cpu::default()};
+          c.write_reg_word(r, 0x11);
           c
         },
       });
