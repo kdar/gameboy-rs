@@ -349,6 +349,7 @@ impl Cpu {
   // LD (0xFF00+C),A
   // Opcode: 0xE2
   // Moved instruction.
+  // Moved: RET PO -> LD (FF00+n),A
   #[allow(non_snake_case)]
   fn inst_LD_0xFF00C_A(&mut self) -> u32 {
     let a = self.read_reg_byte(Reg::A);
@@ -360,6 +361,7 @@ impl Cpu {
   // LD (0xFF00+n),A
   // Opcode: 0xE0 nn
   // Moved instruction.
+  // Moved: JP PO,nn -> LD (FF00+C),A
   #[allow(non_snake_case)]
   fn inst_LD_0xFF00n_A(&mut self) -> u32 {
     let a = self.read_reg_byte(Reg::A);
@@ -427,6 +429,7 @@ impl Cpu {
   // LDD (HL),A
   // Opcode: 0x32
   // Page: 149
+  // Moved: LD (nn),A -> LDD (HL),A
   #[allow(non_snake_case)]
   fn inst_LDD_·HL·_A(&mut self) -> u32 {
     let hl = self.reg_hl;

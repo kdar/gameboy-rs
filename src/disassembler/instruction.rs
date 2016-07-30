@@ -12,14 +12,14 @@ pub enum Instruction {
   INC_r(Reg),
   INC_rr(Reg),
   JR_cc_e(Flag, i8),
-  LD_0xFF00C_A,
-  LD_0xFF00n_A,
+  LD_0xFF00C_A, // Moved: RET PO -> LD (FF00+n),A
+  LD_0xFF00n_A, // Moved: JP PO,nn -> LD (FF00+C),A
   LD_·HL·_r(Reg),
   LD_A_·DE·,
   LD_dd_nn(Reg, u16),
   LD_r_n(Reg, u8),
   LD_r_r(Reg, Reg),
-  LDD_·HL·_A,
+  LDD_·HL·_A, // Moved: LD (nn),A -> LDD (HL),A
   NOP,
   XOR_r(Reg),
 }
