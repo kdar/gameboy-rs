@@ -223,6 +223,7 @@ impl Cpu {
       Instruction::RL_r(r) => self.inst_RL_r(r),
       Instruction::RLA => self.inst_RLA(),
 
+      Instruction::ADD_A_·HL· => self.inst_ADD_A_·HL·(),
       Instruction::CALL_nn(nn) => self.inst_CALL_nn(nn),
       Instruction::CP_·HL· => self.inst_CP_·HL·(),
       Instruction::CP_n(n) => self.inst_CP_n(n),
@@ -322,6 +323,32 @@ impl Cpu {
     self.write_flag(Flag::H, false);
 
     4
+  }
+
+  // ADD A,(HL)
+  // Opcode: 0x86
+  // Page: 161
+  #[allow(non_snake_case)]
+  fn inst_ADD_A_·HL·(&mut self) -> u32 {
+    // byte A = GetHighByte(m_AF);
+    // byte HL = m_MMU->Read(m_HL);
+    // SetHighByte(&m_AF, AddByte(A, HL));
+
+    let a = self.read_reg_byte(Reg::A);
+    let d = match self.mem.read_byte(self.reg_hl) {
+      Some(v) => v,
+      None => {
+        panic!("inst_ADD_A_·HL·: could not read (HL) byte (memory address {:#04x})",
+               self.reg_hl);
+      }
+    };
+
+    let result = a + d;
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, ((result ^ a ^ d) & 0x10) > 0);
+    self.write_flag(Flag::C, result < a);
+
+    8
   }
 
   // CALL nn

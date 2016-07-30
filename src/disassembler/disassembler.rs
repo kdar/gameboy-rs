@@ -54,6 +54,8 @@ impl Disassembler {
       }
     } else {
       match op {
+        0x86 => Some((Instruction::ADD_A_·HL·, pc)),
+
         0xCD => {
           let nn = try_o!(m.read_word(addr + pc));
           pc += 2;
