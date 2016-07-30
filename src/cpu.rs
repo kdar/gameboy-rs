@@ -350,7 +350,7 @@ impl Cpu {
   fn inst_LD_r_r(&mut self, r1: Reg, r2: Reg) -> u32 {
     let tmp = self.read_reg_byte(r2);
     self.write_reg_byte(r1, tmp);
-    12
+    4
   }
 
   // LD r,n
@@ -785,6 +785,43 @@ mod tests {
           c
         },
       });
+    }
+  }
+
+  #[test]
+  #[allow(non_snake_case)]
+  fn test_inst_LD_r_r() {
+    for j in 0..7 {
+      if j == 6 {
+        continue;
+      }
+
+      for i in 0..7 {
+        if i == 6 {
+          continue;
+        }
+
+        let r1 = Reg::from(i);
+        let r2 = Reg::from(j);
+
+        cpu_inline_test!({
+        ins: Instruction::LD_r_r(r1, r2),
+        before: {
+          let mut c = Cpu::default();
+          c.write_reg_byte(r2, 0xFE);
+          c
+        },
+        after: {
+          let mut c = Cpu{
+            cycles: 4,
+            ..Cpu::default()
+          };
+          c.write_reg_byte(r1, 0xFE);
+          c.write_reg_byte(r2, 0xFE);
+          c
+        },
+      });
+      }
     }
   }
 
