@@ -104,6 +104,12 @@ impl Disassembler {
           Some((Instruction::LD_·HL·_r(Reg::from(r)), pc))
         }
 
+        0xEA => {
+          let nn = try_o!(m.read_word(addr + pc));
+          pc += 2;
+          Some((Instruction::LD_·nn·_A(nn), pc))
+        }
+
         0x1A => Some((Instruction::LD_A_·DE·, pc)),
 
         0x1 | 0x11 | 0x21 | 0x31 => {
