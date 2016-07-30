@@ -9,7 +9,8 @@ pub enum Instruction {
 
   // 0xCB instructions
   BIT_b_r(u8, Reg),
-  // RL_r(Reg),
+  RL_r(Reg),
+
   // RLA,
   CALL_nn(u16),
   CP_n(u8),
@@ -41,7 +42,7 @@ impl fmt::Debug for Instruction {
       Instruction::Invalid => write!(f, "INVALID"),
 
       Instruction::BIT_b_r(b, r) => write!(f, "BIT {},{}", b, r),
-      // Instruction::RL_r(r) => write!(f, "RL {}", r),
+      Instruction::RL_r(r) => write!(f, "RL {}", r),
       // Instruction::RLA => write!(f, "RLA"),
       Instruction::CALL_nn(nn) => write!(f, "CALL {}", nn),
       Instruction::CP_n(n) => write!(f, "CP ${:02x}", n),

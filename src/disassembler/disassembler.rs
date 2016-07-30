@@ -42,11 +42,11 @@ impl Disassembler {
       match op {
         0x7C => Some((Instruction::BIT_b_r(7, Reg::H), pc)),
 
-        // 0x10 | 0x11 | 0x12 | 0x13 | 0x14 | 0x15 | 0x16 | 0x17 => {
-        //   let r = op & 0b111;
-        //   Some((Instruction::RL_r(Reg::from(r)), pc))
-        // }
-        //
+        0x10 | 0x11 | 0x12 | 0x13 | 0x14 | 0x15 | 0x16 | 0x17 => {
+          let r = op & 0b111;
+          Some((Instruction::RL_r(Reg::from(r)), pc))
+        }
+
         // 0x17 => Some((Instruction::RLA, pc)),
         _ => {
           panic!("instruction_at: 0xCB instruction not implemented: 0x{:02x}",

@@ -219,7 +219,8 @@ impl Cpu {
 
       // 0xCB instructions
       Instruction::BIT_b_r(b, r) => self.inst_BIT_b_r(b, r),
-      // Instruction::RL_r(r) => self.inst_RL_r(r),
+      Instruction::RL_r(r) => self.inst_RL_r(r),
+
       Instruction::CALL_nn(nn) => self.inst_CALL_nn(nn),
       Instruction::CP_n(n) => self.inst_CP_n(n),
       Instruction::DEC_r(r) => self.inst_DEC_r(r),
@@ -263,33 +264,33 @@ impl Cpu {
     8
   }
 
-  // // RL r
-  // // Opcode: 0xCB 000010xxx
-  // // Page: 220
-  // #[allow(non_snake_case)]
-  // fn inst_RL_r(&mut self, r: Reg) -> u32 {
-  //   let mut d = self.read_reg_byte(r);
-  //
-  //   let carry = self.read_flag(Flag::C);
-  //
-  //   self.write_flag(Flag::C, d & (1 << 7) > 0);
-  //
-  //   d = d << 1;
-  //
-  //   if carry {
-  //     d |= 1;
-  //   } else {
-  //     d &= !1;
-  //   }
-  //
-  //   self.write_reg_byte(r, d);
-  //
-  //   self.write_flag(Flag::Z, d == 0);
-  //   self.write_flag(Flag::N, false);
-  //   self.write_flag(Flag::H, false);
-  //
-  //   8
-  // }
+  // RL r
+  // Opcode: 0xCB 000010xxx
+  // Page: 220
+  #[allow(non_snake_case)]
+  fn inst_RL_r(&mut self, r: Reg) -> u32 {
+    let mut d = self.read_reg_byte(r);
+
+    let carry = self.read_flag(Flag::C);
+
+    self.write_flag(Flag::C, d & (1 << 7) > 0);
+
+    d = d << 1;
+
+    if carry {
+      d |= 1;
+    } else {
+      d &= !1;
+    }
+
+    self.write_reg_byte(r, d);
+
+    self.write_flag(Flag::Z, d == 0);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, false);
+
+    8
+  }
 
   // CALL nn
   // Opcode: 0xCD
