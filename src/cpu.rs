@@ -240,6 +240,7 @@ impl Cpu {
       Instruction::LD_r_r(r1, r2) => self.inst_LD_r_r(r1, r2),
       Instruction::LDD_·HL·_A => self.inst_LDD_·HL·_A(),
       Instruction::LDI_·HL·_A => self.inst_LDI_·HL·_A(),
+      Instruction::POP_rr(rr) => self.inst_POP_rr(rr),
       Instruction::PUSH_rr(rr) => self.inst_PUSH_rr(rr),
       Instruction::SUB_r(r) => self.inst_SUB_r(r),
       Instruction::NOP => self.inst_NOP(),
@@ -576,6 +577,24 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_NOP(&self) -> u32 {
     4
+  }
+
+  // POP rr
+  // Opcode: 11rr0001
+  // Page: 137
+  #[allow(non_snake_case)]
+  fn inst_POP_rr(&mut self, rr: Reg) -> u32 {
+    let d = match self.mem.read_word(self.reg_sp) {
+      Some(v) => v,
+      None => {
+        panic!("inst_POP_rr: could not read (SP) byte (memory address {:#04x})",
+               self.reg_sp);
+      }
+    };
+
+    self.write_reg_word(rr, d);
+    self.reg_sp += 2;
+    12
   }
 
   // PUSH rr
