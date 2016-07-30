@@ -60,6 +60,8 @@ impl Disassembler {
           Some((Instruction::CALL_nn(nn), pc))
         }
 
+        0xBE => Some((Instruction::CP_·HL·, pc)),
+
         0xFE => {
           let n = try_o!(m.read_byte(addr + pc));
           pc += 1;

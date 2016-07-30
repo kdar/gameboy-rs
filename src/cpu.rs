@@ -224,6 +224,7 @@ impl Cpu {
       Instruction::RLA => self.inst_RLA(),
 
       Instruction::CALL_nn(nn) => self.inst_CALL_nn(nn),
+      Instruction::CP_·HL· => self.inst_CP_·HL·(),
       Instruction::CP_n(n) => self.inst_CP_n(n),
       Instruction::DEC_r(r) => self.inst_DEC_r(r),
       Instruction::INC_r(r) => self.inst_INC_r(r),
@@ -332,6 +333,30 @@ impl Cpu {
     self.mem.write_word(self.reg_sp, self.reg_pc);
     self.reg_pc = nn;
     24
+  }
+
+  // CP (HL)
+  // Opcode: 0xBE
+  // Page: 176
+  #[allow(non_snake_case)]
+  fn inst_CP_·HL·(&mut self) -> u32 {
+    let d = match self.mem.read_byte(self.reg_hl) {
+      Some(v) => v,
+      None => {
+        panic!("inst_CP_·HL·: could not read (HL) byte (memory address {:#04x})",
+               self.reg_hl);
+      }
+    };
+
+    let a = self.read_reg_byte(Reg::A);
+    let result = a - d;
+
+    self.write_flag(Flag::Z, result == 0);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, a & 0x0F < d & 0x0F);
+    self.write_flag(Flag::C, a & 0xFF < d & 0xFF);
+
+    8
   }
 
   // CP n
@@ -483,12 +508,11 @@ impl Cpu {
   // Page: 111
   #[allow(non_snake_case)]
   fn inst_LD_A_·DE·(&mut self) -> u32 {
-    let de = self.reg_de;
-    let val = match self.mem.read_byte(de) {
+    let val = match self.mem.read_byte(self.reg_de) {
       Some(v) => v,
       None => {
         panic!("inst_LD_A_·DE·: could not read (DE) byte (memory address {:#04x})",
-               de);
+               self.reg_de);
       }
     };
     self.write_reg_byte(Reg::A, val);
