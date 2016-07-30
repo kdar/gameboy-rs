@@ -102,6 +102,7 @@ impl Disassembler {
           0xE0 => Some((Instruction::LD_0xFF00n_A, pc)),
           0x1A => Some((Instruction::LD_A_·DE·, pc)),
           0x32 => Some((Instruction::LDD_·HL·_A, pc)),
+          0x22 => Some((Instruction::LDI_·HL·_A, pc)),
           0x00 => Some((Instruction::NOP, pc)),
           0xAF => Some((Instruction::XOR_r(Reg::A), pc)),
           0xFE => {

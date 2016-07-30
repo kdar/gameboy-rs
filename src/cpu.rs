@@ -230,6 +230,7 @@ impl Cpu {
       Instruction::LD_r_n(r, n) => self.inst_LD_r_n(r, n),
       Instruction::LD_r_r(r1, r2) => self.inst_LD_r_r(r1, r2),
       Instruction::LDD_·HL·_A => self.inst_LDD_·HL·_A(),
+      Instruction::LDI_·HL·_A => self.inst_LDI_·HL·_A(),
       Instruction::NOP => self.inst_NOP(),
       Instruction::XOR_r(r) => self.inst_XOR_r(r),
       // _ => panic!("instruction not implemented: {:?}", ins),
@@ -436,6 +437,23 @@ impl Cpu {
     let a = self.read_reg_byte(Reg::A);
     self.mem.write_byte(hl, a);
     self.reg_hl -= 1;
+    8
+  }
+
+  // LDI (HL),A
+  // Opcode: 0x22
+  // Page: 146
+  // Moved: LD (nn),HL -> LDI (HL),A
+  #[allow(non_snake_case)]
+  fn inst_LDI_·HL·_A(&mut self) -> u32 {
+    let hl = self.reg_hl;
+    let a = self.read_reg_byte(Reg::A);
+    self.mem.write_byte(hl, a);
+    self.reg_hl += 1;
+
+    self.write_flag(Flag::H, false);
+    self.write_flag(Flag::N, false);
+
     8
   }
 
@@ -941,6 +959,25 @@ mod tests {
       c.write_reg_byte(Reg::A, 0x87);
       c.write_reg_byte(Reg::H, 0xC2);
       c.write_reg_byte(Reg::L, 0x20);
+      c.mem.write_byte(0xC221, 0x87);
+      c
+    },
+  });
+
+  cpu_test!(test_inst_LDI_HL_A {
+    ins: Instruction::LDI_·HL·_A,
+    before: {
+      let mut c = Cpu::default();
+      c.write_reg_byte(Reg::A, 0x87);
+      c.write_reg_byte(Reg::H, 0xC2);
+      c.write_reg_byte(Reg::L, 0x21);
+      c
+    },
+    after: {
+      let mut c = Cpu { cycles: 8, ..Cpu::default() };
+      c.write_reg_byte(Reg::A, 0x87);
+      c.write_reg_byte(Reg::H, 0xC2);
+      c.write_reg_byte(Reg::L, 0x22);
       c.mem.write_byte(0xC221, 0x87);
       c
     },
