@@ -96,8 +96,18 @@ impl Disassembler {
           Some((Instruction::JR_cc_e(Flag::C, e as i8), pc))
         }
 
-        0xE2 => Some((Instruction::LD_0xFF00C_A, pc)),
-        0xE0 => Some((Instruction::LD_0xFF00n_A, pc)),
+        0x18 => {
+          let e = try_o!(m.read_byte(addr + pc));
+          pc += 1;
+          Some((Instruction::JR_e(e as i8), pc))
+        }
+
+        0xE2 => Some((Instruction::LD_·0xFF00C·_A, pc)),
+        0xE0 => {
+          let n = try_o!(m.read_byte(addr + pc));
+          pc += 1;
+          Some((Instruction::LD_·0xFF00n·_A(n), pc))
+        }
 
         0x70...0x75 | 0x77 => {
           let r = op & 0b111;
@@ -111,6 +121,12 @@ impl Disassembler {
         }
 
         0x1A => Some((Instruction::LD_A_·DE·, pc)),
+
+        0xF0 => {
+          let n = try_o!(m.read_byte(addr + pc));
+          pc += 1;
+          Some((Instruction::LD_A_·0xFF00n·(n), pc))
+        }
 
         0x1 | 0x11 | 0x21 | 0x31 => {
           let r = op >> 4 & 0b11;

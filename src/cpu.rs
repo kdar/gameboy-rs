@@ -223,11 +223,13 @@ impl Cpu {
       Instruction::INC_r(r) => self.inst_INC_r(r),
       Instruction::INC_rr(ss) => self.inst_INC_rr(ss),
       Instruction::JR_cc_e(cc, e) => self.inst_JR_cc_e(cc, e),
-      Instruction::LD_0xFF00C_A => self.inst_LD_0xFF00C_A(),
-      Instruction::LD_0xFF00n_A => self.inst_LD_0xFF00n_A(),
+      Instruction::JR_e(e) => self.inst_JR_e(e),
+      Instruction::LD_·0xFF00C·_A => self.inst_LD_·0xFF00C·_A(),
+      Instruction::LD_·0xFF00n·_A(n) => self.inst_LD_·0xFF00n·_A(n),
       Instruction::LD_·HL·_r(r) => self.inst_LD_·HL·_r(r),
       Instruction::LD_·nn·_A(nn) => self.inst_LD_·nn·_A(nn),
       Instruction::LD_A_·DE· => self.inst_LD_A_·DE·(),
+      Instruction::LD_A_·0xFF00n·(n) => self.inst_LD_A_·0xFF00n·(n),
       Instruction::LD_dd_nn(dd, nn) => self.inst_LD_dd_nn(dd, nn),
       Instruction::LD_r_n(r, n) => self.inst_LD_r_n(r, n),
       Instruction::LD_r_r(r1, r2) => self.inst_LD_r_r(r1, r2),
@@ -391,12 +393,22 @@ impl Cpu {
     }
   }
 
+  // JR e
+  // Opcode: 0x18
+  // Page: 259
+  #[allow(non_snake_case)]
+  fn inst_JR_e(&mut self, e: i8) -> u32 {
+    // signed addition (can jump back)
+    self.reg_pc = ((self.reg_pc as i16) + (e as i16)) as u16;
+    12
+  }
+
   // LD (0xFF00+C),A
   // Opcode: 0xE2
   // Moved instruction.
   // Moved: RET PO -> LD (FF00+n),A
   #[allow(non_snake_case)]
-  fn inst_LD_0xFF00C_A(&mut self) -> u32 {
+  fn inst_LD_·0xFF00C·_A(&mut self) -> u32 {
     let a = self.read_reg_byte(Reg::A);
     let c = self.read_reg_byte(Reg::C);
     self.mem.write_byte(0xFF00 + c as u16, a);
@@ -408,9 +420,8 @@ impl Cpu {
   // Moved instruction.
   // Moved: JP PO,nn -> LD (FF00+C),A
   #[allow(non_snake_case)]
-  fn inst_LD_0xFF00n_A(&mut self) -> u32 {
+  fn inst_LD_·0xFF00n·_A(&mut self, n: u8) -> u32 {
     let a = self.read_reg_byte(Reg::A);
-    let n = self.read_pc_byte();
     self.mem.write_byte(0xFF00 + n as u16, a);
     12
   }
@@ -447,11 +458,28 @@ impl Cpu {
       Some(v) => v,
       None => {
         panic!("inst_LD_A_·DE·: could not read (DE) byte (memory address {:#04x})",
-               de)
+               de);
       }
     };
     self.write_reg_byte(Reg::A, val);
     8
+  }
+
+  // LD A,(0xFF00n)
+  // Opcode: 0xF0
+  // Moved: RET P -> LD A,(FF00+n)
+  #[allow(non_snake_case)]
+  fn inst_LD_A_·0xFF00n·(&mut self, n: u8) -> u32 {
+    let d = match self.mem.read_byte(0xFF00 + n as u16) {
+      Some(v) => v,
+      None => {
+        panic!("inst_LD_A_·0xFF00n·: could not read 0xFF00+n (memory address: {:#04x})",
+               0xFF00 + n as u16);
+      }
+    };
+
+    self.write_reg_byte(Reg::A, d);
+    12
   }
 
   // LD dd,nn
@@ -880,7 +908,7 @@ mod tests {
   }
 
   cpu_test!(test_inst_LD_0xFF00C_A {
-    ins: Instruction::LD_0xFF00C_A,
+    ins: Instruction::LD_·0xFF00C·_A,
     before: {
       let mut c = Cpu::default();
       c.write_reg_byte(Reg::C, 0x10);
@@ -897,17 +925,15 @@ mod tests {
   });
 
   cpu_test!(test_inst_LD_0xFF00n_A {
-    ins: Instruction::LD_0xFF00n_A,
+    ins: Instruction::LD_·0xFF00n·_A(0x10),
     before: {
       let mut c = Cpu::default();
       c.write_reg_byte(Reg::A, 0xFF);
-      c.mem.write_byte(0, 0x10);
       c
     },
     after: {
       let mut c = Cpu { cycles: 12, reg_pc: 1, ..Cpu::default() };
       c.write_reg_byte(Reg::A, 0xFF);
-      c.mem.write_byte(0xFF10, 0xFF);
       c
     },
   });
