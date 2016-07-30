@@ -47,16 +47,78 @@ impl Disassembler {
         }
       }
     } else {
+      // Invalid,
+      // BIT_b_r(u8, Reg),
+      // CALL_nn(u16),
+      // CP_n(u8),
+      // INC_r(Reg),
+      // INC_rr(Reg),
+      // JR_cc_e(Flag, i8),
+      // LD_0xFF00C_A, // Moved: RET PO -> LD (FF00+n),A
+      // LD_0xFF00n_A, // Moved: JP PO,nn -> LD (FF00+C),A
+      // LD_·HL·_r(Reg),
+      // LD_A_·DE·,
+      // LD_dd_nn(Reg, u16),
+      // LD_r_n(Reg, u8),
+      // LD_r_r(Reg, Reg),
+      // LDD_·HL·_A, // Moved: LD (nn),A -> LDD (HL),A
+      // LDI_·HL·_A, // Moved: LD (nn),HL -> LDI (HL),A
+      // NOP,
+      // XOR_r(Reg),
+
       match op {
+        0xCD => {
+          let nn = try_o!(m.read_word(addr + pc));
+          pc += 2;
+          Some((Instruction::CALL_nn(nn), pc))
+        }
+
+        0xFE => {
+          let n = try_o!(m.read_byte(addr + pc));
+          pc += 1;
+          Some((Instruction::CP_n(n), pc))
+        }
+
         0x4 | 0xc | 0x14 | 0x1c | 0x24 | 0x2c | 0x3c => {
           let r = op >> 3 & 0b111;
           Some((Instruction::INC_r(Reg::from(r)), pc))
         }
 
+        0x3 | 0x13 | 0x23 | 0x33 => {
+          let ss = op >> 4 & 0b11;
+          Some((Instruction::INC_rr(Reg::from_pair(ss)), pc))
+        }
+
+        0x20 => {
+          let e = try_o!(m.read_byte(addr + pc));
+          pc += 1;
+          Some((Instruction::JR_cc_e(Flag::NZ, e as i8), pc))
+        }
+        0x28 => {
+          let e = try_o!(m.read_byte(addr + pc));
+          pc += 1;
+          Some((Instruction::JR_cc_e(Flag::Z, e as i8), pc))
+        }
+        0x30 => {
+          let e = try_o!(m.read_byte(addr + pc));
+          pc += 1;
+          Some((Instruction::JR_cc_e(Flag::NC, e as i8), pc))
+        }
+        0x38 => {
+          let e = try_o!(m.read_byte(addr + pc));
+          pc += 1;
+          Some((Instruction::JR_cc_e(Flag::C, e as i8), pc))
+        }
+
+        0xE2 => Some((Instruction::LD_0xFF00C_A, pc)),
+        0xE0 => Some((Instruction::LD_0xFF00n_A, pc)),
+
         0x70...0x75 | 0x77 => {
           let r = op & 0b111;
           Some((Instruction::LD_·HL·_r(Reg::from(r)), pc))
         }
+
+        0x1A => Some((Instruction::LD_A_·DE·, pc)),
 
         0x1 | 0x11 | 0x21 | 0x31 => {
           let r = op >> 4 & 0b11;
@@ -79,49 +141,10 @@ impl Disassembler {
           Some((Instruction::LD_r_r(Reg::from(r1), Reg::from(r2)), pc))
         }
 
-        0x3 | 0x13 | 0x23 | 0x33 => {
-          let ss = op >> 4 & 0b11;
-          Some((Instruction::INC_rr(Reg::from_pair(ss)), pc))
-        }
-
-        0x20 => {
-          let e = try_o!(m.read_byte(addr + pc));
-
-          pc += 1;
-          Some((Instruction::JR_cc_e(Flag::NZ, e as i8), pc))
-        }
-        0x28 => {
-          let e = try_o!(m.read_byte(addr + pc));
-          pc += 1;
-          Some((Instruction::JR_cc_e(Flag::Z, e as i8), pc))
-        }
-        0x30 => {
-          let e = try_o!(m.read_byte(addr + pc));
-          pc += 1;
-          Some((Instruction::JR_cc_e(Flag::NC, e as i8), pc))
-        }
-        0x38 => {
-          let e = try_o!(m.read_byte(addr + pc));
-          pc += 1;
-          Some((Instruction::JR_cc_e(Flag::C, e as i8), pc))
-        }
-        0xCD => {
-          let nn = try_o!(m.read_word(addr + pc));
-          pc += 2;
-          Some((Instruction::CALL_nn(nn), pc))
-        }
-        0xE2 => Some((Instruction::LD_0xFF00C_A, pc)),
-        0xE0 => Some((Instruction::LD_0xFF00n_A, pc)),
-        0x1A => Some((Instruction::LD_A_·DE·, pc)),
         0x32 => Some((Instruction::LDD_·HL·_A, pc)),
-        0x22 => Some((Instruction::LDD_·HL·_A, pc)),
+        0x22 => Some((Instruction::LDI_·HL·_A, pc)),
         0x00 => Some((Instruction::NOP, pc)),
         0xAF => Some((Instruction::XOR_r(Reg::A), pc)),
-        0xFE => {
-          let n = try_o!(m.read_byte(addr + pc));
-          pc += 1;
-          Some((Instruction::CP_n(n), pc))
-        }
 
         _ => panic!("instruction_at: instruction not implemented: 0x{:02x}", op),
       }
