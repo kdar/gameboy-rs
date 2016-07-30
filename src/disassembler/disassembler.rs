@@ -168,6 +168,8 @@ impl Disassembler {
           Some((Instruction::PUSH_rr(Reg::from_pair(rr)), pc))
         }
 
+        0xC9 => Some((Instruction::RET, pc)),
+
         0x17 => Some((Instruction::RLA, pc)),
 
         0x90 | 0x91 | 0x92 | 0x93 | 0x94 | 0x95 | 0x96 | 0x97 => {

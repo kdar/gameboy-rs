@@ -242,6 +242,7 @@ impl Cpu {
       Instruction::LDI_·HL·_A => self.inst_LDI_·HL·_A(),
       Instruction::POP_rr(rr) => self.inst_POP_rr(rr),
       Instruction::PUSH_rr(rr) => self.inst_PUSH_rr(rr),
+      Instruction::RET => self.inst_RET(),
       Instruction::SUB_r(r) => self.inst_SUB_r(r),
       Instruction::NOP => self.inst_NOP(),
       Instruction::XOR_r(r) => self.inst_XOR_r(r),
@@ -605,6 +606,23 @@ impl Cpu {
     let d = self.read_reg_word(rr);
     self.reg_sp -= 2;
     self.mem.write_word(self.reg_sp, d);
+    16
+  }
+
+  // RET
+  // Opcode: 0xC9
+  // Page: 278
+  #[allow(non_snake_case)]
+  fn inst_RET(&mut self) -> u32 {
+    let d = match self.mem.read_word(self.reg_sp) {
+      Some(v) => v,
+      None => {
+        panic!("inst_RET: could not read (SP) byte (memory address {:#04x})",
+               self.reg_sp);
+      }
+    };
+    self.reg_pc = d;
+    self.reg_sp += 2;
     16
   }
 
