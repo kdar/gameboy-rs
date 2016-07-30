@@ -218,6 +218,7 @@ impl Cpu {
       Instruction::Invalid => panic!("execute_instruction: Invalid instruction encountered"),
       Instruction::BIT_b_r(b, r) => self.inst_BIT_b_r(b, r),
       Instruction::CALL_nn(nn) => self.inst_CALL_nn(nn),
+      Instruction::CP_n(n) => self.inst_CP_n(n),
       Instruction::INC_r(r) => self.inst_INC_r(r),
       Instruction::INC_rr(ss) => self.inst_INC_rr(ss),
       Instruction::JR_cc_e(cc, e) => self.inst_JR_cc_e(cc, e),
@@ -265,6 +266,41 @@ impl Cpu {
     self.mem.write_word(self.reg_sp, self.reg_pc);
     self.reg_pc = nn;
     24
+  }
+
+  // CP n
+  // Opcode: 0xFE
+  // Page: 176
+  #[allow(non_snake_case)]
+  fn inst_CP_n(&mut self, n: u8) -> u32 {
+    let a = self.read_reg_byte(Reg::A);
+    let result = (a as i8 - n as i8) as u8;
+
+    if result == 0 {
+      self.write_flag(Flag::Z, true);
+    } else {
+      self.write_flag(Flag::Z, false);
+    }
+
+    // Set the carry flag if the A register is less than n.
+    // (for the full value).
+    if a & 0xFF < n & 0xFF {
+      self.write_flag(Flag::C, true);
+    } else {
+      self.write_flag(Flag::C, false);
+    }
+
+    // Set the half carry flag if half of register A is less than
+    // half of n.
+    if a & 0x0F < n & 0x0F {
+      self.write_flag(Flag::H, true);
+    } else {
+      self.write_flag(Flag::H, false);
+    }
+
+    self.write_flag(Flag::N, true);
+
+    4
   }
 
   // INC r
@@ -626,6 +662,22 @@ mod tests {
       c.reg_sp = 98;
       c.mem.write_byte(98, 200);
       c.reg_pc = 0x0095;
+      c
+    },
+  });
+
+  cpu_test!(test_inst_CP_n {
+    ins: Instruction::CP_n(0x95),
+    before: {
+      let mut c = Cpu::default();
+      c.write_reg_byte(Reg::A, 0x88);
+      c
+    },
+    after: {
+      let mut c = Cpu { cycles: 4, ..Cpu::default() };
+      c.write_flag(Flag::N, true);
+      c.write_flag(Flag::C, true);
+      c.write_reg_byte(Reg::A, 0x88);
       c
     },
   });

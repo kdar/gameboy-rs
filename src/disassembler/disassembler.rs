@@ -104,6 +104,11 @@ impl Disassembler {
           0x32 => Some((Instruction::LDD_·HL·_A, pc)),
           0x00 => Some((Instruction::NOP, pc)),
           0xAF => Some((Instruction::XOR_r(Reg::A), pc)),
+          0xFE => {
+            let n = try_o!(m.read_byte(addr + pc));
+            pc += 1;
+            Some((Instruction::CP_n(n), pc))
+          }
 
           _ => panic!("instruction_at: instruction not implemented: 0x{:02x}", op),
         }

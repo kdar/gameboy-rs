@@ -8,6 +8,7 @@ pub enum Instruction {
   Invalid,
   BIT_b_r(u8, Reg),
   CALL_nn(u16),
+  CP_n(u8),
   INC_r(Reg),
   INC_rr(Reg),
   JR_cc_e(Flag, i8),
@@ -28,6 +29,7 @@ impl fmt::Debug for Instruction {
     match *self {
       Instruction::BIT_b_r(b, r) => write!(f, "BIT {},{}", b, r),
       Instruction::CALL_nn(nn) => write!(f, "CALL ${:04x}", nn),
+      Instruction::CP_n(n) => write!(f, "CP ${:02x}", n),
       Instruction::INC_r(r) => write!(f, "INC {}", r),
       Instruction::INC_rr(r) => write!(f, "INC {}", r),
       Instruction::JR_cc_e(cc, e) => write!(f, "JR {},{}", cc, e),
