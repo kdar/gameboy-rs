@@ -3,6 +3,7 @@ use std::default::Default;
 use std::cmp::PartialEq;
 
 use super::mem;
+use super::video;
 use super::reg::Reg;
 use super::flag::Flag;
 use super::disassembler::Instruction;
@@ -28,6 +29,7 @@ pub struct Cpu {
   clock_t: u32, // Cycles
 
   mem: Box<mem::Memory>,
+  video: video::Video,
   disasm: Disassembler,
 }
 
@@ -50,6 +52,7 @@ impl Default for Cpu {
       reg_pc: 0,
       clock_t: 0,
       mem: Box::new(mem::Mem::new()),
+      video: video::Video::new(),
       disasm: Disassembler::new(),
     }
   }

@@ -3,19 +3,21 @@ use im;
 use std::f64;
 use time::{Duration, SteadyTime};
 
-pub struct Video;
+pub struct Video {
+  window: PistonWindow,
+}
 
 impl Video {
   pub fn new() -> Video {
-    Video
+    Video {
+      window: WindowSettings::new("Gameboy-rs", [160, 144])
+        .exit_on_esc(true)
+        .build()
+        .unwrap(),
+    }
   }
 
-  pub fn run(&self) {
-    let mut window: PistonWindow = WindowSettings::new("Gameboy-rs", [160, 144])
-      .exit_on_esc(true)
-      .build()
-      .unwrap();
-
+  pub fn run(&mut self) {
     let image = Image::new().rect([0.0, 0.0, 160.0, 144.0]);
 
     // let mut img: im::ImageBuffer<im::Rgba<u8>, Vec<u8>> = im::ImageBuffer::new(200, 200);
@@ -28,11 +30,12 @@ impl Video {
       }
     }
 
-    let texture = Texture::from_image(&mut window.factory, &img, &TextureSettings::new()).unwrap();
+    let texture = Texture::from_image(&mut self.window.factory, &img, &TextureSettings::new())
+      .unwrap();
 
     let mut frame_count = 0;
     let mut start = SteadyTime::now();
-    while let Some(e) = window.next() {
+    while let Some(e) = self.window.next() {
       frame_count += 1;
 
       if SteadyTime::now() - start >= Duration::seconds(1) {
@@ -41,7 +44,7 @@ impl Video {
         start = SteadyTime::now();
       }
 
-      window.draw_2d(&e, |c, g| {
+      self.window.draw_2d(&e, |c, g| {
         clear([0.0; 4], g);
 
         image.draw(&texture, &draw_state::DrawState::default(), c.transform, g);

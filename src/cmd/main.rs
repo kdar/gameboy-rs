@@ -16,7 +16,6 @@ use std::process::exit;
 use gameboy::debugger;
 use gameboy::disassembler;
 use gameboy::mem;
-use gameboy::video;
 
 macro_rules! try_log {
   ($expr:expr) => (match $expr {
@@ -30,9 +29,6 @@ macro_rules! try_log {
 
 fn main() {
   TermLogger::init(LogLevelFilter::Info).unwrap();
-
-  let v = video::Video::new();
-  v.run();
 
   let matches = App::new("gameboy-rs")
     .version("0.1.0")
