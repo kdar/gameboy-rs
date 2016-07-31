@@ -25,7 +25,7 @@ pub struct Cpu {
   reg_sp: u16, // Stack pointer
   reg_pc: u16, // Program counter
 
-  cycles: u32, // Current number of clock cycles
+  clock_t: u32, // Cycles
 
   mem: Box<mem::Memory>,
   disasm: Disassembler,
@@ -35,7 +35,7 @@ impl PartialEq for Cpu {
   fn eq(&self, x: &Cpu) -> bool {
     self.reg_af == x.reg_af && self.reg_bc == x.reg_bc && self.reg_de == x.reg_de &&
     self.reg_hl == x.reg_hl && self.reg_sp == x.reg_sp && self.reg_pc == x.reg_pc &&
-    self.cycles == x.cycles
+    self.clock_t == x.clock_t
   }
 }
 
@@ -48,7 +48,7 @@ impl Default for Cpu {
       reg_hl: 0,
       reg_sp: 0,
       reg_pc: 0,
-      cycles: 0,
+      clock_t: 0,
       mem: Box::new(mem::Mem::new()),
       disasm: Disassembler::new(),
     }
@@ -67,7 +67,7 @@ impl fmt::Debug for Cpu {
     try!(write!(f, "\nL:       {0:#04x} [{0:08b}]", low_byte(self.reg_hl)));
     try!(write!(f, "\nSP:      {0:#06x} [{0:016b}]", self.reg_sp));
     try!(write!(f, "\nPC:      {0:#06x} [{0:016b}]", self.reg_pc));
-    try!(write!(f, "\nCycles:  {}", self.cycles));
+    try!(write!(f, "\nClock T: {}", self.clock_t));
     write!(f, "\n")
   }
 }
@@ -214,9 +214,9 @@ impl Cpu {
   }
 
   fn execute_instruction(&mut self, ins: Instruction) {
-    let cycles = match ins {
+    let t = match ins {
       Instruction::Invalid => panic!("execute_instruction: Invalid instruction encountered"),
-      Instruction::Data(_) => 0,
+      Instruction::Data(_) => (0),
 
       // 0xCB instructions
       Instruction::BIT_b_r(b, r) => self.inst_BIT_b_r(b, r),
@@ -252,7 +252,7 @@ impl Cpu {
       // _ => panic!("instruction not implemented: {:?}", ins),
     };
 
-    self.cycles += cycles;
+    self.clock_t += t;
   }
 
   // BIT b,r
@@ -864,7 +864,7 @@ mod tests {
             c
           },
           after: {
-            let mut c = Cpu { cycles: 8, ..Cpu::default() };
+            let mut c = Cpu { clock_t: 8, ..Cpu::default() };
             c.write_reg_byte(r, 1 << b);
             c.write_flag(Flag::Z, false);
             c.write_flag(Flag::H, true);
@@ -886,7 +886,7 @@ mod tests {
             ins: Instruction::BIT_b_r(b, r),
             before: Cpu::default(),
             after: {
-              let mut c = Cpu { cycles: 8, ..Cpu::default() };
+              let mut c = Cpu { clock_t: 8, ..Cpu::default() };
               c.write_flag(Flag::Z, true);
               c.write_flag(Flag::H, true);
               c
@@ -906,7 +906,7 @@ mod tests {
       c
     },
     after: {
-      let mut c = Cpu { cycles: 24, ..Cpu::default() };
+      let mut c = Cpu { clock_t: 24, ..Cpu::default() };
       c.reg_sp = 98;
       c.mem.write_byte(98, 200);
       c.reg_pc = 0x0095;
@@ -922,7 +922,7 @@ mod tests {
       c
     },
     after: {
-      let mut c = Cpu { cycles: 4, ..Cpu::default() };
+      let mut c = Cpu { clock_t: 4, ..Cpu::default() };
       c.write_flag(Flag::N, true);
       c.write_flag(Flag::C, true);
       c.write_reg_byte(Reg::A, 0x88);
@@ -947,7 +947,7 @@ mod tests {
           c
         },
         after: {
-          let mut c = Cpu { cycles: 4, ..Cpu::default()};
+          let mut c = Cpu { clock_t: 4, ..Cpu::default()};
           c.write_flag(Flag::H, true);
           c.write_reg_byte(r, 0x0F);
           c
@@ -973,7 +973,7 @@ mod tests {
           c
         },
         after: {
-          let mut c = Cpu { cycles: 4, ..Cpu::default()};
+          let mut c = Cpu { clock_t: 4, ..Cpu::default()};
           c.write_reg_byte(r, 0x11);
           c
         },
@@ -994,7 +994,7 @@ mod tests {
           c
         },
         after: {
-          let mut c = Cpu { cycles: 4, ..Cpu::default()};
+          let mut c = Cpu { clock_t: 4, ..Cpu::default()};
           c.write_reg_word(r, 0x11);
           c
         },
@@ -1045,7 +1045,7 @@ mod tests {
       c
     },
     after: {
-      let mut c = Cpu { cycles: 8, ..Cpu::default() };
+      let mut c = Cpu { clock_t: 8, ..Cpu::default() };
       c.write_reg_byte(Reg::C, 0x10);
       c.write_reg_byte(Reg::A, 0xFF);
       c.mem.write_byte(0xFF10, 0xFF);
@@ -1061,7 +1061,7 @@ mod tests {
       c
     },
     after: {
-      let mut c = Cpu { cycles: 12, reg_pc: 1, ..Cpu::default() };
+      let mut c = Cpu { clock_t: 12, reg_pc: 1, ..Cpu::default() };
       c.write_reg_byte(Reg::A, 0xFF);
       c
     },
@@ -1086,7 +1086,7 @@ mod tests {
           c
         },
         after: {
-          let mut c = Cpu { cycles: 8, ..Cpu::default() };
+          let mut c = Cpu { clock_t: 8, ..Cpu::default() };
           c.write_reg_byte(r, 0x87);
           c.write_reg_byte(Reg::H, 0xC2);
           c.write_reg_byte(Reg::L, 0x21);
@@ -1106,7 +1106,7 @@ mod tests {
       c
     },
     after: {
-      let mut c = Cpu { cycles: 8, ..Cpu::default() };
+      let mut c = Cpu { clock_t: 8, ..Cpu::default() };
       c.write_reg_word(Reg::DE, 0x0104);
       c.write_reg_byte(Reg::A, 0x10);
       c.mem.write_byte(0x0104, 0x10);
@@ -1121,7 +1121,7 @@ mod tests {
       ins: Instruction::LD_dd_nn(Reg::HL, 0xD8FE),
       before: Cpu::default(),
       after: Cpu {
-        cycles: 12,
+        clock_t: 12,
         reg_hl: 0xD8FE,
         ..Cpu::default()
       },
@@ -1131,7 +1131,7 @@ mod tests {
       ins: Instruction::LD_dd_nn(Reg::SP, 0xD8FE),
       before: Cpu::default(),
       after: Cpu {
-        cycles: 12,
+        clock_t: 12,
         reg_sp: 0xD8FE,
         ..Cpu::default()
       },
@@ -1153,7 +1153,7 @@ mod tests {
         before: Cpu::default(),
         after: {
           let mut c = Cpu{
-            cycles: 8,
+            clock_t: 8,
             ..Cpu::default()
           };
           c.write_reg_byte(r, 0xFE);
@@ -1188,7 +1188,7 @@ mod tests {
         },
         after: {
           let mut c = Cpu{
-            cycles: 4,
+            clock_t: 4,
             ..Cpu::default()
           };
           c.write_reg_byte(r1, 0xFE);
@@ -1210,7 +1210,7 @@ mod tests {
       c
     },
     after: {
-      let mut c = Cpu { cycles: 8, ..Cpu::default() };
+      let mut c = Cpu { clock_t: 8, ..Cpu::default() };
       c.write_reg_byte(Reg::A, 0x87);
       c.write_reg_byte(Reg::H, 0xC2);
       c.write_reg_byte(Reg::L, 0x20);
@@ -1229,7 +1229,7 @@ mod tests {
       c
     },
     after: {
-      let mut c = Cpu { cycles: 8, ..Cpu::default() };
+      let mut c = Cpu { clock_t: 8, ..Cpu::default() };
       c.write_reg_byte(Reg::A, 0x87);
       c.write_reg_byte(Reg::H, 0xC2);
       c.write_reg_byte(Reg::L, 0x22);
@@ -1241,7 +1241,7 @@ mod tests {
   cpu_test!(test_inst_nop {
     ins: Instruction::NOP,
     before: Cpu::default(),
-    after: Cpu { cycles: 4, ..Cpu::default() },
+    after: Cpu { clock_t: 4, ..Cpu::default() },
   });
 
   cpu_test!(inst_xor_a {
@@ -1252,7 +1252,7 @@ mod tests {
       c
     },
     after: {
-      let mut c = Cpu { cycles: 4, ..Cpu::default() };
+      let mut c = Cpu { clock_t: 4, ..Cpu::default() };
       c.write_flag(Flag::Z, true);
       c
     },
@@ -1276,7 +1276,7 @@ mod tests {
           c
         },
         after: {
-          let mut c = Cpu { cycles: 4, ..Cpu::default() };
+          let mut c = Cpu { clock_t: 4, ..Cpu::default() };
           c.write_reg_byte(r, 200);
           c.write_flag(Flag::Z, true);
           c
