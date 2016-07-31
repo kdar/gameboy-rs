@@ -11,16 +11,16 @@ impl Video {
   }
 
   pub fn run(&self) {
-    let mut window: PistonWindow = WindowSettings::new("Gameboy-rs", [640, 480])
+    let mut window: PistonWindow = WindowSettings::new("Gameboy-rs", [160, 144])
       .exit_on_esc(true)
       .build()
       .unwrap();
 
-    let image = Image::new().rect([0.0, 0.0, 200.0, 200.0]);
+    let image = Image::new().rect([0.0, 0.0, 160.0, 144.0]);
 
     // let mut img: im::ImageBuffer<im::Rgba<u8>, Vec<u8>> = im::ImageBuffer::new(200, 200);
     // img.put_pixel(10, 10, im::Rgba([255, 255, 255, 255]));
-    let (w, h) = (280, 240);
+    let (w, h) = (160, 144);
     let mut img: im::ImageBuffer<im::Rgba<u8>, Vec<u8>> = im::ImageBuffer::new(w, h);
     for x in 0..w {
       for y in 0..h {
