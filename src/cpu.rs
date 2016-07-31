@@ -1036,7 +1036,7 @@ mod tests {
     }
   }
 
-  cpu_test!(test_inst_LD_0xFF00C_A {
+  cpu_test!(test_inst_LD_·0xFF00C·_A {
     ins: Instruction::LD_·0xFF00C·_A,
     before: {
       let mut c = Cpu::default();
@@ -1053,7 +1053,7 @@ mod tests {
     },
   });
 
-  cpu_test!(test_inst_LD_0xFF00n_A {
+  cpu_test!(test_inst_LD_·0xFF00n·_A {
     ins: Instruction::LD_·0xFF00n·_A(0x10),
     before: {
       let mut c = Cpu::default();
