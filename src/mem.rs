@@ -75,6 +75,7 @@ pub enum Addr {
 pub trait Memory {
   fn read_byte(&self, addr: u16) -> Option<u8>;
   fn write_byte(&mut self, addr: u16, value: u8);
+  fn set_booting(&mut self, value: bool);
   fn set_boot_rom(&mut self, rom: Box<[u8]>);
   fn set_cart_rom(&mut self, rom: Box<[u8]>);
 
@@ -223,8 +224,12 @@ mod module {
       };
     }
 
+    fn set_booting(&mut self, value: bool) {
+      self.booting = value;
+    }
+
     fn set_boot_rom(&mut self, rom: Box<[u8]>) {
-      self.booting = true;
+      self.set_booting(true);
       self.boot_rom = rom;
     }
 
@@ -280,6 +285,10 @@ mod module {
 
     fn write_byte(&mut self, addr: u16, value: u8) {
       self.ram[addr as usize] = value;
+    }
+
+    fn set_booting(&mut self, value: bool) {
+      self.booting = value;
     }
 
     fn set_boot_rom(&mut self, rom: Box<[u8]>) {
