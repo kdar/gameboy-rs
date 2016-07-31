@@ -206,7 +206,7 @@ mod module {
           panic!("write_byte error: trying to write to rom0");
         }
         Addr::Rom01(offset) => panic!("write_byte not implemented: {:?}", mapped),
-        Addr::VideoRam(offset) => (), // panic!("write_byte not implemented: {:?}", mapped),
+        Addr::VideoRam(offset) => panic!("write_byte not implemented: {:?}", mapped),
         Addr::ExternalRam(offset) => panic!("write_byte not implemented: {:?}", mapped),
         Addr::WorkRam0(offset) => {
           self.work_ram_0[offset as usize] = value;
@@ -215,7 +215,7 @@ mod module {
           self.work_ram_1[offset as usize] = value;
         }
         Addr::SpriteTable(offset) => panic!("write_byte not implemented: {:?}", mapped),
-        Addr::IoPorts(offset) => (), // panic!("write_byte not implemented: {:?}", mapped),
+        Addr::IoPorts(offset) => panic!("write_byte not implemented: {:?}", mapped),
         Addr::HighRam(offset) => {
           self.high_ram[offset as usize] = value;
         }
