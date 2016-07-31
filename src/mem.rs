@@ -60,24 +60,21 @@ mod constants {
 
 #[derive(Debug)]
 pub enum Addr {
-  Rom00(u16),
-  Rom01(u16),
-  VideoRam(u16),
-  ExternalRam(u16),
-  WorkRam0(u16),
-  WorkRam1(u16),
-  SpriteTable(u16),
-  IoPorts(u16),
-  HighRam(u16),
+  Rom00(u16, u16),
+  Rom01(u16, u16),
+  VideoRam(u16, u16),
+  ExternalRam(u16, u16),
+  WorkRam0(u16, u16),
+  WorkRam1(u16, u16),
+  SpriteTable(u16, u16),
+  IoPorts(u16, u16),
+  HighRam(u16, u16),
   InterruptRegister,
 }
 
-pub trait Memory {
+pub trait MemoryMap {
   fn read_byte(&self, addr: u16) -> Option<u8>;
   fn write_byte(&mut self, addr: u16, value: u8);
-  fn set_booting(&mut self, value: bool);
-  fn set_boot_rom(&mut self, rom: Box<[u8]>);
-  fn set_cart_rom(&mut self, rom: Box<[u8]>);
 
   fn read_vec(&self, addr: u16, len: u16) -> Option<Vec<u8>> {
     let mut v = vec![];
@@ -113,6 +110,12 @@ pub trait Memory {
   }
 }
 
+pub trait Memory: MemoryMap {
+  fn set_booting(&mut self, value: bool);
+  fn set_boot_rom(&mut self, rom: Box<[u8]>);
+  fn set_cart_rom(&mut self, rom: Box<[u8]>);
+}
+
 #[cfg(not(test))]
 mod module {
   use super::*;
@@ -145,22 +148,37 @@ mod module {
 
     pub fn memory_map(&self, addr: u16) -> Addr {
       match addr {
-        ROM_00_START...ROM_00_END => Addr::Rom00(addr - ROM_00_START),
-        ROM_01_START...ROM_01_END => Addr::Rom01(addr - ROM_01_START),
-        VIDEO_RAM_START...VIDEO_RAM_END => Addr::VideoRam(addr - VIDEO_RAM_START),
-        EXTERNAL_RAM_START...EXTERNAL_RAM_END => Addr::ExternalRam(addr - EXTERNAL_RAM_START),
-        WORK_RAM_0_START...WORK_RAM_0_END => Addr::WorkRam0(addr - WORK_RAM_0_START),
-        WORK_RAM_1_START...WORK_RAM_1_END => Addr::WorkRam1(addr - WORK_RAM_1_START),
+        ROM_00_START...ROM_00_END => Addr::Rom00(addr, addr - ROM_00_START),
+        ROM_01_START...ROM_01_END => Addr::Rom01(addr, addr - ROM_01_START),
+        VIDEO_RAM_START...VIDEO_RAM_END => Addr::VideoRam(addr, addr - VIDEO_RAM_START),
+        EXTERNAL_RAM_START...EXTERNAL_RAM_END => Addr::ExternalRam(addr, addr - EXTERNAL_RAM_START),
+        WORK_RAM_0_START...WORK_RAM_0_END => Addr::WorkRam0(addr, addr - WORK_RAM_0_START),
+        WORK_RAM_1_START...WORK_RAM_1_END => Addr::WorkRam1(addr, addr - WORK_RAM_1_START),
         ECHO_START...ECHO_END => self.memory_map(addr - ECHO_START + WORK_RAM_0_START),
-        SPRITE_TABLE_START...SPRITE_TABLE_END => Addr::SpriteTable(addr - SPRITE_TABLE_START),
+        SPRITE_TABLE_START...SPRITE_TABLE_END => Addr::SpriteTable(addr, addr - SPRITE_TABLE_START),
         UNUSABLE_START...UNUSABLE_END => panic!("unusable memory area!"),
-        IO_PORTS_START...IO_PORTS_END => Addr::IoPorts(addr - IO_PORTS_START),
-        HIGH_RAM_START...HIGH_RAM_END => Addr::HighRam(addr - HIGH_RAM_START),
+        IO_PORTS_START...IO_PORTS_END => Addr::IoPorts(addr, addr - IO_PORTS_START),
+        HIGH_RAM_START...HIGH_RAM_END => Addr::HighRam(addr, addr - HIGH_RAM_START),
         INTERRUPT_REGISTER_START...INTERRUPT_REGISTER_END => Addr::InterruptRegister,
         _ => {
           panic!("unrecognized memory mapped region");
         }
       }
+    }
+  }
+
+  impl Memory for Mem {
+    fn set_booting(&mut self, value: bool) {
+      self.booting = value;
+    }
+
+    fn set_boot_rom(&mut self, rom: Box<[u8]>) {
+      self.set_booting(true);
+      self.boot_rom = rom;
+    }
+
+    fn set_cart_rom(&mut self, rom: Box<[u8]>) {
+      self.cart_rom = rom;
     }
   }
 
@@ -177,25 +195,25 @@ mod module {
     }
   }
 
-  impl Memory for Mem {
+  impl MemoryMap for Mem {
     fn read_byte(&self, addr: u16) -> Option<u8> {
       let mapped = self.memory_map(addr);
       match mapped {
-        Addr::Rom00(offset) => {
+        Addr::Rom00(_, offset) => {
           if self.booting && offset <= 0xFF {
             self.boot_rom.get(offset as usize).and_then(|&x| Some(x))
           } else {
             self.cart_rom.get(offset as usize).and_then(|&x| Some(x))
           }
         }
-        Addr::Rom01(offset) => panic!("read_byte not implemented: {:?}", mapped),
-        Addr::VideoRam(offset) => panic!("read_byte not implemented: {:?}", mapped),
-        Addr::ExternalRam(offset) => panic!("read_byte not implemented: {:?}", mapped),
-        Addr::WorkRam0(offset) => self.work_ram_0.get(offset as usize).and_then(|&x| Some(x)),
-        Addr::WorkRam1(offset) => self.work_ram_1.get(offset as usize).and_then(|&x| Some(x)),
-        Addr::SpriteTable(offset) => panic!("read_byte not implemented: {:?}", mapped),
-        Addr::IoPorts(offset) => panic!("read_byte not implemented: {:?}", mapped),
-        Addr::HighRam(offset) => self.high_ram.get(offset as usize).and_then(|&x| Some(x)),
+        Addr::Rom01(_, offset) => panic!("read_byte not implemented: {:?}", mapped),
+        Addr::VideoRam(_, offset) => panic!("read_byte not implemented: {:?}", mapped),
+        Addr::ExternalRam(_, offset) => panic!("read_byte not implemented: {:?}", mapped),
+        Addr::WorkRam0(_, offset) => self.work_ram_0.get(offset as usize).and_then(|&x| Some(x)),
+        Addr::WorkRam1(_, offset) => self.work_ram_1.get(offset as usize).and_then(|&x| Some(x)),
+        Addr::SpriteTable(_, offset) => panic!("read_byte not implemented: {:?}", mapped),
+        Addr::IoPorts(_, offset) => panic!("read_byte not implemented: {:?}", mapped),
+        Addr::HighRam(_, offset) => self.high_ram.get(offset as usize).and_then(|&x| Some(x)),
         Addr::InterruptRegister => panic!("read_byte not implemented: {:?}", mapped),
       }
     }
@@ -203,41 +221,29 @@ mod module {
     fn write_byte(&mut self, addr: u16, value: u8) {
       let mapped = self.memory_map(addr);
       match mapped {
-        Addr::Rom00(offset) => {
+        Addr::Rom00(_, offset) => {
           panic!("write_byte error: trying to write to rom0");
         }
-        Addr::Rom01(offset) => panic!("write_byte not implemented: {:?}", mapped),
-        Addr::VideoRam(offset) => panic!("write_byte not implemented: {:?}", mapped),
-        Addr::ExternalRam(offset) => panic!("write_byte not implemented: {:?}", mapped),
-        Addr::WorkRam0(offset) => {
+        Addr::Rom01(_, offset) => panic!("write_byte not implemented: {:?}", mapped),
+        Addr::VideoRam(_, offset) => panic!("write_byte not implemented: {:?}", mapped),
+        Addr::ExternalRam(_, offset) => panic!("write_byte not implemented: {:?}", mapped),
+        Addr::WorkRam0(_, offset) => {
           self.work_ram_0[offset as usize] = value;
         }
-        Addr::WorkRam1(offset) => {
+        Addr::WorkRam1(_, offset) => {
           self.work_ram_1[offset as usize] = value;
         }
-        Addr::SpriteTable(offset) => panic!("write_byte not implemented: {:?}", mapped),
-        Addr::IoPorts(offset) => panic!("write_byte not implemented: {:?}", mapped),
-        Addr::HighRam(offset) => {
+        Addr::SpriteTable(_, offset) => panic!("write_byte not implemented: {:?}", mapped),
+        Addr::IoPorts(_, offset) => panic!("write_byte not implemented: {:?}", mapped),
+        Addr::HighRam(_, offset) => {
           self.high_ram[offset as usize] = value;
         }
         Addr::InterruptRegister => panic!("write_byte not implemented: {:?}", mapped),
       };
     }
-
-    fn set_booting(&mut self, value: bool) {
-      self.booting = value;
-    }
-
-    fn set_boot_rom(&mut self, rom: Box<[u8]>) {
-      self.set_booting(true);
-      self.boot_rom = rom;
-    }
-
-    fn set_cart_rom(&mut self, rom: Box<[u8]>) {
-      self.cart_rom = rom;
-    }
   }
 }
+
 
 #[cfg(test)]
 mod module {
@@ -278,7 +284,7 @@ mod module {
     }
   }
 
-  impl Memory for Mem {
+  impl MemoryMap for Mem {
     fn read_byte(&self, addr: u16) -> Option<u8> {
       self.ram.get(addr as usize).and_then(|&x| Some(x))
     }
@@ -286,7 +292,9 @@ mod module {
     fn write_byte(&mut self, addr: u16, value: u8) {
       self.ram[addr as usize] = value;
     }
+  }
 
+  impl Memory for Mem {
     fn set_booting(&mut self, value: bool) {
       self.booting = value;
     }
