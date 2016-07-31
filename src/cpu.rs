@@ -1061,7 +1061,7 @@ mod tests {
       c
     },
     after: {
-      let mut c = Cpu { clock_t: 12, reg_pc: 1, ..Cpu::default() };
+      let mut c = Cpu { clock_t: 12, reg_pc: 0, ..Cpu::default() };
       c.write_reg_byte(Reg::A, 0xFF);
       c
     },
