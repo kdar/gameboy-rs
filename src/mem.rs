@@ -88,7 +88,7 @@ pub trait MemoryMap {
       }
     }
 
-    if v.len() == 0 {
+    if v.is_empty() {
       Err("length of vec read is 0".to_owned())
     } else {
       Ok(v)
@@ -143,8 +143,8 @@ mod module {
     map: Vec<(u16, u16, Rc<RefCell<MemoryMap>>)>,
   }
 
-  impl Mem {
-    pub fn new() -> Mem {
+  impl Default for Mem {
+    fn default() -> Mem {
       Mem {
         boot_rom: Box::new([]),
         cart_rom: Box::new([]),
@@ -154,6 +154,12 @@ mod module {
         high_ram: [0; HIGH_RAM_LEN],
         map: Vec::new(),
       }
+    }
+  }
+
+  impl Mem {
+    pub fn new() -> Mem {
+      Mem::default()
     }
 
     pub fn memory_map(&self, addr: u16) -> Addr {
@@ -211,7 +217,7 @@ mod module {
 
   impl MemoryMap for Mem {
     fn read_byte(&self, addr: u16) -> Result<u8, String> {
-      for i in self.map.iter() {
+      for i in &self.map {
         if i.0 <= addr && addr <= i.1 {
           return i.2.borrow_mut().read_byte(addr);
         }
@@ -223,12 +229,12 @@ mod module {
           if self.booting && offset <= 0xFF {
             self.boot_rom
               .get(offset as usize)
-              .ok_or(format!("could not get byte at boot_rom offset {}", offset))
+              .ok_or_else(|| format!("could not get byte at boot_rom offset {}", offset))
               .and_then(|&x| Ok(x))
           } else {
             self.cart_rom
               .get(offset as usize)
-              .ok_or(format!("could not get byte at cart_rom offset {}", offset))
+              .ok_or_else(|| format!("could not get byte at cart_rom offset {}", offset))
               .and_then(|&x| Ok(x))
           }
         }
@@ -242,13 +248,13 @@ mod module {
         Addr::WorkRam0(_, offset) => {
           self.work_ram_0
             .get(offset as usize)
-            .ok_or(format!("could not get byte at work_ram_0 offset {}", offset))
+            .ok_or_else(|| format!("could not get byte at work_ram_0 offset {}", offset))
             .and_then(|&x| Ok(x))
         }
         Addr::WorkRam1(_, offset) => {
           self.work_ram_1
             .get(offset as usize)
-            .ok_or(format!("could not get byte at work_ram_1 offset {}", offset))
+            .ok_or_else(|| format!("could not get byte at work_ram_1 offset {}", offset))
             .and_then(|&x| Ok(x))
         }
         Addr::SpriteTable(_, _) => Err(format!("read_byte not implemented: {:?}", mapped)),
@@ -256,7 +262,7 @@ mod module {
         Addr::HighRam(_, offset) => {
           self.high_ram
             .get(offset as usize)
-            .ok_or(format!("could not get byte at high_ram offset {}", offset))
+            .ok_or_else(|| format!("could not get byte at high_ram offset {}", offset))
             .and_then(|&x| Ok(x))
         }
         Addr::InterruptRegister => Err(format!("read_byte not implemented: {:?}", mapped)),
@@ -264,7 +270,7 @@ mod module {
     }
 
     fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String> {
-      for i in self.map.iter() {
+      for i in &self.map {
         if i.0 <= addr && addr <= i.1 {
           return i.2.borrow_mut().write_byte(addr, value);
         }

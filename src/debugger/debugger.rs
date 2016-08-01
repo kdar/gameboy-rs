@@ -10,13 +10,19 @@ pub struct Debugger {
   breakpoints: Vec<usize>,
 }
 
+impl Default for Debugger {
+  fn default() -> Debugger {
+    Debugger {
+      cpu: cpu::Cpu::default(),
+      breakpoints: vec![],
+    }
+  }
+}
+
 impl Debugger {
   pub fn new() -> Debugger {
     let cpu = cpu::Cpu::new();
-    Debugger {
-      cpu: cpu,
-      breakpoints: vec![],
-    }
+    Debugger { cpu: cpu, ..Debugger::default() }
   }
 
   pub fn set_cart_rom(&mut self, rom: Box<[u8]>) {

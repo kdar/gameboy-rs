@@ -249,7 +249,7 @@ impl Cpu {
   pub fn step(&mut self) -> (Instruction, u16) {
     if let Ok((inst, inc)) = self.disasm.at(&self.mem, self.reg_pc) {
       self.reg_pc += inc;
-      self.execute_instruction(inst.clone());
+      self.execute_instruction(inst);
 
       // Once we get to this point, we are no longer booting.
       if self.reg_pc > 0xFF {
@@ -472,7 +472,7 @@ impl Cpu {
     let newd = d + 1;
     self.write_reg_byte(r, newd);
 
-    self.write_flag(Flag::H, (d & 0xF + 1 & 0xF) & 0x10 > 0);
+    self.write_flag(Flag::H, ((d & 0xF) + (1 & 0xF)) & 0x10 > 0);
     self.write_flag(Flag::Z, newd == 0);
 
     self.write_flag(Flag::N, false);
@@ -723,7 +723,7 @@ impl Cpu {
   fn inst_XOR_r(&mut self, register: Reg) -> u32 {
     let register = self.read_reg_byte(register);
     let mut accumulator = self.read_reg_byte(Reg::A);
-    accumulator = accumulator ^ register;
+    accumulator ^= register;
     self.write_reg_byte(Reg::A, accumulator);
 
     self.write_flag(Flag::Z, accumulator == 0);

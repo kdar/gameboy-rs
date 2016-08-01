@@ -25,9 +25,15 @@ fn to_hex(v: &[u8]) -> String {
 
 pub struct Disassembler;
 
+impl Default for Disassembler {
+  fn default() -> Disassembler {
+    Disassembler
+  }
+}
+
 impl Disassembler {
   pub fn new() -> Disassembler {
-    Disassembler
+    Disassembler::default()
   }
 
   pub fn at(&self, m: &Box<mem::Memory>, addr: u16) -> Result<(Instruction, u16), String> {
