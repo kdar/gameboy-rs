@@ -703,13 +703,13 @@ impl Cpu {
   fn inst_SUB_r(&mut self, r: Reg) -> u32 {
     let a = self.read_reg_byte(Reg::A);
     let d = self.read_reg_byte(r);
-    let result = a - d;
+    let (result, carry) = a.overflowing_sub(d);
 
     self.write_flag(Flag::Z, result == 0);
     self.write_flag(Flag::N, false);
 
     self.write_flag(Flag::H, a & 0x0F < d & 0x0F);
-    self.write_flag(Flag::C, a & 0xFF < d & 0xFF);
+    self.write_flag(Flag::C, carry);
 
     4
   }
