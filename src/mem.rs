@@ -76,40 +76,41 @@ pub enum Addr {
 }
 
 pub trait MemoryMap {
-  fn read_byte(&self, addr: u16) -> Option<u8>;
-  fn write_byte(&mut self, addr: u16, value: u8);
+  fn read_byte(&self, addr: u16) -> Result<u8, String>;
+  fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String>;
 
-  fn read_vec(&self, addr: u16, len: u16) -> Option<Vec<u8>> {
+  fn read_vec(&self, addr: u16, len: u16) -> Result<Vec<u8>, String> {
     let mut v = vec![];
     for i in addr..addr + len {
       match self.read_byte(i) {
-        Some(x) => v.push(x),
-        None => break,
+        Ok(x) => v.push(x),
+        Err(e) => return Err(e),
       }
     }
 
     if v.len() == 0 {
-      None
+      Err("length of vec read is 0".to_owned())
     } else {
-      Some(v)
+      Ok(v)
     }
   }
 
-  fn read_word(&self, addr: u16) -> Option<u16> {
+  fn read_word(&self, addr: u16) -> Result<u16, String> {
     let mut val: u16 = match self.read_byte(addr + 1) {
-      Some(x) => (x as u16) << 8,
-      None => return None,
+      Ok(x) => (x as u16) << 8,
+      Err(e) => return Err(e),
     };
     val |= match self.read_byte(addr) {
-      Some(x) => x as u16,
-      None => return None,
+      Ok(x) => x as u16,
+      Err(e) => return Err(e),
     };
-    Some(val)
+    Ok(val)
   }
 
-  fn write_word(&mut self, addr: u16, value: u16) {
-    self.write_byte(addr + 1, (value >> 8) as u8 & 0b11111111);
-    self.write_byte(addr, value as u8 & 0b11111111);
+  fn write_word(&mut self, addr: u16, value: u16) -> Result<(), String> {
+    try!(self.write_byte(addr + 1, (value >> 8) as u8 & 0b11111111));
+    try!(self.write_byte(addr, value as u8 & 0b11111111));
+    Ok(())
   }
 }
 
@@ -209,7 +210,7 @@ mod module {
   }
 
   impl MemoryMap for Mem {
-    fn read_byte(&self, addr: u16) -> Option<u8> {
+    fn read_byte(&self, addr: u16) -> Result<u8, String> {
       for i in self.map.iter() {
         if i.0 <= addr && addr <= i.1 {
           return i.2.borrow_mut().read_byte(addr);
@@ -220,24 +221,51 @@ mod module {
       match mapped {
         Addr::Rom00(_, offset) => {
           if self.booting && offset <= 0xFF {
-            self.boot_rom.get(offset as usize).and_then(|&x| Some(x))
+            self.boot_rom
+              .get(offset as usize)
+              .ok_or(format!("could not get byte at boot_rom offset {}", offset))
+              .and_then(|&x| Ok(x))
           } else {
-            self.cart_rom.get(offset as usize).and_then(|&x| Some(x))
+            self.cart_rom
+              .get(offset as usize)
+              .ok_or(format!("could not get byte at cart_rom offset {}", offset))
+              .and_then(|&x| Ok(x))
           }
         }
-        Addr::Rom01(_, offset) => panic!("read_byte not implemented: {:?}", mapped),
-        Addr::VideoRam(_, offset) => panic!("read_byte not implemented: {:?}", mapped),
-        Addr::ExternalRam(_, offset) => panic!("read_byte not implemented: {:?}", mapped),
-        Addr::WorkRam0(_, offset) => self.work_ram_0.get(offset as usize).and_then(|&x| Some(x)),
-        Addr::WorkRam1(_, offset) => self.work_ram_1.get(offset as usize).and_then(|&x| Some(x)),
-        Addr::SpriteTable(_, offset) => panic!("read_byte not implemented: {:?}", mapped),
-        Addr::IoPorts(_, offset) => panic!("read_byte not implemented: {:?}", mapped),
-        Addr::HighRam(_, offset) => self.high_ram.get(offset as usize).and_then(|&x| Some(x)),
-        Addr::InterruptRegister => panic!("read_byte not implemented: {:?}", mapped),
+        Addr::Rom01(_, offset) => {
+          Err(format!("read_byte Addr::Rom01 not implemented: {:?}", mapped))
+        }
+        Addr::VideoRam(_, offset) => {
+          Err(format!("read_byte Addr::VideoRam not implemented: {:?}", mapped))
+        }
+        Addr::ExternalRam(_, offset) => {
+          Err(format!("read_byte Addr::ExternalRam not implemented: {:?}", mapped))
+        }
+        Addr::WorkRam0(_, offset) => {
+          self.work_ram_0
+            .get(offset as usize)
+            .ok_or(format!("could not get byte at work_ram_0 offset {}", offset))
+            .and_then(|&x| Ok(x))
+        }
+        Addr::WorkRam1(_, offset) => {
+          self.work_ram_1
+            .get(offset as usize)
+            .ok_or(format!("could not get byte at work_ram_1 offset {}", offset))
+            .and_then(|&x| Ok(x))
+        }
+        Addr::SpriteTable(_, offset) => Err(format!("read_byte not implemented: {:?}", mapped)),
+        Addr::IoPorts(_, offset) => Err(format!("read_byte not implemented: {:?}", mapped)),
+        Addr::HighRam(_, offset) => {
+          self.high_ram
+            .get(offset as usize)
+            .ok_or(format!("could not get byte at high_ram offset {}", offset))
+            .and_then(|&x| Ok(x))
+        }
+        Addr::InterruptRegister => Err(format!("read_byte not implemented: {:?}", mapped)),
       }
     }
 
-    fn write_byte(&mut self, addr: u16, value: u8) {
+    fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String> {
       for i in self.map.iter() {
         if i.0 <= addr && addr <= i.1 {
           return i.2.borrow_mut().write_byte(addr, value);
@@ -247,24 +275,40 @@ mod module {
       let mapped = self.memory_map(addr);
       match mapped {
         Addr::Rom00(_, offset) => {
-          panic!("write_byte error: trying to write to rom0");
+          Err(format!("write_byte Addr::Rom00 not implemented: {:?}", mapped))
         }
-        Addr::Rom01(_, offset) => panic!("write_byte not implemented: {:?}", mapped),
-        Addr::VideoRam(_, offset) => panic!("write_byte not implemented: {:?}", mapped),
-        Addr::ExternalRam(_, offset) => panic!("write_byte not implemented: {:?}", mapped),
+        Addr::Rom01(_, offset) => {
+          Err(format!("write_byte Addr::Rom01 not implemented: {:?}", mapped))
+        }
+        Addr::VideoRam(_, offset) => {
+          Err(format!("write_byte Addr::VideoRam not implemented: {:?}", mapped))
+        }
+        Addr::ExternalRam(_, offset) => {
+          Err(format!("write_byte Addr::ExternalRam not implemented: {:?}", mapped))
+        }
         Addr::WorkRam0(_, offset) => {
           self.work_ram_0[offset as usize] = value;
+          Ok(())
         }
         Addr::WorkRam1(_, offset) => {
           self.work_ram_1[offset as usize] = value;
+          Ok(())
         }
-        Addr::SpriteTable(_, offset) => panic!("write_byte not implemented: {:?}", mapped),
-        Addr::IoPorts(_, offset) => println!("write_byte not implemented: {:?}", mapped),
+        Addr::SpriteTable(_, offset) => {
+          Err(format!("write_byte Addr::SpriteTable not implemented: {:?}", mapped))
+        }
+        Addr::IoPorts(_, offset) => {
+          Err(format!("write_byte Addr::IOPorts not implemented: {:?}", mapped))
+        }
         Addr::HighRam(_, offset) => {
           self.high_ram[offset as usize] = value;
+          Ok(())
         }
-        Addr::InterruptRegister => panic!("write_byte not implemented: {:?}", mapped),
-      };
+        Addr::InterruptRegister => {
+          Err(format!("write_byte Addr::InterruptRegister not implemented: {:?}",
+                      mapped))
+        }
+      }
     }
   }
 }
@@ -313,12 +357,16 @@ mod module {
   }
 
   impl MemoryMap for Mem {
-    fn read_byte(&self, addr: u16) -> Option<u8> {
-      self.ram.get(addr as usize).and_then(|&x| Some(x))
+    fn read_byte(&self, addr: u16) -> Result<u8, String> {
+      self.ram
+        .get(addr as usize)
+        .ok_or(format!("could not get byte at test ram offset {}", addr))
+        .and_then(|&x| Ok(x))
     }
 
-    fn write_byte(&mut self, addr: u16, value: u8) {
+    fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String> {
       self.ram[addr as usize] = value;
+      Ok(())
     }
   }
 

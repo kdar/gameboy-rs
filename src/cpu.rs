@@ -151,21 +151,51 @@ impl Cpu {
     }
   }
 
-  fn read_pc_byte(&mut self) -> u8 {
-    let d = self.mem.read_byte(self.reg_pc);
-    self.reg_pc += 1;
+  // fn read_pc_byte(&mut self) -> u8 {
+  //   let d = self.mem.read_byte(self.reg_pc);
+  //   self.reg_pc += 1;
+  //   match d {
+  //     Ok(v) => v,
+  //     Err(e) => panic!("cpu.read_pc_byte: {}\n{:?}", e, self),
+  //   }
+  // }
+  //
+  // fn read_pc_word(&mut self) -> u16 {
+  //   let d = self.mem.read_word(self.reg_pc);
+  //   self.reg_pc += 2;
+  //   match d {
+  //     Ok(v) => v,
+  //     Err(e) => panic!("cpu.read_pc_word: {}\n{:?}", e, self),
+  //   }
+  // }
+
+  fn read_byte(&mut self, addr: u16) -> u8 {
+    let d = self.mem.read_byte(addr);
     match d {
-      Some(v) => v,
-      None => panic!("read_by_byte: could not read byte at {:#04x}", self.reg_pc),
+      Ok(v) => v,
+      Err(e) => panic!("cpu.read_byte: {}\n{:?}", e, self),
     }
   }
 
-  fn read_pc_word(&mut self) -> u16 {
-    let d = self.mem.read_word(self.reg_pc);
-    self.reg_pc += 2;
+  fn read_word(&mut self, addr: u16) -> u16 {
+    let d = self.mem.read_word(addr);
     match d {
-      Some(v) => v,
-      None => panic!("read_by_byte: could not read byte at {:#04x}", self.reg_pc),
+      Ok(v) => v,
+      Err(e) => panic!("cpu.read_word: {}\n{:?}", e, self),
+    }
+  }
+
+  fn write_byte(&mut self, addr: u16, value: u8) {
+    match self.mem.write_byte(addr, value) {
+      Ok(v) => v,
+      Err(e) => panic!("cpu.write_byte: {}\n{:?}", e, self),
+    }
+  }
+
+  fn write_word(&mut self, addr: u16, value: u16) {
+    match self.mem.write_word(addr, value) {
+      Ok(v) => v,
+      Err(e) => panic!("cpu.write_word: {}\n{:?}", e, self),
     }
   }
 
@@ -217,7 +247,7 @@ impl Cpu {
   // }
 
   pub fn step(&mut self) -> (Instruction, u16) {
-    if let Some((inst, inc)) = self.disasm.at(&self.mem, self.reg_pc) {
+    if let Ok((inst, inc)) = self.disasm.at(&self.mem, self.reg_pc) {
       self.reg_pc += inc;
       self.execute_instruction(inst.clone());
 
@@ -354,13 +384,8 @@ impl Cpu {
     // SetHighByte(&m_AF, AddByte(A, HL));
 
     let a = self.read_reg_byte(Reg::A);
-    let d = match self.mem.read_byte(self.reg_hl) {
-      Some(v) => v,
-      None => {
-        panic!("inst_ADD_A_·HL·: could not read (HL) byte (memory address {:#04x})",
-               self.reg_hl);
-      }
-    };
+    let hl = self.reg_hl;
+    let d = self.read_byte(hl);
 
     let result = a + d;
     self.write_flag(Flag::N, false);
@@ -376,7 +401,9 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_CALL_nn(&mut self, nn: u16) -> u32 {
     self.reg_sp -= 2;
-    self.mem.write_word(self.reg_sp, self.reg_pc);
+    let sp = self.reg_sp;
+    let pc = self.reg_pc;
+    self.write_word(sp, pc);
     self.reg_pc = nn;
     24
   }
@@ -386,14 +413,8 @@ impl Cpu {
   // Page: 176
   #[allow(non_snake_case)]
   fn inst_CP_·HL·(&mut self) -> u32 {
-    let d = match self.mem.read_byte(self.reg_hl) {
-      Some(v) => v,
-      None => {
-        panic!("inst_CP_·HL·: could not read (HL) byte (memory address {:#04x})",
-               self.reg_hl);
-      }
-    };
-
+    let hl = self.reg_hl;
+    let d = self.read_byte(hl);
     let a = self.read_reg_byte(Reg::A);
     let result = a - d;
 
@@ -509,7 +530,7 @@ impl Cpu {
   fn inst_LD_·0xFF00C·_A(&mut self) -> u32 {
     let a = self.read_reg_byte(Reg::A);
     let c = self.read_reg_byte(Reg::C);
-    self.mem.write_byte(0xFF00 + c as u16, a);
+    self.write_byte(0xFF00 + c as u16, a);
     8
   }
 
@@ -520,7 +541,7 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_LD_·0xFF00n·_A(&mut self, n: u8) -> u32 {
     let a = self.read_reg_byte(Reg::A);
-    self.mem.write_byte(0xFF00 + n as u16, a);
+    self.write_byte(0xFF00 + n as u16, a);
     12
   }
 
@@ -531,7 +552,7 @@ impl Cpu {
   fn inst_LD_·HL·_r(&mut self, reg: Reg) -> u32 {
     let hl = self.reg_hl;
     let a = self.read_reg_byte(reg);
-    self.mem.write_byte(hl, a);
+    self.write_byte(hl, a);
     8
   }
 
@@ -542,7 +563,7 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_LD_·nn·_A(&mut self, nn: u16) -> u32 {
     let d = self.read_reg_byte(Reg::A);
-    self.mem.write_byte(nn, d);
+    self.write_byte(nn, d);
     16
   }
 
@@ -551,13 +572,8 @@ impl Cpu {
   // Page: 111
   #[allow(non_snake_case)]
   fn inst_LD_A_·DE·(&mut self) -> u32 {
-    let val = match self.mem.read_byte(self.reg_de) {
-      Some(v) => v,
-      None => {
-        panic!("inst_LD_A_·DE·: could not read (DE) byte (memory address {:#04x})",
-               self.reg_de);
-      }
-    };
+    let de = self.reg_de;
+    let val = self.read_byte(de);
     self.write_reg_byte(Reg::A, val);
     8
   }
@@ -567,13 +583,7 @@ impl Cpu {
   // Moved: RET P -> LD A,(FF00+n)
   #[allow(non_snake_case)]
   fn inst_LD_A_·0xFF00n·(&mut self, n: u8) -> u32 {
-    let d = match self.mem.read_byte(0xFF00 + n as u16) {
-      Some(v) => v,
-      None => {
-        panic!("inst_LD_A_·0xFF00n·: could not read 0xFF00+n (memory address: {:#04x})",
-               0xFF00 + n as u16);
-      }
-    };
+    let d = self.read_byte(0xFF00 + n as u16);
 
     self.write_reg_byte(Reg::A, d);
     12
@@ -615,7 +625,7 @@ impl Cpu {
   fn inst_LDD_·HL·_A(&mut self) -> u32 {
     let hl = self.reg_hl;
     let a = self.read_reg_byte(Reg::A);
-    self.mem.write_byte(hl, a);
+    self.write_byte(hl, a);
     self.reg_hl -= 1;
 
     self.write_flag(Flag::H, false);
@@ -632,7 +642,7 @@ impl Cpu {
   fn inst_LDI_·HL·_A(&mut self) -> u32 {
     let hl = self.reg_hl;
     let a = self.read_reg_byte(Reg::A);
-    self.mem.write_byte(hl, a);
+    self.write_byte(hl, a);
     self.reg_hl += 1;
 
     self.write_flag(Flag::H, false);
@@ -653,13 +663,8 @@ impl Cpu {
   // Page: 137
   #[allow(non_snake_case)]
   fn inst_POP_rr(&mut self, rr: Reg) -> u32 {
-    let d = match self.mem.read_word(self.reg_sp) {
-      Some(v) => v,
-      None => {
-        panic!("inst_POP_rr: could not read (SP) byte (memory address {:#04x})",
-               self.reg_sp);
-      }
-    };
+    let sp = self.reg_sp;
+    let d = self.read_word(sp);
 
     self.write_reg_word(rr, d);
     self.reg_sp += 2;
@@ -673,7 +678,8 @@ impl Cpu {
   fn inst_PUSH_rr(&mut self, rr: Reg) -> u32 {
     let d = self.read_reg_word(rr);
     self.reg_sp -= 2;
-    self.mem.write_word(self.reg_sp, d);
+    let sp = self.reg_sp;
+    self.write_word(sp, d);
     16
   }
 
@@ -682,13 +688,8 @@ impl Cpu {
   // Page: 278
   #[allow(non_snake_case)]
   fn inst_RET(&mut self) -> u32 {
-    let d = match self.mem.read_word(self.reg_sp) {
-      Some(v) => v,
-      None => {
-        panic!("inst_RET: could not read (SP) byte (memory address {:#04x})",
-               self.reg_sp);
-      }
-    };
+    let sp = self.reg_sp;
+    let d = self.read_word(sp);
     self.reg_pc = d;
     self.reg_sp += 2;
     16
@@ -697,6 +698,7 @@ impl Cpu {
   // SUB r
   // Opcode: 10010rrr
   // Page: 166
+  #[allow(non_snake_case)]
   fn inst_SUB_r(&mut self, r: Reg) -> u32 {
     let a = self.read_reg_byte(Reg::A);
     let d = self.read_reg_byte(r);
@@ -813,10 +815,10 @@ mod tests {
           // writeln!(w, "{}", x);
         }
         Difference::Add(ref x) => {
-          writeln!(w, "Got:\n{}", x);
+          writeln!(w, "Got:\n{}", x).unwrap();
         }
         Difference::Rem(ref x) => {
-          writeln!(w, "Expected:\n{}", x);
+          writeln!(w, "Expected:\n{}", x).unwrap();
         }
       }
     }
@@ -924,7 +926,7 @@ mod tests {
     after: {
       let mut c = Cpu { clock_t: 24, ..Cpu::default() };
       c.reg_sp = 98;
-      c.mem.write_byte(98, 200);
+      c.mem.write_byte(98, 200).unwrap();
       c.reg_pc = 0x0095;
       c
     },
@@ -1020,6 +1022,7 @@ mod tests {
 
   #[test]
   #[allow(non_snake_case)]
+  #[allow(overflowing_literals)]
   fn test_inst_JR_cc_e() {
     for flag in &[Flag::Z, Flag::C, Flag::NZ, Flag::NC] {
       let addrs = &[0x23, 0x00, 0xFF, 0xE6];

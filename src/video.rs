@@ -26,15 +26,15 @@ pub struct Video {
 }
 
 impl MemoryMap for Video {
-  fn read_byte(&self, addr: u16) -> Option<u8> {
+  fn read_byte(&self, addr: u16) -> Result<u8, String> {
     println!("reading vid byte from: {:#04x}", addr);
     match addr {
-      0xFF44 => Some(0x90), // Some(self.current_line),
-      _ => Some(0),
+      0xFF44 => Ok(0x90), // Some(self.current_line),
+      _ => Ok(0),
     }
   }
 
-  fn write_byte(&mut self, addr: u16, value: u8) {
+  fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String> {
     match addr {
       BG_PALETTE_DATA => {
         println!("video: bg palette: {:#04x}", addr);
@@ -74,6 +74,8 @@ impl MemoryMap for Video {
       }
       _ => (), // println!("video: non implemented range: {:#04x}", addr),
     };
+
+    Ok(())
   }
 }
 
