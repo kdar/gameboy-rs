@@ -49,6 +49,9 @@ pub const UNUSABLE_END: u16 = 0xFEFF;
 pub const IO_PORTS_START: u16 = 0xFF00;
 pub const IO_PORTS_END: u16 = 0xFF7F;
 
+pub const AUDIO_START: u16 = 0xFF10;
+pub const AUDIO_END: u16 = 0xFF3F;
+
 pub const VIDEO_CONTROL_START: u16 = 0xFF40;
 pub const VIDEO_CONTROL_END: u16 = 0xFF4C;
 

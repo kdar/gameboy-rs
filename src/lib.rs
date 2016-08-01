@@ -17,6 +17,7 @@ pub mod flag;
 pub mod disassembler;
 pub mod debugger;
 pub mod video;
+pub mod audio;
 
 pub use gameboy::GameBoy;
 pub use reg::Reg;

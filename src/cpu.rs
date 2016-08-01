@@ -6,6 +6,7 @@ use std::cell::RefCell;
 
 use super::mem;
 use super::video;
+use super::audio;
 use super::reg::Reg;
 use super::flag::Flag;
 use super::disassembler::Instruction;
@@ -32,6 +33,7 @@ pub struct Cpu {
 
   mem: Box<mem::Memory>,
   video: Rc<RefCell<video::Video>>,
+  audio: Rc<RefCell<audio::Audio>>,
   disasm: Disassembler,
 }
 
@@ -55,6 +57,7 @@ impl Default for Cpu {
       clock_t: 0,
       mem: Box::new(mem::Mem::new()),
       video: Rc::new(RefCell::new(video::Video::new())),
+      audio: Rc::new(RefCell::new(audio::Audio::new())),
       disasm: Disassembler::new(),
     }
   }
@@ -80,6 +83,8 @@ impl fmt::Debug for Cpu {
 impl Cpu {
   pub fn new() -> Cpu {
     let mut c = Cpu::default();
+
+    // Video mapping
     c.mem.map(mem::VIDEO_RAM_START, mem::VIDEO_RAM_END, c.video.clone());
     c.mem.map(mem::SPRITE_TABLE_START,
               mem::SPRITE_TABLE_END,
@@ -87,6 +92,10 @@ impl Cpu {
     c.mem.map(mem::VIDEO_CONTROL_START,
               mem::VIDEO_CONTROL_END,
               c.video.clone());
+
+    // Audio mapping
+    c.mem.map(mem::AUDIO_START, mem::AUDIO_END, c.audio.clone());
+
     c
   }
 
