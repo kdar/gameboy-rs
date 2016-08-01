@@ -81,6 +81,12 @@ impl Cpu {
   pub fn new() -> Cpu {
     let mut c = Cpu::default();
     c.mem.map(mem::VIDEO_RAM_START, mem::VIDEO_RAM_END, c.video.clone());
+    c.mem.map(mem::SPRITE_TABLE_START,
+              mem::SPRITE_TABLE_END,
+              c.video.clone());
+    c.mem.map(mem::VIDEO_CONTROL_START,
+              mem::VIDEO_CONTROL_END,
+              c.video.clone());
     c
   }
 

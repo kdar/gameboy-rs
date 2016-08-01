@@ -49,6 +49,9 @@ pub const UNUSABLE_END: u16 = 0xFEFF;
 pub const IO_PORTS_START: u16 = 0xFF00;
 pub const IO_PORTS_END: u16 = 0xFF7F;
 
+pub const VIDEO_CONTROL_START: u16 = 0xFF40;
+pub const VIDEO_CONTROL_END: u16 = 0xFF4C;
+
 // High RAM (HRAM)
 pub const HIGH_RAM_START: u16 = 0xFF80;
 pub const HIGH_RAM_END: u16 = 0xFFFE;
@@ -163,7 +166,7 @@ mod module {
         ECHO_START...ECHO_END => self.memory_map(addr - ECHO_START + WORK_RAM_0_START),
         // SPRITE_TABLE_START...SPRITE_TABLE_END => Addr::SpriteTable(addr, addr - SPRITE_TABLE_START),
         UNUSABLE_START...UNUSABLE_END => panic!("unusable memory area!"),
-        // IO_PORTS_START...IO_PORTS_END => Addr::IoPorts(addr, addr - IO_PORTS_START),
+        IO_PORTS_START...IO_PORTS_END => Addr::IoPorts(addr, addr - IO_PORTS_START),
         HIGH_RAM_START...HIGH_RAM_END => Addr::HighRam(addr, addr - HIGH_RAM_START),
         INTERRUPT_REGISTER_START...INTERRUPT_REGISTER_END => Addr::InterruptRegister,
         _ => {
@@ -207,11 +210,11 @@ mod module {
 
   impl MemoryMap for Mem {
     fn read_byte(&self, addr: u16) -> Option<u8> {
-      // for i in self.map.iter() {
-      //   if i.0 <= addr && addr <= i.1 {
-      //     return i.2.borrow_mut().read_byte(addr);
-      //   }
-      // }
+      for i in self.map.iter() {
+        if i.0 <= addr && addr <= i.1 {
+          return i.2.borrow_mut().read_byte(addr);
+        }
+      }
 
       let mapped = self.memory_map(addr);
       match mapped {
@@ -235,6 +238,12 @@ mod module {
     }
 
     fn write_byte(&mut self, addr: u16, value: u8) {
+      for i in self.map.iter() {
+        if i.0 <= addr && addr <= i.1 {
+          return i.2.borrow_mut().write_byte(addr, value);
+        }
+      }
+
       let mapped = self.memory_map(addr);
       match mapped {
         Addr::Rom00(_, offset) => {
@@ -250,7 +259,7 @@ mod module {
           self.work_ram_1[offset as usize] = value;
         }
         Addr::SpriteTable(_, offset) => panic!("write_byte not implemented: {:?}", mapped),
-        Addr::IoPorts(_, offset) => panic!("write_byte not implemented: {:?}", mapped),
+        Addr::IoPorts(_, offset) => println!("write_byte not implemented: {:?}", mapped),
         Addr::HighRam(_, offset) => {
           self.high_ram[offset as usize] = value;
         }
