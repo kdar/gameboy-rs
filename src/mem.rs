@@ -232,13 +232,11 @@ mod module {
               .and_then(|&x| Ok(x))
           }
         }
-        Addr::Rom01(_, offset) => {
-          Err(format!("read_byte Addr::Rom01 not implemented: {:?}", mapped))
-        }
-        Addr::VideoRam(_, offset) => {
+        Addr::Rom01(_, _) => Err(format!("read_byte Addr::Rom01 not implemented: {:?}", mapped)),
+        Addr::VideoRam(_, _) => {
           Err(format!("read_byte Addr::VideoRam not implemented: {:?}", mapped))
         }
-        Addr::ExternalRam(_, offset) => {
+        Addr::ExternalRam(_, _) => {
           Err(format!("read_byte Addr::ExternalRam not implemented: {:?}", mapped))
         }
         Addr::WorkRam0(_, offset) => {
@@ -253,8 +251,8 @@ mod module {
             .ok_or(format!("could not get byte at work_ram_1 offset {}", offset))
             .and_then(|&x| Ok(x))
         }
-        Addr::SpriteTable(_, offset) => Err(format!("read_byte not implemented: {:?}", mapped)),
-        Addr::IoPorts(_, offset) => Err(format!("read_byte not implemented: {:?}", mapped)),
+        Addr::SpriteTable(_, _) => Err(format!("read_byte not implemented: {:?}", mapped)),
+        Addr::IoPorts(_, _) => Err(format!("read_byte not implemented: {:?}", mapped)),
         Addr::HighRam(_, offset) => {
           self.high_ram
             .get(offset as usize)
@@ -274,16 +272,12 @@ mod module {
 
       let mapped = self.memory_map(addr);
       match mapped {
-        Addr::Rom00(_, offset) => {
-          Err(format!("write_byte Addr::Rom00 not implemented: {:?}", mapped))
-        }
-        Addr::Rom01(_, offset) => {
-          Err(format!("write_byte Addr::Rom01 not implemented: {:?}", mapped))
-        }
-        Addr::VideoRam(_, offset) => {
+        Addr::Rom00(_, _) => Err(format!("write_byte Addr::Rom00 not implemented: {:?}", mapped)),
+        Addr::Rom01(_, _) => Err(format!("write_byte Addr::Rom01 not implemented: {:?}", mapped)),
+        Addr::VideoRam(_, _) => {
           Err(format!("write_byte Addr::VideoRam not implemented: {:?}", mapped))
         }
-        Addr::ExternalRam(_, offset) => {
+        Addr::ExternalRam(_, _) => {
           Err(format!("write_byte Addr::ExternalRam not implemented: {:?}", mapped))
         }
         Addr::WorkRam0(_, offset) => {
@@ -294,10 +288,10 @@ mod module {
           self.work_ram_1[offset as usize] = value;
           Ok(())
         }
-        Addr::SpriteTable(_, offset) => {
+        Addr::SpriteTable(_, _) => {
           Err(format!("write_byte Addr::SpriteTable not implemented: {:?}", mapped))
         }
-        Addr::IoPorts(_, offset) => {
+        Addr::IoPorts(_, _) => {
           Err(format!("write_byte Addr::IOPorts not implemented: {:?}", mapped))
         }
         Addr::HighRam(_, offset) => {
@@ -324,8 +318,8 @@ mod module {
   use md5;
 
   pub struct Mem {
-    boot_rom: Box<[u8]>,
-    cart_rom: Box<[u8]>,
+    // boot_rom: Box<[u8]>,
+    // cart_rom: Box<[u8]>,
     booting: bool,
 
     ram: [u8; 0xFFFF + 1],
@@ -348,8 +342,8 @@ mod module {
   impl Mem {
     pub fn new() -> Mem {
       Mem {
-        boot_rom: Box::new([]),
-        cart_rom: Box::new([]),
+        // boot_rom: Box::new([]),
+        // cart_rom: Box::new([]),
         booting: false,
         ram: [0; 0xFFFF + 1],
       }
@@ -371,18 +365,18 @@ mod module {
   }
 
   impl Memory for Mem {
-    fn map(&mut self, start: u16, end: u16, mapper: Rc<RefCell<MemoryMap>>) {}
+    fn map(&mut self, _: u16, _: u16, _: Rc<RefCell<MemoryMap>>) {}
 
     fn set_booting(&mut self, value: bool) {
       self.booting = value;
     }
 
-    fn set_boot_rom(&mut self, rom: Box<[u8]>) {
+    fn set_boot_rom(&mut self, _: Box<[u8]>) {
       panic!("set_boot_rom should not be used for testing. use write_byte to write the rom to \
               memory");
     }
 
-    fn set_cart_rom(&mut self, rom: Box<[u8]>) {
+    fn set_cart_rom(&mut self, _: Box<[u8]>) {
       panic!("set_cart_rom should not be used for testing. use write_byte to write the rom to \
               memory");
     }

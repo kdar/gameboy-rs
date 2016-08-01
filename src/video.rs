@@ -1,20 +1,20 @@
 use piston_window::*;
-use im;
-use time::{Duration, SteadyTime};
-use super::mem::{self, MemoryMap};
+// use im;
+// use time::{Duration, SteadyTime};
+use super::mem::MemoryMap;
 
-const LCD_CONTROL: u16 = 0xFF40;
-const LCD_CONTROLLER_STATUS: u16 = 0xFF41;
-const SCROLL_Y: u16 = 0xFF42;
-const SCROLL_X: u16 = 0xFF43;
-const LCD_CONTROLLER_Y_COORDINATE: u16 = 0xFF44;
-const LY_COMPARE: u16 = 0xFF45;
-const WINDOW_Y_POSITION: u16 = 0xFF4A;
-const WINDOW_X_POSITION_MINUS_7: u16 = 0xFF4B;
+// const LCD_CONTROL: u16 = 0xFF40;
+// const LCD_CONTROLLER_STATUS: u16 = 0xFF41;
+// const SCROLL_Y: u16 = 0xFF42;
+// const SCROLL_X: u16 = 0xFF43;
+// const LCD_CONTROLLER_Y_COORDINATE: u16 = 0xFF44;
+// const LY_COMPARE: u16 = 0xFF45;
+// const WINDOW_Y_POSITION: u16 = 0xFF4A;
+// const WINDOW_X_POSITION_MINUS_7: u16 = 0xFF4B;
 const BG_PALETTE_DATA: u16 = 0xFF47;
 const OBJECT_PALETTE0_DATA: u16 = 0xFF48;
 const OBJECT_PALETTE1_DATA: u16 = 0xFF49;
-const DMA_TRANSFER_AND_START_ADDRESS: u16 = 0xFF46;
+// const DMA_TRANSFER_AND_START_ADDRESS: u16 = 0xFF46;
 
 pub struct Video {
   window: Option<PistonWindow>,

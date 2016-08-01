@@ -12,7 +12,7 @@ pub struct Debugger {
 
 impl Debugger {
   pub fn new() -> Debugger {
-    let mut cpu = cpu::Cpu::new();
+    let cpu = cpu::Cpu::new();
     Debugger {
       cpu: cpu,
       breakpoints: vec![],
