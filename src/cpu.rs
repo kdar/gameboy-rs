@@ -259,12 +259,6 @@ impl Cpu {
     if let Ok((inst, inc)) = self.disasm.at(&self.mem, self.reg_pc) {
       self.reg_pc += inc;
       self.execute_instruction(inst);
-
-      // Once we get to this point, we are no longer booting.
-      if self.reg_pc > 0xFF {
-        self.mem.set_booting(false);
-      }
-
       return (inst, self.reg_pc);
     }
 

@@ -64,6 +64,11 @@ pub const HIGH_RAM_LEN: usize = HIGH_RAM_END as usize - HIGH_RAM_START as usize;
 pub const INTERRUPT_REGISTER_START: u16 = 0xFFFF;
 pub const INTERRUPT_REGISTER_END: u16 = 0xFFFF;
 
+// Memory location where it can set if the system is booting or not.
+// 0x1 -> Not booting
+// 0x0 -> Booting
+pub const BOOTING_FLAG: u16 = 0xFF50;
+
 #[derive(Debug)]
 pub enum Addr {
   Rom00(u16, u16),
@@ -75,6 +80,7 @@ pub enum Addr {
   SpriteTable(u16, u16),
   IoPorts(u16, u16),
   HighRam(u16, u16),
+  BootingFlag(u16, u16),
   InterruptRegister,
 }
 
@@ -119,7 +125,6 @@ pub trait MemoryMap {
 
 pub trait Memory: MemoryMap {
   fn map(&mut self, start: u16, end: u16, mapper: Rc<RefCell<MemoryMap>>);
-  fn set_booting(&mut self, value: bool);
   fn set_boot_rom(&mut self, rom: Box<[u8]>);
   fn set_cart_rom(&mut self, rom: Box<[u8]>);
 }
@@ -169,16 +174,15 @@ mod module {
       match addr {
         ROM_00_START...ROM_00_END => Addr::Rom00(addr, addr - ROM_00_START),
         ROM_01_START...ROM_01_END => Addr::Rom01(addr, addr - ROM_01_START),
-        // VIDEO_RAM_START...VIDEO_RAM_END => Addr::VideoRam(addr, addr - VIDEO_RAM_START),
         EXTERNAL_RAM_START...EXTERNAL_RAM_END => Addr::ExternalRam(addr, addr - EXTERNAL_RAM_START),
         WORK_RAM_0_START...WORK_RAM_0_END => Addr::WorkRam0(addr, addr - WORK_RAM_0_START),
         WORK_RAM_1_START...WORK_RAM_1_END => Addr::WorkRam1(addr, addr - WORK_RAM_1_START),
         ECHO_START...ECHO_END => self.memory_map(addr - ECHO_START + WORK_RAM_0_START),
-        // SPRITE_TABLE_START...SPRITE_TABLE_END => Addr::SpriteTable(addr, addr - SPRITE_TABLE_START),
         UNUSABLE_START...UNUSABLE_END => panic!("unusable memory area!"),
-        IO_PORTS_START...IO_PORTS_END => Addr::IoPorts(addr, addr - IO_PORTS_START),
         HIGH_RAM_START...HIGH_RAM_END => Addr::HighRam(addr, addr - HIGH_RAM_START),
+        BOOTING_FLAG => Addr::BootingFlag(addr, addr - HIGH_RAM_START),
         INTERRUPT_REGISTER_START...INTERRUPT_REGISTER_END => Addr::InterruptRegister,
+        IO_PORTS_START...IO_PORTS_END => Addr::IoPorts(addr, addr - IO_PORTS_START),
         _ => {
           panic!("unrecognized memory mapped region: {:#04x}", addr);
         }
@@ -191,12 +195,8 @@ mod module {
       self.map.push((start, end, mapper));
     }
 
-    fn set_booting(&mut self, value: bool) {
-      self.booting = value;
-    }
-
     fn set_boot_rom(&mut self, rom: Box<[u8]>) {
-      self.set_booting(true);
+      self.booting = true;
       self.boot_rom = rom;
     }
 
@@ -268,6 +268,9 @@ mod module {
             .ok_or_else(|| format!("could not get byte at high_ram offset {}", offset))
             .and_then(|&x| Ok(x))
         }
+        Addr::BootingFlag(_, _) => {
+          Err(format!("the booting flag shouldn't need to be read: {:?}", mapped))
+        }
         Addr::InterruptRegister => Err(format!("read_byte not implemented: {:?}", mapped)),
       }
     }
@@ -305,6 +308,10 @@ mod module {
         }
         Addr::HighRam(_, offset) => {
           self.high_ram[offset as usize] = value;
+          Ok(())
+        }
+        Addr::BootingFlag(_, _) => {
+          self.booting = value == 0;
           Ok(())
         }
         Addr::InterruptRegister => {
@@ -375,10 +382,6 @@ mod module {
 
   impl Memory for Mem {
     fn map(&mut self, _: u16, _: u16, _: Rc<RefCell<MemoryMap>>) {}
-
-    fn set_booting(&mut self, value: bool) {
-      self.booting = value;
-    }
 
     fn set_boot_rom(&mut self, _: Box<[u8]>) {
       panic!("set_boot_rom should not be used for testing. use write_byte to write the rom to \
