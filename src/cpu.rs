@@ -431,7 +431,7 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_DEC_r(&mut self, r: Reg) -> u32 {
     let d = self.read_reg_byte(r);
-    let newd = d - 1;
+    let (newd, _) = d.overflowing_sub(1);
     self.write_reg_byte(r, newd);
 
     self.write_flag(Flag::H, (newd ^ 0x01 ^ d) & 0x10 > 0);
