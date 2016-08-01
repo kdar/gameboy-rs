@@ -1,62 +1,62 @@
+use std::rc::Rc;
+use std::cell::RefCell;
+
 pub use self::module::Mem;
 
-#[allow(dead_code)]
-mod constants {
-  // 16KB ROM Bank 00
-  // In cartridge, fixed at bank 00
-  pub const ROM_00_START: u16 = 0x0000;
-  pub const ROM_00_END: u16 = 0x3FFF;
+// 16KB ROM Bank 00
+// In cartridge, fixed at bank 00
+pub const ROM_00_START: u16 = 0x0000;
+pub const ROM_00_END: u16 = 0x3FFF;
 
-  // 16KB ROM Bank 01..NN
-  // In cartridge, switable bank number
-  pub const ROM_01_START: u16 = 0x4000;
-  pub const ROM_01_END: u16 = 0x7FFF;
+// 16KB ROM Bank 01..NN
+// In cartridge, switable bank number
+pub const ROM_01_START: u16 = 0x4000;
+pub const ROM_01_END: u16 = 0x7FFF;
 
-  // Swichable bank 0-1 in CGB Mode
-  pub const VIDEO_RAM_START: u16 = 0x8000;
-  pub const VIDEO_RAM_END: u16 = 0x9FFF;
+// Swichable bank 0-1 in CGB Mode
+pub const VIDEO_RAM_START: u16 = 0x8000;
+pub const VIDEO_RAM_END: u16 = 0x9FFF;
 
-  // In cartridge, switchable bank, if any
-  pub const EXTERNAL_RAM_START: u16 = 0xA000;
-  pub const EXTERNAL_RAM_END: u16 = 0xBFFF;
+// In cartridge, switchable bank, if any
+pub const EXTERNAL_RAM_START: u16 = 0xA000;
+pub const EXTERNAL_RAM_END: u16 = 0xBFFF;
 
-  // 4KB work RAM bank 0 (WRAM)
-  pub const WORK_RAM_0_START: u16 = 0xC000;
-  pub const WORK_RAM_0_END: u16 = 0xCFFF;
-  pub const WORK_RAM_0_LEN: usize = WORK_RAM_0_END as usize - WORK_RAM_0_START as usize;
+// 4KB work RAM bank 0 (WRAM)
+pub const WORK_RAM_0_START: u16 = 0xC000;
+pub const WORK_RAM_0_END: u16 = 0xCFFF;
+pub const WORK_RAM_0_LEN: usize = WORK_RAM_0_END as usize - WORK_RAM_0_START as usize;
 
-  // 4KB Work RAM Bank 1 (WRAM)
-  // switchable bank 1-7 in CGB Mode
-  pub const WORK_RAM_1_START: u16 = 0xD000;
-  pub const WORK_RAM_1_END: u16 = 0xDFFF;
-  pub const WORK_RAM_1_LEN: usize = WORK_RAM_1_END as usize - WORK_RAM_1_START as usize;
+// 4KB Work RAM Bank 1 (WRAM)
+// switchable bank 1-7 in CGB Mode
+pub const WORK_RAM_1_START: u16 = 0xD000;
+pub const WORK_RAM_1_END: u16 = 0xDFFF;
+pub const WORK_RAM_1_LEN: usize = WORK_RAM_1_END as usize - WORK_RAM_1_START as usize;
 
-  // Same as C000-DDFF (ECHO)
-  // typically not used
-  pub const ECHO_START: u16 = 0xE000;
-  pub const ECHO_END: u16 = 0xFDFF;
+// Same as C000-DDFF (ECHO)
+// typically not used
+pub const ECHO_START: u16 = 0xE000;
+pub const ECHO_END: u16 = 0xFDFF;
 
-  // Sprite attribute table (OAM)
-  pub const SPRITE_TABLE_START: u16 = 0xFE00;
-  pub const SPRITE_TABLE_END: u16 = 0xFE9F;
+// Sprite attribute table (OAM)
+pub const SPRITE_TABLE_START: u16 = 0xFE00;
+pub const SPRITE_TABLE_END: u16 = 0xFE9F;
 
-  // Not usable
-  pub const UNUSABLE_START: u16 = 0xFEA0;
-  pub const UNUSABLE_END: u16 = 0xFEFF;
+// Not usable
+pub const UNUSABLE_START: u16 = 0xFEA0;
+pub const UNUSABLE_END: u16 = 0xFEFF;
 
-  // I/O Ports (gamepad buttons, sound, etc..)
-  pub const IO_PORTS_START: u16 = 0xFF00;
-  pub const IO_PORTS_END: u16 = 0xFF7F;
+// I/O Ports (gamepad buttons, sound, etc..)
+pub const IO_PORTS_START: u16 = 0xFF00;
+pub const IO_PORTS_END: u16 = 0xFF7F;
 
-  // High RAM (HRAM)
-  pub const HIGH_RAM_START: u16 = 0xFF80;
-  pub const HIGH_RAM_END: u16 = 0xFFFE;
-  pub const HIGH_RAM_LEN: usize = HIGH_RAM_END as usize - HIGH_RAM_START as usize;
+// High RAM (HRAM)
+pub const HIGH_RAM_START: u16 = 0xFF80;
+pub const HIGH_RAM_END: u16 = 0xFFFE;
+pub const HIGH_RAM_LEN: usize = HIGH_RAM_END as usize - HIGH_RAM_START as usize;
 
-  // Interrupt Enable Register
-  pub const INTERRUPT_REGISTER_START: u16 = 0xFFFF;
-  pub const INTERRUPT_REGISTER_END: u16 = 0xFFFF;
-}
+// Interrupt Enable Register
+pub const INTERRUPT_REGISTER_START: u16 = 0xFFFF;
+pub const INTERRUPT_REGISTER_END: u16 = 0xFFFF;
 
 #[derive(Debug)]
 pub enum Addr {
@@ -111,6 +111,7 @@ pub trait MemoryMap {
 }
 
 pub trait Memory: MemoryMap {
+  fn map(&mut self, start: u16, end: u16, mapper: Rc<RefCell<MemoryMap>>);
   fn set_booting(&mut self, value: bool);
   fn set_boot_rom(&mut self, rom: Box<[u8]>);
   fn set_cart_rom(&mut self, rom: Box<[u8]>);
@@ -118,10 +119,12 @@ pub trait Memory: MemoryMap {
 
 #[cfg(not(test))]
 mod module {
+  use std::rc::Rc;
+  use std::cell::RefCell;
+
   use super::*;
   use std::fmt;
   use md5;
-  use super::constants::*;
 
   pub struct Mem {
     boot_rom: Box<[u8]>,
@@ -132,6 +135,8 @@ mod module {
     work_ram_1: [u8; WORK_RAM_1_LEN],
 
     high_ram: [u8; HIGH_RAM_LEN],
+
+    map: Vec<(u16, u16, Rc<RefCell<MemoryMap>>)>,
   }
 
   impl Mem {
@@ -143,6 +148,7 @@ mod module {
         work_ram_0: [0; WORK_RAM_0_LEN],
         work_ram_1: [0; WORK_RAM_1_LEN],
         high_ram: [0; HIGH_RAM_LEN],
+        map: Vec::new(),
       }
     }
 
@@ -150,24 +156,28 @@ mod module {
       match addr {
         ROM_00_START...ROM_00_END => Addr::Rom00(addr, addr - ROM_00_START),
         ROM_01_START...ROM_01_END => Addr::Rom01(addr, addr - ROM_01_START),
-        VIDEO_RAM_START...VIDEO_RAM_END => Addr::VideoRam(addr, addr - VIDEO_RAM_START),
+        // VIDEO_RAM_START...VIDEO_RAM_END => Addr::VideoRam(addr, addr - VIDEO_RAM_START),
         EXTERNAL_RAM_START...EXTERNAL_RAM_END => Addr::ExternalRam(addr, addr - EXTERNAL_RAM_START),
         WORK_RAM_0_START...WORK_RAM_0_END => Addr::WorkRam0(addr, addr - WORK_RAM_0_START),
         WORK_RAM_1_START...WORK_RAM_1_END => Addr::WorkRam1(addr, addr - WORK_RAM_1_START),
         ECHO_START...ECHO_END => self.memory_map(addr - ECHO_START + WORK_RAM_0_START),
-        SPRITE_TABLE_START...SPRITE_TABLE_END => Addr::SpriteTable(addr, addr - SPRITE_TABLE_START),
+        // SPRITE_TABLE_START...SPRITE_TABLE_END => Addr::SpriteTable(addr, addr - SPRITE_TABLE_START),
         UNUSABLE_START...UNUSABLE_END => panic!("unusable memory area!"),
-        IO_PORTS_START...IO_PORTS_END => Addr::IoPorts(addr, addr - IO_PORTS_START),
+        // IO_PORTS_START...IO_PORTS_END => Addr::IoPorts(addr, addr - IO_PORTS_START),
         HIGH_RAM_START...HIGH_RAM_END => Addr::HighRam(addr, addr - HIGH_RAM_START),
         INTERRUPT_REGISTER_START...INTERRUPT_REGISTER_END => Addr::InterruptRegister,
         _ => {
-          panic!("unrecognized memory mapped region");
+          panic!("unrecognized memory mapped region: {:#04x}", addr);
         }
       }
     }
   }
 
   impl Memory for Mem {
+    fn map(&mut self, start: u16, end: u16, mapper: Rc<RefCell<MemoryMap>>) {
+      self.map.push((start, end, mapper));
+    }
+
     fn set_booting(&mut self, value: bool) {
       self.booting = value;
     }
@@ -197,6 +207,12 @@ mod module {
 
   impl MemoryMap for Mem {
     fn read_byte(&self, addr: u16) -> Option<u8> {
+      // for i in self.map.iter() {
+      //   if i.0 <= addr && addr <= i.1 {
+      //     return i.2.borrow_mut().read_byte(addr);
+      //   }
+      // }
+
       let mapped = self.memory_map(addr);
       match mapped {
         Addr::Rom00(_, offset) => {
@@ -247,6 +263,9 @@ mod module {
 
 #[cfg(test)]
 mod module {
+  use std::rc::Rc;
+  use std::cell::RefCell;
+
   use super::*;
   use std::fmt;
   use md5;
@@ -295,6 +314,8 @@ mod module {
   }
 
   impl Memory for Mem {
+    fn map(&mut self, start: u16, end: u16, mapper: Rc<RefCell<MemoryMap>>) {}
+
     fn set_booting(&mut self, value: bool) {
       self.booting = value;
     }

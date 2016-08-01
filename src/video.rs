@@ -1,10 +1,21 @@
 use piston_window::*;
 use im;
-use std::f64;
 use time::{Duration, SteadyTime};
+use super::mem::MemoryMap;
 
 pub struct Video {
   window: PistonWindow,
+}
+
+impl MemoryMap for Video {
+  fn read_byte(&self, addr: u16) -> Option<u8> {
+    println!("reading vid byte from: {}", addr);
+    Some(0)
+  }
+
+  fn write_byte(&mut self, addr: u16, value: u8) {
+    println!("write vid byte to: {}", addr);
+  }
 }
 
 impl Video {

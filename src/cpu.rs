@@ -1,6 +1,8 @@
 use std::fmt;
 use std::default::Default;
 use std::cmp::PartialEq;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 use super::mem;
 use super::video;
@@ -29,7 +31,7 @@ pub struct Cpu {
   clock_t: u32, // Cycles
 
   mem: Box<mem::Memory>,
-  video: video::Video,
+  video: Rc<RefCell<video::Video>>,
   disasm: Disassembler,
 }
 
@@ -52,7 +54,7 @@ impl Default for Cpu {
       reg_pc: 0,
       clock_t: 0,
       mem: Box::new(mem::Mem::new()),
-      video: video::Video::new(),
+      video: Rc::new(RefCell::new(video::Video::new())),
       disasm: Disassembler::new(),
     }
   }
@@ -77,7 +79,9 @@ impl fmt::Debug for Cpu {
 
 impl Cpu {
   pub fn new() -> Cpu {
-    Cpu::default()
+    let mut c = Cpu::default();
+    c.mem.map(mem::VIDEO_RAM_START, mem::VIDEO_RAM_END, c.video.clone());
+    c
   }
 
   pub fn set_boot_rom(&mut self, rom: Box<[u8]>) {
