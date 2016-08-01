@@ -411,13 +411,10 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_CP_n(&mut self, n: u8) -> u32 {
     let a = self.read_reg_byte(Reg::A);
-    let result = (a as i8 - n as i8) as u8;
+    let (result, carry) = a.overflowing_sub(n);
 
     self.write_flag(Flag::Z, result == 0);
-
-    // Set the carry flag if the A register is less than n.
-    // (for the full value).
-    self.write_flag(Flag::C, a & 0xFF < n & 0xFF);
+    self.write_flag(Flag::C, carry);
 
     // Set the half carry flag if half of register A is less than
     // half of n.
