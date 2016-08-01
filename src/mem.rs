@@ -180,7 +180,7 @@ mod module {
         ECHO_START...ECHO_END => self.memory_map(addr - ECHO_START + WORK_RAM_0_START),
         UNUSABLE_START...UNUSABLE_END => panic!("unusable memory area!"),
         HIGH_RAM_START...HIGH_RAM_END => Addr::HighRam(addr, addr - HIGH_RAM_START),
-        BOOTING_FLAG => Addr::BootingFlag(addr, addr - HIGH_RAM_START),
+        BOOTING_FLAG => Addr::BootingFlag(addr, addr - BOOTING_FLAG),
         INTERRUPT_REGISTER_START...INTERRUPT_REGISTER_END => Addr::InterruptRegister,
         IO_PORTS_START...IO_PORTS_END => Addr::IoPorts(addr, addr - IO_PORTS_START),
         _ => {
