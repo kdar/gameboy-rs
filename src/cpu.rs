@@ -1067,7 +1067,7 @@ mod tests {
       let mut c = Cpu { clock_t: 8, ..Cpu::default() };
       c.write_reg_byte(Reg::C, 0x10);
       c.write_reg_byte(Reg::A, 0xFF);
-      c.mem.write_byte(0xFF10, 0xFF);
+      c.mem.write_byte(0xFF10, 0xFF).unwrap();
       c
     },
   });
@@ -1109,7 +1109,7 @@ mod tests {
           c.write_reg_byte(r, 0x87);
           c.write_reg_byte(Reg::H, 0xC2);
           c.write_reg_byte(Reg::L, 0x21);
-          c.mem.write_byte(0xC221, 0x87);
+          c.mem.write_byte(0xC221, 0x87).unwrap();
           c
         },
       });
@@ -1121,14 +1121,14 @@ mod tests {
     before: {
       let mut c = Cpu::default();
       c.write_reg_word(Reg::DE, 0x0104);
-      c.mem.write_byte(0x0104, 0x10);
+      c.mem.write_byte(0x0104, 0x10).unwrap();
       c
     },
     after: {
       let mut c = Cpu { clock_t: 8, ..Cpu::default() };
       c.write_reg_word(Reg::DE, 0x0104);
       c.write_reg_byte(Reg::A, 0x10);
-      c.mem.write_byte(0x0104, 0x10);
+      c.mem.write_byte(0x0104, 0x10).unwrap();
       c
     },
   });
@@ -1233,7 +1233,7 @@ mod tests {
       c.write_reg_byte(Reg::A, 0x87);
       c.write_reg_byte(Reg::H, 0xC2);
       c.write_reg_byte(Reg::L, 0x20);
-      c.mem.write_byte(0xC221, 0x87);
+      c.mem.write_byte(0xC221, 0x87).unwrap();
       c
     },
   });
@@ -1252,7 +1252,7 @@ mod tests {
       c.write_reg_byte(Reg::A, 0x87);
       c.write_reg_byte(Reg::H, 0xC2);
       c.write_reg_byte(Reg::L, 0x22);
-      c.mem.write_byte(0xC221, 0x87);
+      c.mem.write_byte(0xC221, 0x87).unwrap();
       c
     },
   });
