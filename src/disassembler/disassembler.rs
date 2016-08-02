@@ -133,6 +133,8 @@ impl Disassembler {
           Ok((Instruction::LD_·0xFF00n·_A(n), pc))
         }
 
+        0x02 => Ok((Instruction::LD_·BC·_A, pc)),
+
         0x70...0x75 | 0x77 => {
           let r = op & 0b111;
           Ok((Instruction::LD_·HL·_r(Reg::from(r)), pc))
@@ -142,6 +144,12 @@ impl Disassembler {
           let nn = try!(m.read_word(addr + pc));
           pc += 2;
           Ok((Instruction::LD_·nn·_A(nn), pc))
+        }
+
+        0x08 => {
+          let nn = try!(m.read_word(addr + pc));
+          pc += 2;
+          Ok((Instruction::LD_·nn·_SP(nn), pc))
         }
 
         0x1A => Ok((Instruction::LD_A_·DE·, pc)),
@@ -189,6 +197,7 @@ impl Disassembler {
         0xC9 => Ok((Instruction::RET, pc)),
 
         0x17 => Ok((Instruction::RLA, pc)),
+        0x07 => Ok((Instruction::RLCA, pc)),
 
         0x90 | 0x91 | 0x92 | 0x93 | 0x94 | 0x95 | 0x96 | 0x97 => {
           let r = op & 0b111;

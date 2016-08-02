@@ -88,25 +88,3 @@ fn load_rom<P: AsRef<Path>>(path: P) -> Box<[u8]> {
   try_log!(file.read_to_end(&mut file_buf));
   file_buf.into_boxed_slice()
 }
-
-#[cfg(test)]
-mod test {
-  use gameboy::mem;
-  use gameboy::disassembler::disassembler;
-
-  #[test]
-  fn test_unimplemented() {
-    use gameboy::disassembler::instruction::Instruction;
-    let mut m: Box<mem::Memory> = Box::new(mem::Mem::new());
-    let d = disassembler::Disassembler::new();
-    for i in 0..(0xFF as usize) + 1 {
-      m.write_byte(0, i as u8).unwrap();
-      match d.at(&m, 0) {
-        Ok((Instruction::Invalid(opcode), _)) => {
-          println!("{:#02x}", opcode);
-        }
-        _ => (),
-      };
-    }
-  }
-}

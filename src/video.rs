@@ -123,10 +123,10 @@ impl MemoryMap for Video {
 impl Video {
   pub fn new() -> Video {
     Video {
-      window: Some(WindowSettings::new("Gameboy-rs", [160, 144])
-        .exit_on_esc(true)
-        .build()
-        .unwrap()),
+      // window: Some(WindowSettings::new("Gameboy-rs", [160, 144])
+      //   .exit_on_esc(true)
+      //   .build()
+      //   .unwrap()),
       ..Video::default()
     }
   }

@@ -22,3 +22,36 @@ pub mod audio;
 pub use gameboy::GameBoy;
 pub use reg::Reg;
 pub use flag::Flag;
+
+#[cfg(test)]
+mod test {
+  use super::mem;
+  use super::disassembler::Disassembler;
+  use super::disassembler::Instruction;
+
+  #[test]
+  #[ignore]
+  fn test_unimplemented() {
+    let mut m: Box<mem::Memory> = Box::new(mem::Mem::new());
+    let d = Disassembler::new();
+    for i in 0..(0xFF as usize) + 1 {
+      m.write_byte(0, i as u8).unwrap();
+      match d.at(&m, 0) {
+        Ok((Instruction::Invalid(opcode), _)) => {
+          println!("{:#02x}", opcode);
+        }
+        _ => (),
+      };
+    }
+
+    for i in 0..(0xFF as usize) + 1 {
+      m.write_byte(0, i as u8).unwrap();
+      match d.at(&m, 0) {
+        Ok((Instruction::Invalid(opcode), _)) => {
+          println!("{:#02x}", opcode);
+        }
+        _ => (),
+      };
+    }
+  }
+}

@@ -24,8 +24,10 @@ pub enum Instruction {
   JR_e(i8),
   LD_·0xFF00C·_A, // Moved: RET PO -> LD (FF00+n),A
   LD_·0xFF00n·_A(u8), // Moved: JP PO,nn -> LD (FF00+C),A
+  LD_·BC·_A,
   LD_·HL·_r(Reg),
-  LD_·nn·_A(u16), // Moved: JP PE,nn => LD (nn),A
+  LD_·nn·_A(u16), // Moved: JP PE,nn -> LD (nn),A
+  LD_·nn·_SP(u16), // Moved: EX AF,AF -> LD (nn),SP
   LD_A_·DE·,
   LD_A_·0xFF00n·(u8), // Moved: RET P -> LD A,(FF00+n)
   LD_dd_nn(Reg, u16),
@@ -38,6 +40,7 @@ pub enum Instruction {
   PUSH_rr(Reg),
   RET,
   RLA,
+  RLCA,
   SUB_r(Reg),
   XOR_r(Reg),
 }
@@ -63,8 +66,10 @@ impl fmt::Debug for Instruction {
       Instruction::JR_e(e) => write!(f, "JR {}", e),
       Instruction::LD_·0xFF00C·_A => write!(f, "LD (0xFF00+C),A"),
       Instruction::LD_·0xFF00n·_A(n) => write!(f, "LD (0xFF00+{:#02x}),A", n),
+      Instruction::LD_·BC·_A => write!(f, "LD (BC),A"),
       Instruction::LD_·HL·_r(r) => write!(f, "LD (HL),{}", r),
       Instruction::LD_·nn·_A(nn) => write!(f, "LD (${:#04x}),A", nn),
+      Instruction::LD_·nn·_SP(nn) => write!(f, "LD (${:#04x}),SP", nn),
       Instruction::LD_A_·DE· => write!(f, "LD A,(DE)"),
       Instruction::LD_A_·0xFF00n·(n) => write!(f, "LD A,(0xFF00+{:#02x})", n),
       Instruction::LD_dd_nn(dd, nn) => write!(f, "LD {},${:#04x}", dd, nn),
@@ -77,6 +82,7 @@ impl fmt::Debug for Instruction {
       Instruction::PUSH_rr(rr) => write!(f, "PUSH {}", rr),
       Instruction::RET => write!(f, "RET"),
       Instruction::RLA => write!(f, "RLA"),
+      Instruction::RLCA => write!(f, "RLCA"),
       Instruction::SUB_r(r) => write!(f, "SUB {}", r),
       Instruction::XOR_r(r) => write!(f, "XOR {}", r),
     }
