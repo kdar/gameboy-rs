@@ -286,6 +286,7 @@ impl Cpu {
       Instruction::DEC_r(r) => self.inst_DEC_r(r),
       Instruction::INC_r(r) => self.inst_INC_r(r),
       Instruction::INC_rr(ss) => self.inst_INC_rr(ss),
+      Instruction::JP_nn(nn) => self.inst_JP_nn(nn),
       Instruction::JR_cc_e(cc, e) => self.inst_JR_cc_e(cc, e),
       Instruction::JR_e(e) => self.inst_JR_e(e),
       Instruction::LD_·0xFF00C·_A => self.inst_LD_·0xFF00C·_A(),
@@ -497,6 +498,15 @@ impl Cpu {
     d += 1;
     self.write_reg_word(ss, d);
     4
+  }
+
+  // JP nn
+  // Opcode: 0xC3
+  // Page: 256
+  #[allow(non_snake_case)]
+  fn inst_JP_nn(&mut self, nn: u16) -> u32 {
+    self.reg_pc = nn;
+    16
   }
 
   // JR cc,e

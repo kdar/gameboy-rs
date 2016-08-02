@@ -91,6 +91,12 @@ impl Disassembler {
           Ok((Instruction::INC_rr(Reg::from_pair(ss)), pc))
         }
 
+        0xC3 => {
+          let nn = try!(m.read_word(addr + pc));
+          pc += 2;
+          Ok((Instruction::JP_nn(nn), pc))
+        }
+
         0x20 => {
           let e = try!(m.read_byte(addr + pc));
           pc += 1;

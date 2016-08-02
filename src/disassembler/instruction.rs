@@ -19,6 +19,7 @@ pub enum Instruction {
   DEC_r(Reg),
   INC_r(Reg),
   INC_rr(Reg),
+  JP_nn(u16),
   JR_cc_e(Flag, i8),
   JR_e(i8),
   LD_·0xFF00C·_A, // Moved: RET PO -> LD (FF00+n),A
@@ -57,6 +58,7 @@ impl fmt::Debug for Instruction {
       Instruction::DEC_r(r) => write!(f, "DEC {}", r),
       Instruction::INC_r(r) => write!(f, "INC {}", r),
       Instruction::INC_rr(r) => write!(f, "INC {}", r),
+      Instruction::JP_nn(nn) => write!(f, "JP {:#04x}", nn),
       Instruction::JR_cc_e(cc, e) => write!(f, "JR {},{}", cc, e),
       Instruction::JR_e(e) => write!(f, "JR {}", e),
       Instruction::LD_·0xFF00C·_A => write!(f, "LD (0xFF00+C),A"),
