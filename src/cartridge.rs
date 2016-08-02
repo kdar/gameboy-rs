@@ -38,6 +38,8 @@ enum CartType {
 }
 
 pub struct Cartridge {
+  rom: Vec<u8>,
+  ram: Vec<u8>,
   cart_type: CartType,
   title: String,
 }
@@ -72,11 +74,19 @@ impl Cartridge {
       Err(e) => return Err(format!("{}", e)),
     };
 
-    Ok(Cartridge {
+    let mut c = Cartridge {
       cart_type: cart_type,
       title: title,
-    })
+      rom: From::from(data),
+      ram: vec![],
+    };
+
+    c.map_mbc();
+
+    Ok(c)
   }
+
+  fn map_mbc(&mut self) {}
 }
 
 #[cfg(test)]
