@@ -13,6 +13,8 @@ pub enum Instruction {
   RL_r(Reg),
 
   ADD_A_·HL·,
+  AND_n(u8),
+  AND_r(Reg),
   CALL_nn(u16),
   CP_·HL·,
   CP_n(u8),
@@ -56,6 +58,8 @@ impl fmt::Debug for Instruction {
       Instruction::RL_r(r) => write!(f, "RL {}", r),
 
       Instruction::ADD_A_·HL· => write!(f, "ADD A,(HL)"),
+      Instruction::AND_n(n) => write!(f, "AND ${:02x}", n),
+      Instruction::AND_r(r) => write!(f, "AND {}", r),
       Instruction::CALL_nn(nn) => write!(f, "CALL {}", nn),
       Instruction::CP_·HL· => write!(f, "CP (HL)"),
       Instruction::CP_n(n) => write!(f, "CP ${:02x}", n),

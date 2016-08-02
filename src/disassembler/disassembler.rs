@@ -62,15 +62,26 @@ impl Disassembler {
       match op {
         0x86 => Ok((Instruction::ADD_A_·HL·, pc)),
 
-        0xCD => {
+        0xe6 => {
+          let n = try!(m.read_byte(addr + pc));
+          pc += 1;
+          Ok((Instruction::AND_n(n), pc))
+        }
+
+        0xa0 | 0xa1 | 0xa2 | 0xa3 | 0xa4 | 0xa5 | 0xa6 | 0xa7 => {
+          let r = op & 0b111;
+          Ok((Instruction::AND_r(Reg::from(r)), pc))
+        }
+
+        0xcd => {
           let nn = try!(m.read_word(addr + pc));
           pc += 2;
           Ok((Instruction::CALL_nn(nn), pc))
         }
 
-        0xBE => Ok((Instruction::CP_·HL·, pc)),
+        0xbe => Ok((Instruction::CP_·HL·, pc)),
 
-        0xFE => {
+        0xfe => {
           let n = try!(m.read_byte(addr + pc));
           pc += 1;
           Ok((Instruction::CP_n(n), pc))
@@ -81,7 +92,7 @@ impl Disassembler {
           Ok((Instruction::DEC_r(Reg::from(r)), pc))
         }
 
-        0xF3 => Ok((Instruction::DI, pc)),
+        0xf3 => Ok((Instruction::DI, pc)),
 
         0x4 | 0xc | 0x14 | 0x1c | 0x24 | 0x2c | 0x3c => {
           let r = op >> 3 & 0b111;
@@ -93,7 +104,7 @@ impl Disassembler {
           Ok((Instruction::INC_rr(Reg::from_pair(ss)), pc))
         }
 
-        0xC3 => {
+        0xc3 => {
           let nn = try!(m.read_word(addr + pc));
           pc += 2;
           Ok((Instruction::JP_nn(nn), pc))
@@ -126,8 +137,8 @@ impl Disassembler {
           Ok((Instruction::JR_e(e as i8), pc))
         }
 
-        0xE2 => Ok((Instruction::LD_·0xFF00C·_A, pc)),
-        0xE0 => {
+        0xe2 => Ok((Instruction::LD_·0xFF00C·_A, pc)),
+        0xe0 => {
           let n = try!(m.read_byte(addr + pc));
           pc += 1;
           Ok((Instruction::LD_·0xFF00n·_A(n), pc))
@@ -140,7 +151,7 @@ impl Disassembler {
           Ok((Instruction::LD_·HL·_r(Reg::from(r)), pc))
         }
 
-        0xEA => {
+        0xea => {
           let nn = try!(m.read_word(addr + pc));
           pc += 2;
           Ok((Instruction::LD_·nn·_A(nn), pc))
@@ -152,9 +163,9 @@ impl Disassembler {
           Ok((Instruction::LD_·nn·_SP(nn), pc))
         }
 
-        0x1A => Ok((Instruction::LD_A_·DE·, pc)),
+        0x1a => Ok((Instruction::LD_A_·DE·, pc)),
 
-        0xF0 => {
+        0xf0 => {
           let n = try!(m.read_byte(addr + pc));
           pc += 1;
           Ok((Instruction::LD_A_·0xFF00n·(n), pc))
@@ -174,8 +185,8 @@ impl Disassembler {
           Ok((Instruction::LD_r_n(Reg::from(r), n), pc))
         }
 
-        0x40...0x45 | 0x47...0x4D | 0x4F...0x55 | 0x57...0x5D | 0x5F...0x65 | 0x67...0x6D |
-        0x6F | 0x78...0x7D | 0x7F => {
+        0x40...0x45 | 0x47...0x4d | 0x4f...0x55 | 0x57...0x5d | 0x5f...0x65 | 0x67...0x6d |
+        0x6f | 0x78...0x7d | 0x7f => {
           let r1 = op >> 3 & 0b111;
           let r2 = op & 0b111;
           Ok((Instruction::LD_r_r(Reg::from(r1), Reg::from(r2)), pc))
@@ -184,7 +195,7 @@ impl Disassembler {
         0x32 => Ok((Instruction::LDD_·HL·_A, pc)),
         0x22 => Ok((Instruction::LDI_·HL·_A, pc)),
 
-        0xC1 => {
+        0xc1 => {
           let rr = op >> 4 & 0b11;
           Ok((Instruction::POP_rr(Reg::from_pair(rr)), pc))
         }
@@ -194,7 +205,7 @@ impl Disassembler {
           Ok((Instruction::PUSH_rr(Reg::from_pair(rr)), pc))
         }
 
-        0xC9 => Ok((Instruction::RET, pc)),
+        0xc9 => Ok((Instruction::RET, pc)),
 
         0x17 => Ok((Instruction::RLA, pc)),
         0x07 => Ok((Instruction::RLCA, pc)),
@@ -205,7 +216,7 @@ impl Disassembler {
         }
 
         0x00 => Ok((Instruction::NOP, pc)),
-        0xAF => Ok((Instruction::XOR_r(Reg::A), pc)),
+        0xaf => Ok((Instruction::XOR_r(Reg::A), pc)),
 
         _ => Ok((Instruction::Invalid(op), pc)),
         // _ => panic!("instruction_at: instruction not implemented: 0x{:02x}", op),

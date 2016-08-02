@@ -289,6 +289,8 @@ impl Cpu {
       Instruction::RLA => self.inst_RLA(),
 
       Instruction::ADD_A_·HL· => self.inst_ADD_A_·HL·(),
+      Instruction::AND_n(n) => self.inst_AND_n(n),
+      Instruction::AND_r(r) => self.inst_AND_r(r),
       Instruction::CALL_nn(nn) => self.inst_CALL_nn(nn),
       Instruction::CP_·HL· => self.inst_CP_·HL·(),
       Instruction::CP_n(n) => self.inst_CP_n(n),
@@ -411,6 +413,39 @@ impl Cpu {
     self.write_flag(Flag::C, result < a);
 
     8
+  }
+
+  // AND n
+  // Opcode: 0xE6
+  // Page: 170
+  #[allow(non_snake_case)]
+  fn inst_AND_n(&mut self, n: u8) -> u32 {
+    let result = self.read_reg_byte(Reg::A) & n;
+    self.write_reg_byte(Reg::A, result);
+
+    self.write_flag(Flag::Z, result == 0);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, true);
+    self.write_flag(Flag::C, false);
+
+    8
+  }
+
+  // AND r
+  // Opcode: 10100rrr
+  // Page: 170
+  #[allow(non_snake_case)]
+  fn inst_AND_r(&mut self, r: Reg) -> u32 {
+    let d = self.read_reg_byte(r);
+    let result = self.read_reg_byte(Reg::A) & d;
+    self.write_reg_byte(Reg::A, result);
+
+    self.write_flag(Flag::Z, result == 0);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, true);
+    self.write_flag(Flag::C, false);
+
+    4
   }
 
   // CALL nn
