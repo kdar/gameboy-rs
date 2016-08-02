@@ -149,6 +149,8 @@ mod module {
     high_ram: [u8; HIGH_RAM_LEN],
 
     map: Vec<(u16, u16, Rc<RefCell<MemoryMap>>)>,
+
+    interrupt_enable: u8,
   }
 
   impl Default for Mem {
@@ -161,6 +163,7 @@ mod module {
         work_ram_1: [0; WORK_RAM_1_LEN],
         high_ram: [0; HIGH_RAM_LEN],
         map: Vec::new(),
+        interrupt_enable: 0,
       }
     }
   }
@@ -229,14 +232,14 @@ mod module {
       let mapped = self.memory_map(addr);
       match mapped {
         Addr::Rom00(_, offset) => {
-          if self.booting && offset <= 0xFF {
+          if self.booting && offset < 0xFF {
             self.boot_rom
               .get(offset as usize)
               .ok_or_else(|| format!("could not get byte at boot_rom offset {}", offset))
               .and_then(|&x| Ok(x))
           } else {
             self.cart_rom
-              .get(offset as usize)
+              .get((offset - 0x100) as usize)
               .ok_or_else(|| format!("could not get byte at cart_rom offset {}", offset))
               .and_then(|&x| Ok(x))
           }
@@ -271,7 +274,7 @@ mod module {
         Addr::BootingFlag(_, _) => {
           Err(format!("the booting flag shouldn't need to be read: {:?}", mapped))
         }
-        Addr::InterruptRegister => Err(format!("read_byte not implemented: {:?}", mapped)),
+        Addr::InterruptRegister => Ok(self.interrupt_enable),
       }
     }
 
@@ -315,8 +318,8 @@ mod module {
           Ok(())
         }
         Addr::InterruptRegister => {
-          Err(format!("write_byte Addr::InterruptRegister not implemented: {:?}",
-                      mapped))
+          self.interrupt_enable = value;
+          Ok(())
         }
       }
     }
