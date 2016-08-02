@@ -2,6 +2,7 @@ use std::path::Path;
 use std::fs::File;
 use std::io::Read;
 use num;
+use std::ffi::CString;
 
 #[derive(PartialEq, Debug, NumFromPrimitive)]
 enum CartType {
@@ -38,6 +39,7 @@ enum CartType {
 
 pub struct Cartridge {
   cart_type: CartType,
+  title: String,
 }
 
 impl Cartridge {
@@ -61,7 +63,19 @@ impl Cartridge {
       }
     };
 
-    Ok(Cartridge { cart_type: cart_type })
+    let title = match CString::new(&data[0x0134..0x0144]) {
+      Ok(v) => v,
+      Err(e) => return Err(format!("{}", e)),
+    };
+    let title = match title.into_string() {
+      Ok(v) => v,
+      Err(e) => return Err(format!("{}", e)),
+    };
+
+    Ok(Cartridge {
+      cart_type: cart_type,
+      title: title,
+    })
   }
 }
 
@@ -101,5 +115,6 @@ mod test {
     let result = Cartridge::from_data(&test_cart).unwrap();
 
     assert_eq!(result.cart_type, CartType::RomOnly);
+    assert_eq!(result.title, "Opus Test       ");
   }
 }
