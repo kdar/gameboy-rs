@@ -81,6 +81,8 @@ impl Disassembler {
           Ok((Instruction::DEC_r(Reg::from(r)), pc))
         }
 
+        0xF3 => Ok((Instruction::DI, pc)),
+
         0x4 | 0xc | 0x14 | 0x1c | 0x24 | 0x2c | 0x3c => {
           let r = op >> 3 & 0b111;
           Ok((Instruction::INC_r(Reg::from(r)), pc))
@@ -196,7 +198,7 @@ impl Disassembler {
         0x00 => Ok((Instruction::NOP, pc)),
         0xAF => Ok((Instruction::XOR_r(Reg::A), pc)),
 
-        _ => Ok((Instruction::Data(op), pc)),
+        _ => Ok((Instruction::Invalid(op), pc)),
         // _ => panic!("instruction_at: instruction not implemented: 0x{:02x}", op),
       }
     }

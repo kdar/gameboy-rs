@@ -269,13 +269,12 @@ impl Cpu {
       return inst;
     }
 
-    Instruction::Invalid
+    Instruction::Invalid(0)
   }
 
   fn execute_instruction(&mut self, ins: Instruction) {
     let t = match ins {
-      Instruction::Invalid => panic!("execute_instruction: Invalid instruction encountered"),
-      Instruction::Data(_) => (0),
+      Instruction::Invalid(_) => panic!("execute_instruction: Invalid instruction encountered"),
 
       // 0xCB instructions
       Instruction::BIT_b_r(b, r) => self.inst_BIT_b_r(b, r),
@@ -309,7 +308,8 @@ impl Cpu {
       Instruction::SUB_r(r) => self.inst_SUB_r(r),
       Instruction::NOP => self.inst_NOP(),
       Instruction::XOR_r(r) => self.inst_XOR_r(r),
-      // _ => panic!("instruction not implemented: {:?}", ins),
+
+      _ => panic!("instruction not implemented: {:?}", ins),
     };
 
     self.clock_t += t;

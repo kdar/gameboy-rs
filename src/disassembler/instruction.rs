@@ -5,8 +5,7 @@ use std::fmt;
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
 pub enum Instruction {
-  Invalid,
-  Data(u8),
+  Invalid(u8),
 
   // 0xCB instructions
   BIT_b_r(u8, Reg),
@@ -17,6 +16,7 @@ pub enum Instruction {
   CP_·HL·,
   CP_n(u8),
   DEC_r(Reg),
+  DI,
   INC_r(Reg),
   INC_rr(Reg),
   JP_nn(u16),
@@ -45,8 +45,7 @@ pub enum Instruction {
 impl fmt::Debug for Instruction {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match *self {
-      Instruction::Invalid => write!(f, "INVALID"),
-      Instruction::Data(d) => write!(f, "DB ${:02x}", d),
+      Instruction::Invalid(d) => write!(f, "DB ${:02x}", d),
 
       Instruction::BIT_b_r(b, r) => write!(f, "BIT {},{}", b, r),
       Instruction::RL_r(r) => write!(f, "RL {}", r),
@@ -56,6 +55,7 @@ impl fmt::Debug for Instruction {
       Instruction::CP_·HL· => write!(f, "CP (HL)"),
       Instruction::CP_n(n) => write!(f, "CP ${:02x}", n),
       Instruction::DEC_r(r) => write!(f, "DEC {}", r),
+      Instruction::DI => write!(f, "DI"),
       Instruction::INC_r(r) => write!(f, "INC {}", r),
       Instruction::INC_rr(r) => write!(f, "INC {}", r),
       Instruction::JP_nn(nn) => write!(f, "JP {:#04x}", nn),

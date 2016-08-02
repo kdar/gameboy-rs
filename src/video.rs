@@ -46,7 +46,7 @@ impl Default for Video {
       bg_palette: [0; 4],
       obj_palette0: [0; 4],
       obj_palette1: [0; 4],
-      current_line: 0,
+      current_line: 0x90, // FIXME: here for testing.
       vram: [0; 8192],
       oam: [0; 160],
     }
