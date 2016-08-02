@@ -46,9 +46,10 @@ impl Debugger {
     //   }
     // };
 
-    let (inst, pc) = self.cpu.step();
-    println!("{:#04}: {:?}", pc, inst);
-    for &b in self.breakpoints.iter() {
+    let pc = self.cpu.pc();
+    let inst = self.cpu.step();
+    println!("{:#04x}: {:?}", pc, inst);
+    for &b in &self.breakpoints {
       if pc as usize == b {
         println!("Breakpoint hit @ {}", pc);
         return true;
@@ -68,7 +69,7 @@ impl Debugger {
       let readline = rl.readline("(gameboy) ");
       match readline {
         Ok(line) => {
-          if line.len() == 0 {
+          if line.is_empty() {
             continue;
           }
 
@@ -104,7 +105,7 @@ impl Debugger {
               self.breakpoints.push(l as usize);
             }
             Command::Breakpoints => {
-              for loc in self.breakpoints.iter() {
+              for loc in &self.breakpoints {
                 println!("Breakpoint @ {}", loc);
               }
             }
