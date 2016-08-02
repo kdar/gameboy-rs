@@ -132,10 +132,10 @@ mod module {
     cart_rom: Box<[u8]>,
     booting: bool,
 
-    work_ram_0: [u8; WORK_RAM_0_LEN],
-    work_ram_1: [u8; WORK_RAM_1_LEN],
+    work_ram_0: [u8; WORK_RAM_0_LEN + 1],
+    work_ram_1: [u8; WORK_RAM_1_LEN + 1],
 
-    high_ram: [u8; HIGH_RAM_LEN],
+    high_ram: [u8; HIGH_RAM_LEN + 1],
 
     map: Vec<(u16, u16, Rc<RefCell<MemoryMap>>)>,
 
@@ -148,9 +148,9 @@ mod module {
         boot_rom: Box::new([]),
         cart_rom: Box::new([]),
         booting: false,
-        work_ram_0: [0; WORK_RAM_0_LEN],
-        work_ram_1: [0; WORK_RAM_1_LEN],
-        high_ram: [0; HIGH_RAM_LEN],
+        work_ram_0: [0; WORK_RAM_0_LEN + 1],
+        work_ram_1: [0; WORK_RAM_1_LEN + 1],
+        high_ram: [0; HIGH_RAM_LEN + 1],
         map: Vec::new(),
         interrupt_enable: 0,
       }
