@@ -76,6 +76,7 @@ impl fmt::Debug for Cpu {
     try!(write!(f, "\nSP:      {0:#06x} [{0:016b}]", self.reg_sp));
     try!(write!(f, "\nPC:      {0:#06x} [{0:016b}]", self.reg_pc));
     try!(write!(f, "\nClock T: {}", self.clock_t));
+    try!(write!(f, "\n{:?}", self.video));
     write!(f, "\n")
   }
 }
@@ -85,12 +86,14 @@ impl Cpu {
     let mut c = Cpu::default();
 
     // Video mapping
-    c.mem.map(mem::VIDEO_RAM_START, mem::VIDEO_RAM_END, c.video.clone());
-    c.mem.map(mem::SPRITE_TABLE_START,
-              mem::SPRITE_TABLE_END,
+    c.mem.map(video::VIDEO_RAM_START,
+              video::VIDEO_RAM_END,
               c.video.clone());
-    c.mem.map(mem::VIDEO_CONTROL_START,
-              mem::VIDEO_CONTROL_END,
+    c.mem.map(video::SPRITE_TABLE_START,
+              video::SPRITE_TABLE_END,
+              c.video.clone());
+    c.mem.map(video::VIDEO_CONTROL_START,
+              video::VIDEO_CONTROL_END,
               c.video.clone());
 
     // Audio mapping

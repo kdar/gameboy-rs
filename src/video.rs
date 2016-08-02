@@ -1,7 +1,19 @@
+use std::fmt;
 use piston_window::*;
 // use im;
 // use time::{Duration, SteadyTime};
 use super::mem::MemoryMap;
+
+// Swichable bank 0-1 in CGB Mode
+pub const VIDEO_RAM_START: u16 = 0x8000;
+pub const VIDEO_RAM_END: u16 = 0x9FFF;
+
+// Sprite attribute table (OAM)
+pub const SPRITE_TABLE_START: u16 = 0xFE00;
+pub const SPRITE_TABLE_END: u16 = 0xFE9F;
+
+pub const VIDEO_CONTROL_START: u16 = 0xFF40;
+pub const VIDEO_CONTROL_END: u16 = 0xFF4C;
 
 // const LCD_CONTROL: u16 = 0xFF40;
 // const LCD_CONTROLLER_STATUS: u16 = 0xFF41;
@@ -23,6 +35,8 @@ pub struct Video {
   obj_palette0: [u8; 4],
   obj_palette1: [u8; 4],
   current_line: u8,
+  vram: [u8; 8192], // Video ram
+  oam: [u8; 160], // Sprite attribute table
 }
 
 impl Default for Video {
@@ -32,8 +46,17 @@ impl Default for Video {
       bg_palette: [0; 4],
       obj_palette0: [0; 4],
       obj_palette1: [0; 4],
-      current_line: 0x90,
+      current_line: 0,
+      vram: [0; 8192],
+      oam: [0; 160],
     }
+  }
+}
+
+impl fmt::Debug for Video {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    try!(write!(f, "\nVRAM: {:?}", &&self.vram[..]));
+    write!(f, "\n")
   }
 }
 
@@ -48,6 +71,11 @@ impl MemoryMap for Video {
 
   fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String> {
     match addr {
+      VIDEO_RAM_START...VIDEO_RAM_END => {
+        let offset = addr as usize - VIDEO_RAM_START as usize;
+        self.vram[offset] = value;
+      }
+
       // LCD_CONTROLLER_Y_COORDINATE => self.current_line = value,
       BG_PALETTE_DATA => {
         println!("video: bg palette: {:#04x}", addr);

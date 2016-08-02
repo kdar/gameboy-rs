@@ -9,3 +9,6 @@ test_boot:
 
 test_debugger:
 	cargo run -- -b "res\DMG_ROM.bin" "res\opus5.gb" --debug
+
+test_game:
+	cargo run -- -b "res\DMG_ROM.bin" "res\Tetris.gb" --debug

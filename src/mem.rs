@@ -13,10 +13,6 @@ pub const ROM_00_END: u16 = 0x3FFF;
 pub const ROM_01_START: u16 = 0x4000;
 pub const ROM_01_END: u16 = 0x7FFF;
 
-// Swichable bank 0-1 in CGB Mode
-pub const VIDEO_RAM_START: u16 = 0x8000;
-pub const VIDEO_RAM_END: u16 = 0x9FFF;
-
 // In cartridge, switchable bank, if any
 pub const EXTERNAL_RAM_START: u16 = 0xA000;
 pub const EXTERNAL_RAM_END: u16 = 0xBFFF;
@@ -37,10 +33,6 @@ pub const WORK_RAM_1_LEN: usize = WORK_RAM_1_END as usize - WORK_RAM_1_START as 
 pub const ECHO_START: u16 = 0xE000;
 pub const ECHO_END: u16 = 0xFDFF;
 
-// Sprite attribute table (OAM)
-pub const SPRITE_TABLE_START: u16 = 0xFE00;
-pub const SPRITE_TABLE_END: u16 = 0xFE9F;
-
 // Not usable
 pub const UNUSABLE_START: u16 = 0xFEA0;
 pub const UNUSABLE_END: u16 = 0xFEFF;
@@ -51,9 +43,6 @@ pub const IO_PORTS_END: u16 = 0xFF7F;
 
 pub const AUDIO_START: u16 = 0xFF10;
 pub const AUDIO_END: u16 = 0xFF3F;
-
-pub const VIDEO_CONTROL_START: u16 = 0xFF40;
-pub const VIDEO_CONTROL_END: u16 = 0xFF4C;
 
 // High RAM (HRAM)
 pub const HIGH_RAM_START: u16 = 0xFF80;
