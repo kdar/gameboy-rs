@@ -1,4 +1,6 @@
 #![feature(non_ascii_idents)]
+#![feature(custom_derive, plugin)]
+#![plugin(num_macros)]
 
 extern crate md5;
 #[cfg(test)]
@@ -8,6 +10,7 @@ extern crate nom;
 extern crate piston_window;
 extern crate image as im;
 extern crate time;
+extern crate num;
 
 mod gameboy;
 pub mod mem;
@@ -18,6 +21,7 @@ pub mod disassembler;
 pub mod debugger;
 pub mod video;
 pub mod audio;
+pub mod cartridge;
 
 pub use gameboy::GameBoy;
 pub use reg::Reg;
