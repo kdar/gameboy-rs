@@ -72,7 +72,7 @@ pub enum Addr {
   InterruptRegister,
 }
 
-pub trait MemoryMap {
+pub trait MemoryIo {
   fn read_byte(&self, addr: u16) -> Result<u8, String>;
   fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String>;
 
@@ -92,7 +92,7 @@ pub trait MemoryMap {
     }
   }
 
-  // TODO: Maybe allow MemoryMap objects implement this directly,
+  // TODO: Maybe allow MemoryIO objects implement this directly,
   // so it doesn't need to call read_byte twice and instead just
   // read the word directly. Also would need a read_u32 or something
   // similar for performance reasons.
@@ -115,8 +115,8 @@ pub trait MemoryMap {
   }
 }
 
-pub trait Memory: MemoryMap {
-  fn map(&mut self, start: u16, end: u16, mapper: Rc<RefCell<MemoryMap>>);
+pub trait Memory: MemoryIo {
+  fn map(&mut self, start: u16, end: u16, mapper: Rc<RefCell<MemoryIo>>);
   fn set_boot_rom(&mut self, rom: Box<[u8]>);
   fn set_cart_rom(&mut self, rom: Box<[u8]>);
 }
@@ -140,7 +140,7 @@ mod module {
 
     high_ram: [u8; HIGH_RAM_LEN + 1],
 
-    map: Vec<(u16, u16, Rc<RefCell<MemoryMap>>)>,
+    map: Vec<(u16, u16, Rc<RefCell<MemoryIo>>)>,
 
     interrupt_enable: u8,
   }
@@ -186,7 +186,7 @@ mod module {
   }
 
   impl Memory for Mem {
-    fn map(&mut self, start: u16, end: u16, mapper: Rc<RefCell<MemoryMap>>) {
+    fn map(&mut self, start: u16, end: u16, mapper: Rc<RefCell<MemoryIo>>) {
       self.map.push((start, end, mapper));
     }
 
@@ -213,7 +213,7 @@ mod module {
     }
   }
 
-  impl MemoryMap for Mem {
+  impl MemoryIo for Mem {
     fn read_byte(&self, addr: u16) -> Result<u8, String> {
       for i in &self.map {
         if i.0 <= addr && addr <= i.1 {
@@ -355,7 +355,7 @@ mod module {
     }
   }
 
-  impl MemoryMap for Mem {
+  impl MemoryIo for Mem {
     fn read_byte(&self, addr: u16) -> Result<u8, String> {
       self.ram
         .get(addr as usize)
@@ -370,7 +370,7 @@ mod module {
   }
 
   impl Memory for Mem {
-    fn map(&mut self, _: u16, _: u16, _: Rc<RefCell<MemoryMap>>) {}
+    fn map(&mut self, _: u16, _: u16, _: Rc<RefCell<MemoryIo>>) {}
 
     fn set_boot_rom(&mut self, _: Box<[u8]>) {
       panic!("set_boot_rom should not be used for testing. use write_byte to write the rom to \

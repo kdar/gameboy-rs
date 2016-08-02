@@ -2,7 +2,7 @@ use std::fmt;
 use piston_window::*;
 // use im;
 // use time::{Duration, SteadyTime};
-use super::mem::MemoryMap;
+use super::mem::MemoryIo;
 
 // Swichable bank 0-1 in CGB Mode
 pub const VIDEO_RAM_START: u16 = 0x8000;
@@ -60,7 +60,7 @@ impl fmt::Debug for Video {
   }
 }
 
-impl MemoryMap for Video {
+impl MemoryIo for Video {
   fn read_byte(&self, addr: u16) -> Result<u8, String> {
     println!("reading vid byte from: {:#04x}", addr);
     match addr {

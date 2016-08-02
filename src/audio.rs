@@ -1,4 +1,4 @@
-use super::mem::MemoryMap;
+use super::mem::MemoryIo;
 
 pub struct Audio;
 
@@ -14,7 +14,7 @@ impl Audio {
   }
 }
 
-impl MemoryMap for Audio {
+impl MemoryIo for Audio {
   fn read_byte(&self, addr: u16) -> Result<u8, String> {
     println!("reading audio byte from: {:#04x}", addr);
     match addr {
