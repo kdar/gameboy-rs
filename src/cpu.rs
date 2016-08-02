@@ -274,7 +274,14 @@ impl Cpu {
 
   fn execute_instruction(&mut self, ins: Instruction) {
     let t = match ins {
-      Instruction::Invalid(_) => panic!("execute_instruction: Invalid instruction encountered"),
+      Instruction::Invalid(d) => {
+        panic!("execute_instruction: Invalid instruction encountered: {:#02x}",
+               d)
+      }
+      Instruction::InvalidCB(d) => {
+        panic!("execute_instruction: Invalid CB instruction encountered: {:#02x}",
+               d)
+      }
 
       // 0xCB instructions
       Instruction::BIT_b_r(b, r) => self.inst_BIT_b_r(b, r),

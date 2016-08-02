@@ -6,6 +6,7 @@ use std::fmt;
 #[derive(Copy, Clone)]
 pub enum Instruction {
   Invalid(u8),
+  InvalidCB(u8),
 
   // 0xCB instructions
   BIT_b_r(u8, Reg),
@@ -49,6 +50,7 @@ impl fmt::Debug for Instruction {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match *self {
       Instruction::Invalid(d) => write!(f, "DB ${:02x}", d),
+      Instruction::InvalidCB(d) => write!(f, "DB ${:02x}", d),
 
       Instruction::BIT_b_r(b, r) => write!(f, "BIT {},{}", b, r),
       Instruction::RL_r(r) => write!(f, "RL {}", r),
