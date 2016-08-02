@@ -7,7 +7,7 @@ use super::mem::MemoryMap;
 // const LCD_CONTROLLER_STATUS: u16 = 0xFF41;
 // const SCROLL_Y: u16 = 0xFF42;
 // const SCROLL_X: u16 = 0xFF43;
-// const LCD_CONTROLLER_Y_COORDINATE: u16 = 0xFF44;
+const LCD_CONTROLLER_Y_COORDINATE: u16 = 0xFF44;
 // const LY_COMPARE: u16 = 0xFF45;
 // const WINDOW_Y_POSITION: u16 = 0xFF4A;
 // const WINDOW_X_POSITION_MINUS_7: u16 = 0xFF4B;
@@ -25,17 +25,30 @@ pub struct Video {
   current_line: u8,
 }
 
+impl Default for Video {
+  fn default() -> Video {
+    Video {
+      window: None,
+      bg_palette: [0; 4],
+      obj_palette0: [0; 4],
+      obj_palette1: [0; 4],
+      current_line: 153,
+    }
+  }
+}
+
 impl MemoryMap for Video {
   fn read_byte(&self, addr: u16) -> Result<u8, String> {
     println!("reading vid byte from: {:#04x}", addr);
     match addr {
-      0xFF44 => Ok(0x90), // Some(self.current_line),
+      LCD_CONTROLLER_Y_COORDINATE => Ok(self.current_line),
       _ => Ok(0),
     }
   }
 
   fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String> {
     match addr {
+      // LCD_CONTROLLER_Y_COORDINATE => self.current_line = value,
       BG_PALETTE_DATA => {
         println!("video: bg palette: {:#04x}", addr);
         for i in 0..4 {
@@ -76,18 +89,6 @@ impl MemoryMap for Video {
     };
 
     Ok(())
-  }
-}
-
-impl Default for Video {
-  fn default() -> Video {
-    Video {
-      window: None,
-      bg_palette: [0; 4],
-      obj_palette0: [0; 4],
-      obj_palette1: [0; 4],
-      current_line: 0,
-    }
   }
 }
 

@@ -255,14 +255,18 @@ impl Cpu {
   //   self.cycles = 0;
   // }
 
-  pub fn step(&mut self) -> (Instruction, u16) {
+  pub fn pc(&self) -> u16 {
+    self.reg_pc
+  }
+
+  pub fn step(&mut self) -> Instruction {
     if let Ok((inst, inc)) = self.disasm.at(&self.mem, self.reg_pc) {
       self.reg_pc += inc;
       self.execute_instruction(inst);
-      return (inst, self.reg_pc);
+      return inst;
     }
 
-    (Instruction::Invalid, self.reg_pc)
+    Instruction::Invalid
   }
 
   fn execute_instruction(&mut self, ins: Instruction) {
