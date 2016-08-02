@@ -239,7 +239,7 @@ mod module {
               .and_then(|&x| Ok(x))
           } else {
             self.cart_rom
-              .get((offset - 0x100) as usize)
+              .get(offset as usize)
               .ok_or_else(|| format!("could not get byte at cart_rom offset {}", offset))
               .and_then(|&x| Ok(x))
           }
