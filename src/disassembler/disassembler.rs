@@ -163,6 +163,8 @@ impl Disassembler {
           Ok((Instruction::LD_·nn·_SP(nn), pc))
         }
 
+        0x0a => Ok((Instruction::LD_A_·BC·, pc)),
+
         0x1a => Ok((Instruction::LD_A_·DE·, pc)),
 
         0xf0 => {
