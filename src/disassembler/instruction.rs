@@ -45,7 +45,7 @@ impl fmt::Debug for Instruction {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match *self {
       Instruction::Invalid => write!(f, "INVALID"),
-      Instruction::Data(d) => write!(f, "${:02x}", d),
+      Instruction::Data(d) => write!(f, "DB ${:02x}", d),
 
       Instruction::BIT_b_r(b, r) => write!(f, "BIT {},{}", b, r),
       Instruction::RL_r(r) => write!(f, "RL {}", r),

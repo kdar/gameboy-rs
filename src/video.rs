@@ -32,7 +32,7 @@ impl Default for Video {
       bg_palette: [0; 4],
       obj_palette0: [0; 4],
       obj_palette1: [0; 4],
-      current_line: 153,
+      current_line: 0x90,
     }
   }
 }
