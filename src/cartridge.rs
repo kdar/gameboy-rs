@@ -4,6 +4,8 @@ use std::io::Read;
 use num;
 use std::ffi::CString;
 
+use super::mem::MemoryIo;
+
 #[derive(PartialEq, Debug, NumFromPrimitive)]
 enum CartType {
   RomOnly = 0x00,
@@ -44,21 +46,50 @@ pub struct Cartridge {
   title: String,
 }
 
-impl Cartridge {
-  pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Cartridge, String> {
-    let mut f = try!(File::open(path).map_err(|e| format!("{}", e)));
-    let mut v = vec![];
-    try!(f.read_to_end(&mut v).map_err(|e| format!("{}", e)));
-
-    Cartridge::from_data(&v.as_slice())
+impl MemoryIo for Cartridge {
+  fn read_byte(&self, addr: u16) -> Result<u8, String> {
+    unimplemented!();
   }
 
-  pub fn from_data(data: &[u8]) -> Result<Cartridge, String> {
+  fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String> {
+    unimplemented!();
+  }
+}
+
+impl Default for Cartridge {
+  fn default() -> Cartridge {
+    Cartridge {
+      rom: vec![],
+      ram: vec![],
+      cart_type: CartType::RomOnly,
+      title: "".to_owned(),
+    }
+  }
+}
+
+impl Cartridge {
+  pub fn new() -> Cartridge {
+    Cartridge::default()
+  }
+
+  // pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Cartridge, String> {
+  //   let mut c = Cartridge::default();
+  //   c.load_from_path(path)
+  // }
+  //
+  // pub fn from_data(data: &[u8]) -> Result<Cartridge, String> {
+  //   let mut c = Cartridge::default();
+  //   c.load_from_data(data)
+  // }
+
+  pub fn load_data(&mut self, data: &[u8]) -> Result<(), String> {
     if data.len() < 0x014F {
       return Err("invalid cartridge: too small".to_owned());
     }
 
-    let cart_type = match num::FromPrimitive::from_u8(data[0x0147]) {
+    self.rom = From::from(data);
+
+    self.cart_type = match num::FromPrimitive::from_u8(data[0x0147]) {
       Some(v) => v,
       None => {
         return Err(format!("unknown cartridge type: {:#02x}", data[0x0147]));
@@ -69,24 +100,26 @@ impl Cartridge {
       Ok(v) => v,
       Err(e) => return Err(format!("{}", e)),
     };
-    let title = match title.into_string() {
+
+    self.title = match title.into_string() {
       Ok(v) => v,
       Err(e) => return Err(format!("{}", e)),
     };
 
-    let mut c = Cartridge {
-      cart_type: cart_type,
-      title: title,
-      rom: From::from(data),
-      ram: vec![],
-    };
+    self.load_mbc();
 
-    c.map_mbc();
-
-    Ok(c)
+    Ok(())
   }
 
-  fn map_mbc(&mut self) {}
+  pub fn load_path<P: AsRef<Path>>(&mut self, path: P) -> Result<(), String> {
+    let mut f = try!(File::open(path).map_err(|e| format!("{}", e)));
+    let mut v = vec![];
+    try!(f.read_to_end(&mut v).map_err(|e| format!("{}", e)));
+
+    self.load_data(&v.as_slice())
+  }
+
+  fn load_mbc(&mut self) {}
 }
 
 #[cfg(test)]
@@ -122,9 +155,12 @@ mod test {
        0x00, 0x00, 0x01, 0x9f, 0x1b, 0xab];
 
 
-    let result = Cartridge::from_data(&test_cart).unwrap();
+    let mut cartridge = Cartridge::default();
 
-    assert_eq!(result.cart_type, CartType::RomOnly);
-    assert_eq!(result.title, "Opus Test       ");
+    let result = cartridge.load_data(&test_cart);
+    assert!(result.is_ok());
+
+    assert_eq!(cartridge.cart_type, CartType::RomOnly);
+    assert_eq!(cartridge.title, "Opus Test       ");
   }
 }

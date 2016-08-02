@@ -7,6 +7,7 @@ use std::cell::RefCell;
 use super::mem;
 use super::video;
 use super::audio;
+use super::cartridge;
 use super::reg::Reg;
 use super::flag::Flag;
 use super::disassembler::Instruction;
@@ -34,6 +35,7 @@ pub struct Cpu {
   mem: Box<mem::Memory>,
   video: Rc<RefCell<video::Video>>,
   audio: Rc<RefCell<audio::Audio>>,
+  cartridge: Rc<RefCell<cartridge::Cartridge>>,
   disasm: Disassembler,
 }
 
@@ -58,6 +60,7 @@ impl Default for Cpu {
       mem: Box::new(mem::Mem::new()),
       video: Rc::new(RefCell::new(video::Video::new())),
       audio: Rc::new(RefCell::new(audio::Audio::new())),
+      cartridge: Rc::new(RefCell::new(cartridge::Cartridge::new())),
       disasm: Disassembler::new(),
     }
   }
