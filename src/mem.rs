@@ -93,6 +93,10 @@ pub trait MemoryMap {
     }
   }
 
+  // TODO: Maybe allow MemoryMap objects implement this directly,
+  // so it doesn't need to call read_byte twice and instead just
+  // read the word directly. Also would need a read_u32 or something
+  // similar for performance reasons.
   fn read_word(&self, addr: u16) -> Result<u16, String> {
     let mut val: u16 = match self.read_byte(addr + 1) {
       Ok(x) => (x as u16) << 8,
