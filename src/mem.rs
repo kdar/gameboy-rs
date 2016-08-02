@@ -8,8 +8,8 @@ pub use self::module::Mem;
 pub const ROM_00_START: u16 = 0x0000;
 pub const ROM_00_END: u16 = 0x3FFF;
 
-// 16KB ROM Bank 01..NN
-// In cartridge, switable bank number
+// 16KB ROM Bank 01..7F
+// In cartridge, switchable bank number
 pub const ROM_01_START: u16 = 0x4000;
 pub const ROM_01_END: u16 = 0x7FFF;
 
@@ -62,7 +62,6 @@ pub const BOOTING_FLAG: u16 = 0xFF50;
 pub enum Addr {
   Rom00(u16, u16),
   Rom01(u16, u16),
-  VideoRam(u16, u16),
   ExternalRam(u16, u16),
   WorkRam0(u16, u16),
   WorkRam1(u16, u16),
@@ -238,9 +237,6 @@ mod module {
           }
         }
         Addr::Rom01(_, _) => Err(format!("read_byte Addr::Rom01 not implemented: {:?}", mapped)),
-        Addr::VideoRam(_, _) => {
-          Err(format!("read_byte Addr::VideoRam not implemented: {:?}", mapped))
-        }
         Addr::ExternalRam(_, _) => {
           Err(format!("read_byte Addr::ExternalRam not implemented: {:?}", mapped))
         }
@@ -282,9 +278,6 @@ mod module {
       match mapped {
         Addr::Rom00(_, _) => Err(format!("write_byte Addr::Rom00 not implemented: {:?}", mapped)),
         Addr::Rom01(_, _) => Err(format!("write_byte Addr::Rom01 not implemented: {:?}", mapped)),
-        Addr::VideoRam(_, _) => {
-          Err(format!("write_byte Addr::VideoRam not implemented: {:?}", mapped))
-        }
         Addr::ExternalRam(_, _) => {
           Err(format!("write_byte Addr::ExternalRam not implemented: {:?}", mapped))
         }
