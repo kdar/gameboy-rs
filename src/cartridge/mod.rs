@@ -2,7 +2,6 @@ use std::path::Path;
 use std::fs::File;
 use std::io::Read;
 use num;
-use std::ffi::CString;
 
 mod ram;
 mod rom;
