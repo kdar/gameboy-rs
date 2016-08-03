@@ -4,6 +4,9 @@ use std::io::Read;
 use num;
 use std::ffi::CString;
 
+mod ram;
+mod rom;
+
 use super::mem::MemoryIo;
 
 #[derive(PartialEq, Debug, NumFromPrimitive)]
@@ -96,7 +99,15 @@ impl Cartridge {
       }
     };
 
-    let title = match CString::new(&data[0x0134..0x0144]) {
+    let new_cartridge = self.rom[0x14b] == 0x33;
+
+    let title = if new_cartridge {
+      &data[0x134..0x13f]
+    } else {
+      &data[0x134..0x143]
+    };
+
+    let title = match CString::new(title) {
       Ok(v) => v,
       Err(e) => return Err(format!("{}", e)),
     };

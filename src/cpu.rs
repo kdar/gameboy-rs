@@ -105,6 +105,9 @@ impl Cpu {
     // Cartridge mapping
     c.mem.map(mem::ROM_00_START, mem::ROM_00_END, c.cartridge.clone());
     c.mem.map(mem::ROM_01_START, mem::ROM_01_END, c.cartridge.clone());
+    c.mem.map(mem::EXTERNAL_RAM_START,
+              mem::EXTERNAL_RAM_END,
+              c.cartridge.clone());
 
     c
   }
