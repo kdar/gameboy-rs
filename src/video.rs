@@ -106,6 +106,7 @@ impl MemoryIo for Video {
     println!("reading vid byte from: {:#04x}", addr);
     match addr {
       LCD_CONTROL => Ok(self.control),
+      LCD_CONTROLLER_STATUS => Ok(self.status),
       LCD_CONTROLLER_Y_COORDINATE => Ok(self.current_line),
       _ => Ok(0),
     }
@@ -136,7 +137,10 @@ impl MemoryIo for Video {
         }
       }
 
-      LCD_CONTROLLER_STATUS => {}
+      LCD_CONTROLLER_STATUS => {
+        // Bits 0-2 are read only.
+        self.status = (value & 0b11111000) | (self.status & 0b00000111);
+      }
 
       VIDEO_RAM_START...VIDEO_RAM_END => {
         let offset = addr as usize - VIDEO_RAM_START as usize;
