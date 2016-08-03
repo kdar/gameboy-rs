@@ -22,12 +22,14 @@ const SCROLL_Y: u16 = 0xFF42;
 const SCROLL_X: u16 = 0xFF43;
 const LCD_CONTROLLER_Y_COORDINATE: u16 = 0xFF44;
 const LY_COMPARE: u16 = 0xFF45;
+// const DMA_TRANSFER_AND_START_ADDRESS: u16 = 0xFF46;
 const BG_PALETTE_DATA: u16 = 0xFF47;
 const OBJECT_PALETTE0_DATA: u16 = 0xFF48;
 const OBJECT_PALETTE1_DATA: u16 = 0xFF49;
-// const WINDOW_Y_POSITION: u16 = 0xFF4A;
-// const WINDOW_X_POSITION_MINUS_7: u16 = 0xFF4B;
-// const DMA_TRANSFER_AND_START_ADDRESS: u16 = 0xFF46;
+// WY - Window Y Position (R/W)
+const WINDOW_Y_POSITION: u16 = 0xFF4A;
+// WX - Window X Position minus 7 (R/W)
+const WINDOW_X_POSITION: u16 = 0xFF4B;
 
 const VBLANK_CYCLES: usize = 456;
 const HBLANK_CYCLES: usize = 204;
@@ -70,6 +72,8 @@ pub struct Video {
   cycles: usize,
   scroll_y: u8,
   scroll_x: u8,
+  window_y: u8,
+  window_x: u8,
   ly_compare: u8,
   bg_palette: [u8; 4],
   obj_palette0: [u8; 4],
@@ -89,6 +93,8 @@ impl Default for Video {
       cycles: 0,
       scroll_y: 0,
       scroll_x: 0,
+      window_y: 0,
+      window_x: 0,
       ly_compare: 0,
       bg_palette: [0; 4],
       obj_palette0: [0; 4],
@@ -120,6 +126,8 @@ impl MemoryIo for Video {
       BG_PALETTE_DATA => Ok(self.bg_palette),
       OBJECT_PALETTE0_DATA => Ok(self.obj_palette0),
       OBJECT_PALETTE1_DATA => Ok(self.obj_palette1),
+      WINDOW_Y_POSITION => Ok(self.window_y),
+      WINDOW_X_POSITION => Ok(self.window_x),
       _ => Ok(0),
     }
   }
@@ -201,6 +209,10 @@ impl MemoryIo for Video {
           }
         }
       }
+
+      WINDOW_Y_POSITION => self.window_y = value,
+      WINDOW_X_POSITION => self.window_x = value,
+
       _ => (), // println!("video: non implemented range: {:#04x}", addr),
     };
 
