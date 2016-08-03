@@ -5,7 +5,7 @@ pub struct GameBoy {
 }
 
 impl GameBoy {
-  pub fn new(cart_rom: Box<[u8]>) -> GameBoy {
+  pub fn new(cart_rom: &[u8]) -> GameBoy {
     let mut cpu = cpu::Cpu::new();
     cpu.set_cart_rom(cart_rom);
     GameBoy { cpu: cpu }
