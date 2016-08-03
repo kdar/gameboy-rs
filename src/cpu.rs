@@ -336,7 +336,7 @@ impl Cpu {
       Instruction::NOP => self.inst_NOP(),
       Instruction::XOR_r(r) => self.inst_XOR_r(r),
 
-      _ => panic!("instruction not implemented: {:?}", ins),
+      _ => panic!("instruction not implemented: {:?}\n{:?}", ins, self),
     };
 
     self.clock_t += t;
