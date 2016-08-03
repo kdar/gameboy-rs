@@ -117,7 +117,11 @@ impl Cpu {
   }
 
   pub fn set_cart_rom(&mut self, rom: Box<[u8]>) {
-    self.mem.set_cart_rom(rom);
+    let cart = self.cartridge.clone();
+    match cart.borrow_mut().load_data(&*rom) {
+      Ok(()) => (),
+      Err(e) => panic!("cpu.set_cart_rom: {}", e),
+    };
   }
 
   pub fn read_reg_byte(&self, register: Reg) -> u8 {

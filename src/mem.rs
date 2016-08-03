@@ -118,7 +118,6 @@ pub trait MemoryIo {
 pub trait Memory: MemoryIo {
   fn map(&mut self, start: u16, end: u16, mapper: Rc<RefCell<MemoryIo>>);
   fn set_boot_rom(&mut self, rom: Box<[u8]>);
-  fn set_cart_rom(&mut self, rom: Box<[u8]>);
 }
 
 #[cfg(not(test))]
@@ -132,7 +131,6 @@ mod module {
 
   pub struct Mem {
     boot_rom: Box<[u8]>,
-    cart_rom: Box<[u8]>,
     booting: bool,
 
     work_ram_0: [u8; WORK_RAM_0_LEN + 1],
@@ -149,7 +147,6 @@ mod module {
     fn default() -> Mem {
       Mem {
         boot_rom: Box::new([]),
-        cart_rom: Box::new([]),
         booting: false,
         work_ram_0: [0; WORK_RAM_0_LEN + 1],
         work_ram_1: [0; WORK_RAM_1_LEN + 1],
@@ -194,10 +191,6 @@ mod module {
       self.booting = true;
       self.boot_rom = rom;
     }
-
-    fn set_cart_rom(&mut self, rom: Box<[u8]>) {
-      self.cart_rom = rom;
-    }
   }
 
   impl fmt::Debug for Mem {
@@ -215,26 +208,26 @@ mod module {
 
   impl MemoryIo for Mem {
     fn read_byte(&self, addr: u16) -> Result<u8, String> {
-      for i in &self.map {
-        if i.0 <= addr && addr <= i.1 {
-          return i.2.borrow_mut().read_byte(addr);
+      // If we're not booting or if the address is greater than
+      // 0xFF, then we need to check our mappings to see
+      // if this address exists in there.
+      if !self.booting || addr >= 0xFF {
+        for i in &self.map {
+          if i.0 <= addr && addr <= i.1 {
+            return i.2.borrow_mut().read_byte(addr);
+          }
         }
       }
 
       let mapped = self.memory_map(addr);
       match mapped {
         Addr::Rom00(_, offset) => {
-          if self.booting && offset < 0xFF {
-            self.boot_rom
-              .get(offset as usize)
-              .ok_or_else(|| format!("could not get byte at boot_rom offset {}", offset))
-              .and_then(|&x| Ok(x))
-          } else {
-            self.cart_rom
-              .get(offset as usize)
-              .ok_or_else(|| format!("could not get byte at cart_rom offset {}", offset))
-              .and_then(|&x| Ok(x))
-          }
+          // If we get to this point, it means we're booting and/or the address
+          // is less than 0xFF.
+          self.boot_rom
+            .get(offset as usize)
+            .ok_or_else(|| format!("could not get byte at boot_rom offset {}", offset))
+            .and_then(|&x| Ok(x))
         }
         Addr::Rom01(_, _) => Err(format!("read_byte Addr::Rom01 not implemented: {:?}", mapped)),
         Addr::ExternalRam(_, _) => {
@@ -374,11 +367,6 @@ mod module {
 
     fn set_boot_rom(&mut self, _: Box<[u8]>) {
       panic!("set_boot_rom should not be used for testing. use write_byte to write the rom to \
-              memory");
-    }
-
-    fn set_cart_rom(&mut self, _: Box<[u8]>) {
-      panic!("set_cart_rom should not be used for testing. use write_byte to write the rom to \
               memory");
     }
   }

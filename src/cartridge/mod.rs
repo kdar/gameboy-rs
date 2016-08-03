@@ -51,11 +51,18 @@ pub struct Cartridge {
 
 impl MemoryIo for Cartridge {
   fn read_byte(&self, addr: u16) -> Result<u8, String> {
-    unimplemented!();
+    if addr as usize >= self.rom.len() {
+      return Err(format!("cartridge.read_byte: tried to read at #{:04x} when the ROM size is \
+                          only #{:04x}",
+                         addr,
+                         self.rom.len()));
+    }
+
+    Ok(self.rom[addr as usize])
   }
 
   fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String> {
-    unimplemented!();
+    panic!("writing to cartridge is illegal!");
   }
 }
 
