@@ -1,8 +1,7 @@
 #[derive(Debug, PartialEq)]
-enum Ram {
-  RamNone = 0x00,
-  Ram2KByte = 0x01,
-  Ram8KByte = 0x02,
-  Ram32KByte = 0x03,
-  Ram,
+enum RamSize {
+  None = 0x00,
+  Kbyte2 = 0x01,
+  Kbyte8 = 0x02,
+  Kbyte32 = 0x03,
 }
