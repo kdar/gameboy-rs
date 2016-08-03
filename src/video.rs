@@ -47,7 +47,6 @@ enum Color {
 impl Color {
   fn from_u8(value: u8) -> Color {
     match value {
-      0 => Color::White,
       1 => Color::LightGray,
       2 => Color::DarkGray,
       3 => Color::Black,
