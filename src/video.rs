@@ -18,8 +18,8 @@ pub const VIDEO_CONTROL_END: u16 = 0xFF4C;
 
 const LCD_CONTROL: u16 = 0xFF40;
 const LCD_CONTROLLER_STATUS: u16 = 0xFF41;
-// const SCROLL_Y: u16 = 0xFF42;
-// const SCROLL_X: u16 = 0xFF43;
+const SCROLL_Y: u16 = 0xFF42;
+const SCROLL_X: u16 = 0xFF43;
 const LCD_CONTROLLER_Y_COORDINATE: u16 = 0xFF44;
 // const LY_COMPARE: u16 = 0xFF45;
 // const WINDOW_Y_POSITION: u16 = 0xFF4A;
@@ -68,6 +68,8 @@ pub struct Video {
   status: u8,
   mode: u8,
   cycles: usize,
+  scroll_y: u8,
+  scroll_x: u8,
   bg_palette: [u8; 4],
   obj_palette0: [u8; 4],
   obj_palette1: [u8; 4],
@@ -84,6 +86,8 @@ impl Default for Video {
       status: 0,
       mode: LcdMode::Hblank as u8,
       cycles: 0,
+      scroll_y: 0,
+      scroll_x: 0,
       bg_palette: [0; 4],
       obj_palette0: [0; 4],
       obj_palette1: [0; 4],
@@ -107,6 +111,8 @@ impl MemoryIo for Video {
     match addr {
       LCD_CONTROL => Ok(self.control),
       LCD_CONTROLLER_STATUS => Ok(self.status),
+      SCROLL_Y => Ok(self.scroll_y),
+      SCROLL_X => Ok(self.scroll_x),
       LCD_CONTROLLER_Y_COORDINATE => Ok(self.current_line),
       _ => Ok(0),
     }
@@ -141,6 +147,9 @@ impl MemoryIo for Video {
         // Bits 0-2 are read only.
         self.status = (value & 0b11111000) | (self.status & 0b00000111);
       }
+
+      SCROLL_Y => self.scroll_y = value,
+      SCROLL_X => self.scroll_x = value,
 
       VIDEO_RAM_START...VIDEO_RAM_END => {
         let offset = addr as usize - VIDEO_RAM_START as usize;
