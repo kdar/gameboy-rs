@@ -7,6 +7,9 @@ test_cpu:
 test_boot:
 	cargo run -- -b "res\DMG_ROM.bin" "res\opus5.gb"
 
+test_noboot:
+	cargo run -- "res\Tetris.gb"
+
 test_debugger:
 	cargo run -- -b "res\DMG_ROM.bin" "res\opus5.gb" --debug
 

@@ -114,15 +114,7 @@ impl Cartridge {
       &data[0x134..0x144]
     };
 
-    let title = match CString::new(title) {
-      Ok(v) => v,
-      Err(e) => return Err(format!("{}", e)),
-    };
-
-    self.title = match title.into_string() {
-      Ok(v) => v,
-      Err(e) => return Err(format!("{}", e)),
-    };
+    self.title = String::from_utf8_lossy(title).into_owned();
 
     self.load_mbc();
 
