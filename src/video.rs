@@ -3,6 +3,7 @@ use piston_window::*;
 // use im;
 // use time::{Duration, SteadyTime};
 use super::mem::MemoryIo;
+use super::bit::Bit;
 
 // Swichable bank 0-1 in CGB Mode
 pub const VIDEO_RAM_START: u16 = 0x8000;
@@ -15,7 +16,7 @@ pub const SPRITE_TABLE_END: u16 = 0xFE9F;
 pub const VIDEO_CONTROL_START: u16 = 0xFF40;
 pub const VIDEO_CONTROL_END: u16 = 0xFF4C;
 
-// const LCD_CONTROL: u16 = 0xFF40;
+const LCD_CONTROL: u16 = 0xFF40;
 // const LCD_CONTROLLER_STATUS: u16 = 0xFF41;
 // const SCROLL_Y: u16 = 0xFF42;
 // const SCROLL_X: u16 = 0xFF43;
@@ -28,9 +29,45 @@ const OBJECT_PALETTE0_DATA: u16 = 0xFF48;
 const OBJECT_PALETTE1_DATA: u16 = 0xFF49;
 // const DMA_TRANSFER_AND_START_ADDRESS: u16 = 0xFF46;
 
+const VBLANK_CYCLES: usize = 456;
+const HBLANK_CYCLES: usize = 204;
+const READING_OAM_CYCLES: usize = 80;
+const READING_VRAM_CYCLES: usize = 172;
+
+enum LcdControl {
+  DisplayOn = 1 << 7, // Bit 7 - LCD Display Enable             (0=Off, 1=On)
+  WindowMap = 1 << 6, // Bit 6 - Window Tile Map Display Select (0=9800-9BFF, 1=9C00-9FFF)
+  WindowOn = 1 << 5, // Bit 5 - Window Display Enable          (0=Off, 1=On)
+  BgSelect = 1 << 4, // Bit 4 - BG & Window Tile Data Select   (0=8800-97FF, 1=8000-8FFF)
+  BgMap = 1 << 3, // Bit 3 - BG Tile Map Display Select     (0=9800-9BFF, 1=9C00-9FFF)
+  ObjSize = 1 << 2, // Bit 2 - OBJ (Sprite) Size              (0=8x8, 1=8x16)
+  ObjOn = 1 << 1, // Bit 1 - OBJ (Sprite) Display Enable    (0=Off, 1=On)
+  BgOn = 1, // Bit 0 - BG Display (for CGB see below) (0=Off, 1=On)
+}
+
+enum LcdStatus {
+  LYCoincidenceInterrupt = 1 << 6, // (1=Enable) (Read/Write)
+  OamInterrupt = 1 << 5, // (1=Enable) (Read/Write)
+  VblankInterrupt = 1 << 4, // (1=Enable) (Read/Write)
+  HblankInterrupt = 1 << 3, // (1=Enable) (Read/Write)
+  CoincidenceFlag = 1 << 2, // (0:LYC<>LY, 1:LYC=LY) (Read Only)
+  ModeFlag = 0b11, // (Mode 0-3, see below) (Read Only)
+}
+
+enum LcdMode {
+  Hblank = 0, // During H-Blank
+  Vblank = 1, // During V-Blank
+  AccessOam = 2, // During Searching OAM-RAM
+  AccessVram = 3, // During Transfering Data to LCD Driver
+}
+
 pub struct Video {
   window: Option<PistonWindow>,
   // tilemap: [[u8; ]],
+  control: u8,
+  status: u8,
+  mode: u8,
+  cycles: usize,
   bg_palette: [u8; 4],
   obj_palette0: [u8; 4],
   obj_palette1: [u8; 4],
@@ -43,10 +80,14 @@ impl Default for Video {
   fn default() -> Video {
     Video {
       window: None,
+      control: 0,
+      status: 0,
+      mode: LcdMode::Hblank as u8,
+      cycles: 0,
       bg_palette: [0; 4],
       obj_palette0: [0; 4],
       obj_palette1: [0; 4],
-      current_line: 0x90, // FIXME: here for testing.
+      current_line: 0,
       vram: [0; 8192],
       oam: [0; 160],
     }
@@ -71,6 +112,29 @@ impl MemoryIo for Video {
 
   fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String> {
     match addr {
+      LCD_CONTROL => {
+        let old_lcd_on = self.control.has_bit(LcdControl::DisplayOn as usize);
+        let new_lcd_on = value.has_bit(LcdControl::DisplayOn as usize);
+
+        // The value coming in tells us to turn off the LCD, while the
+        // previous value was on.
+        if !new_lcd_on && !old_lcd_on {
+          if self.mode == LcdMode::Vblank as u8 {
+            panic!("The LCD should not be turned off while not in VBlank. This action can cause \
+                    damage in a real Gameboy.");
+          }
+          self.current_line = 0;
+        }
+
+        // The value coming in tells us to turn on the LCD, while the
+        // previous value was off.
+        if new_lcd_on && !old_lcd_on {
+          self.mode = LcdMode::Hblank as u8;
+          self.status.set_bit(LcdStatus::CoincidenceFlag as usize);
+          self.cycles = READING_OAM_CYCLES;
+        }
+      }
+
       VIDEO_RAM_START...VIDEO_RAM_END => {
         let offset = addr as usize - VIDEO_RAM_START as usize;
         self.vram[offset] = value;

@@ -22,6 +22,7 @@ pub mod debugger;
 pub mod video;
 pub mod audio;
 pub mod cartridge;
+pub mod bit;
 
 pub use gameboy::GameBoy;
 pub use reg::Reg;
