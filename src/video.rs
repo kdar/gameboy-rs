@@ -22,11 +22,11 @@ const SCROLL_Y: u16 = 0xFF42;
 const SCROLL_X: u16 = 0xFF43;
 const LCD_CONTROLLER_Y_COORDINATE: u16 = 0xFF44;
 const LY_COMPARE: u16 = 0xFF45;
-// const WINDOW_Y_POSITION: u16 = 0xFF4A;
-// const WINDOW_X_POSITION_MINUS_7: u16 = 0xFF4B;
 const BG_PALETTE_DATA: u16 = 0xFF47;
 const OBJECT_PALETTE0_DATA: u16 = 0xFF48;
 const OBJECT_PALETTE1_DATA: u16 = 0xFF49;
+// const WINDOW_Y_POSITION: u16 = 0xFF4A;
+// const WINDOW_X_POSITION_MINUS_7: u16 = 0xFF4B;
 // const DMA_TRANSFER_AND_START_ADDRESS: u16 = 0xFF46;
 
 const VBLANK_CYCLES: usize = 456;
@@ -117,6 +117,9 @@ impl MemoryIo for Video {
       SCROLL_X => Ok(self.scroll_x),
       LCD_CONTROLLER_Y_COORDINATE => Ok(self.current_line),
       LY_COMPARE => Ok(self.ly_compare),
+      BG_PALETTE_DATA => Ok(self.bg_palette),
+      OBJECT_PALETTE0_DATA => Ok(self.obj_palette0),
+      OBJECT_PALETTE1_DATA => Ok(self.obj_palette1),
       _ => Ok(0),
     }
   }
