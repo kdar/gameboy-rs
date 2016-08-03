@@ -273,13 +273,16 @@ impl Cpu {
   }
 
   pub fn step(&mut self) -> Instruction {
-    if let Ok((inst, inc)) = self.disasm.at(&self.mem, self.reg_pc) {
-      self.reg_pc += inc;
-      self.execute_instruction(inst);
-      return inst;
+    match self.disasm.at(&self.mem, self.reg_pc) {
+      Ok((inst, inc)) => {
+        self.reg_pc += inc;
+        self.execute_instruction(inst);
+        inst
+      }
+      Err(e) => {
+        panic!("cpu.step: {}", e);
+      }
     }
-
-    Instruction::Invalid(0)
   }
 
   fn execute_instruction(&mut self, ins: Instruction) {
