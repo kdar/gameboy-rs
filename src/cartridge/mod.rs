@@ -104,7 +104,7 @@ impl Cartridge {
     let title = if new_cartridge {
       &data[0x134..0x13f]
     } else {
-      &data[0x134..0x143]
+      &data[0x134..0x144]
     };
 
     let title = match CString::new(title) {
