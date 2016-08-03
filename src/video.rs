@@ -17,7 +17,7 @@ pub const VIDEO_CONTROL_START: u16 = 0xFF40;
 pub const VIDEO_CONTROL_END: u16 = 0xFF4C;
 
 const LCD_CONTROL: u16 = 0xFF40;
-// const LCD_CONTROLLER_STATUS: u16 = 0xFF41;
+const LCD_CONTROLLER_STATUS: u16 = 0xFF41;
 // const SCROLL_Y: u16 = 0xFF42;
 // const SCROLL_X: u16 = 0xFF43;
 const LCD_CONTROLLER_Y_COORDINATE: u16 = 0xFF44;
@@ -105,6 +105,7 @@ impl MemoryIo for Video {
   fn read_byte(&self, addr: u16) -> Result<u8, String> {
     println!("reading vid byte from: {:#04x}", addr);
     match addr {
+      LCD_CONTROL => Ok(self.control),
       LCD_CONTROLLER_Y_COORDINATE => Ok(self.current_line),
       _ => Ok(0),
     }
@@ -134,6 +135,8 @@ impl MemoryIo for Video {
           self.cycles = READING_OAM_CYCLES;
         }
       }
+
+      LCD_CONTROLLER_STATUS => {}
 
       VIDEO_RAM_START...VIDEO_RAM_END => {
         let offset = addr as usize - VIDEO_RAM_START as usize;
