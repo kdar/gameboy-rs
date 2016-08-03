@@ -36,6 +36,52 @@ const HBLANK_CYCLES: usize = 204;
 const READING_OAM_CYCLES: usize = 80;
 const READING_VRAM_CYCLES: usize = 172;
 
+#[derive(Copy, Clone)]
+enum Color {
+  White = 0,
+  LightGray = 1,
+  DarkGray = 2,
+  Black = 3,
+}
+
+impl Color {
+  fn from_u8(value: u8) -> Color {
+    match value {
+      0 => Color::White,
+      1 => Color::LightGray,
+      2 => Color::DarkGray,
+      3 => Color::Black,
+      _ => Color::White,
+    }
+  }
+}
+
+struct Palette {
+  colors: [Color; 4],
+  value: u8,
+}
+
+impl Default for Palette {
+  fn default() -> Palette {
+    Palette {
+      colors: [Color::White; 4],
+      value: 0,
+    }
+  }
+}
+
+impl Palette {
+  fn from_u8(value: u8) -> Palette {
+    Palette {
+      colors: [Color::from_u8(value & 0b11),
+               Color::from_u8(value >> 2 & 0b11),
+               Color::from_u8(value >> 4 & 0b11),
+               Color::from_u8(value >> 6 & 0b11)],
+      value: value,
+    }
+  }
+}
+
 enum LcdControl {
   DisplayOn = 1 << 7, // Bit 7 - LCD Display Enable             (0=Off, 1=On)
   WindowMap = 1 << 6, // Bit 6 - Window Tile Map Display Select (0=9800-9BFF, 1=9C00-9FFF)
@@ -75,9 +121,9 @@ pub struct Video {
   window_y: u8,
   window_x: u8,
   ly_compare: u8,
-  bg_palette: [u8; 4],
-  obj_palette0: [u8; 4],
-  obj_palette1: [u8; 4],
+  bg_palette: Palette,
+  obj_palette0: Palette,
+  obj_palette1: Palette,
   current_line: u8,
   vram: [u8; 8192], // Video ram
   oam: [u8; 160], // Sprite attribute table
@@ -96,9 +142,9 @@ impl Default for Video {
       window_y: 0,
       window_x: 0,
       ly_compare: 0,
-      bg_palette: [0; 4],
-      obj_palette0: [0; 4],
-      obj_palette1: [0; 4],
+      bg_palette: Palette::default(),
+      obj_palette0: Palette::default(),
+      obj_palette1: Palette::default(),
       current_line: 0,
       vram: [0; 8192],
       oam: [0; 160],
@@ -123,9 +169,9 @@ impl MemoryIo for Video {
       SCROLL_X => Ok(self.scroll_x),
       LCD_CONTROLLER_Y_COORDINATE => Ok(self.current_line),
       LY_COMPARE => Ok(self.ly_compare),
-      BG_PALETTE_DATA => Ok(self.bg_palette),
-      OBJECT_PALETTE0_DATA => Ok(self.obj_palette0),
-      OBJECT_PALETTE1_DATA => Ok(self.obj_palette1),
+      BG_PALETTE_DATA => Ok(self.bg_palette.value),
+      OBJECT_PALETTE0_DATA => Ok(self.obj_palette0.value),
+      OBJECT_PALETTE1_DATA => Ok(self.obj_palette1.value),
       WINDOW_Y_POSITION => Ok(self.window_y),
       WINDOW_X_POSITION => Ok(self.window_x),
       _ => Ok(0),
@@ -175,39 +221,15 @@ impl MemoryIo for Video {
       // LCD_CONTROLLER_Y_COORDINATE => self.current_line = value,
       BG_PALETTE_DATA => {
         println!("video: bg palette: {:#04x}", addr);
-        for i in 0..4 {
-          match (value >> (i * 2)) & 3 {
-            0 => self.bg_palette[i] = 255,
-            1 => self.bg_palette[i] = 192,
-            2 => self.bg_palette[i] = 96,
-            3 => self.bg_palette[i] = 0,
-            _ => (),
-          }
-        }
+        self.bg_palette = Palette::from_u8(value);
       }
       OBJECT_PALETTE0_DATA => {
         println!("video: obj 0 palette: {:#04x}", addr);
-        for i in 0..4 {
-          match (value >> (i * 2)) & 3 {
-            0 => self.obj_palette0[i] = 255,
-            1 => self.obj_palette0[i] = 192,
-            2 => self.obj_palette0[i] = 96,
-            3 => self.obj_palette0[i] = 0,
-            _ => (),
-          }
-        }
+        self.obj_palette0 = Palette::from_u8(value);
       }
       OBJECT_PALETTE1_DATA => {
         println!("video: obj 1 palette: {:#04x}", addr);
-        for i in 0..4 {
-          match (value >> (i * 2)) & 3 {
-            0 => self.obj_palette1[i] = 255,
-            1 => self.obj_palette1[i] = 192,
-            2 => self.obj_palette1[i] = 96,
-            3 => self.obj_palette1[i] = 0,
-            _ => (),
-          }
-        }
+        self.obj_palette1 = Palette::from_u8(value);
       }
 
       WINDOW_Y_POSITION => self.window_y = value,
