@@ -21,7 +21,7 @@ const LCD_CONTROLLER_STATUS: u16 = 0xFF41;
 const SCROLL_Y: u16 = 0xFF42;
 const SCROLL_X: u16 = 0xFF43;
 const LCD_CONTROLLER_Y_COORDINATE: u16 = 0xFF44;
-// const LY_COMPARE: u16 = 0xFF45;
+const LY_COMPARE: u16 = 0xFF45;
 // const WINDOW_Y_POSITION: u16 = 0xFF4A;
 // const WINDOW_X_POSITION_MINUS_7: u16 = 0xFF4B;
 const BG_PALETTE_DATA: u16 = 0xFF47;
@@ -46,7 +46,7 @@ enum LcdControl {
 }
 
 enum LcdStatus {
-  LYCoincidenceInterrupt = 1 << 6, // (1=Enable) (Read/Write)
+  CoincidenceInterrupt = 1 << 6, // (1=Enable) (Read/Write)
   OamInterrupt = 1 << 5, // (1=Enable) (Read/Write)
   VblankInterrupt = 1 << 4, // (1=Enable) (Read/Write)
   HblankInterrupt = 1 << 3, // (1=Enable) (Read/Write)
@@ -70,6 +70,7 @@ pub struct Video {
   cycles: usize,
   scroll_y: u8,
   scroll_x: u8,
+  ly_compare: u8,
   bg_palette: [u8; 4],
   obj_palette0: [u8; 4],
   obj_palette1: [u8; 4],
@@ -88,6 +89,7 @@ impl Default for Video {
       cycles: 0,
       scroll_y: 0,
       scroll_x: 0,
+      ly_compare: 0,
       bg_palette: [0; 4],
       obj_palette0: [0; 4],
       obj_palette1: [0; 4],
@@ -114,6 +116,7 @@ impl MemoryIo for Video {
       SCROLL_Y => Ok(self.scroll_y),
       SCROLL_X => Ok(self.scroll_x),
       LCD_CONTROLLER_Y_COORDINATE => Ok(self.current_line),
+      LY_COMPARE => Ok(self.ly_compare),
       _ => Ok(0),
     }
   }
@@ -150,6 +153,8 @@ impl MemoryIo for Video {
 
       SCROLL_Y => self.scroll_y = value,
       SCROLL_X => self.scroll_x = value,
+      LCD_CONTROLLER_Y_COORDINATE => self.current_line = value,
+      LY_COMPARE => self.ly_compare = value,
 
       VIDEO_RAM_START...VIDEO_RAM_END => {
         let offset = addr as usize - VIDEO_RAM_START as usize;
