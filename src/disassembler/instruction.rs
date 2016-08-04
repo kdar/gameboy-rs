@@ -28,6 +28,7 @@ pub enum Instruction {
   LD_·0xFF00C·_A, // Moved: RET PO -> LD (FF00+n),A
   LD_·0xFF00n·_A(u8), // Moved: JP PO,nn -> LD (FF00+C),A
   LD_·BC·_A,
+  LD_·DE·_A,
   LD_·HL·_r(Reg),
   LD_·nn·_A(u16), // Moved: JP PE,nn -> LD (nn),A
   LD_·nn·_SP(u16), // Moved: EX AF,AF -> LD (nn),SP
@@ -75,6 +76,7 @@ impl fmt::Debug for Instruction {
       Instruction::LD_·0xFF00C·_A => write!(f, "LD (0xFF00+C),A"),
       Instruction::LD_·0xFF00n·_A(n) => write!(f, "LD (0xFF00+{:#02x}),A", n),
       Instruction::LD_·BC·_A => write!(f, "LD (BC),A"),
+      Instruction::LD_·DE·_A => write!(f, "LD (DE),A"),
       Instruction::LD_·HL·_r(r) => write!(f, "LD (HL),{}", r),
       Instruction::LD_·nn·_A(nn) => write!(f, "LD (${:#04x}),A", nn),
       Instruction::LD_·nn·_SP(nn) => write!(f, "LD (${:#04x}),SP", nn),

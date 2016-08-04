@@ -145,6 +145,7 @@ impl Disassembler {
         }
 
         0x02 => Ok((Instruction::LD_·BC·_A, pc)),
+        0x12 => Ok((Instruction::LD_·DE·_A, pc)),
 
         0x70...0x75 | 0x77 => {
           let r = op & 0b111;

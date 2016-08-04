@@ -329,6 +329,7 @@ impl Cpu {
       Instruction::JR_e(e) => self.inst_JR_e(e),
       Instruction::LD_·0xFF00C·_A => self.inst_LD_·0xFF00C·_A(),
       Instruction::LD_·0xFF00n·_A(n) => self.inst_LD_·0xFF00n·_A(n),
+      Instruction::LD_·DE·_A => self.inst_LD_·DE·_A(),
       Instruction::LD_·HL·_r(r) => self.inst_LD_·HL·_r(r),
       Instruction::LD_·nn·_A(nn) => self.inst_LD_·nn·_A(nn),
       Instruction::LD_A_·BC· => self.inst_LD_A_·BC·(),
@@ -634,6 +635,16 @@ impl Cpu {
     let a = self.read_reg_byte(Reg::A);
     self.write_byte(0xFF00 + n as u16, a);
     12
+  }
+
+  // LD (DE),A
+  // Opcode: 0x12
+  #[allow(non_snake_case)]
+  fn inst_LD_·DE·_A(&mut self) -> u32 {
+    let de = self.read_reg_word(Reg::DE);
+    let d = self.read_byte(de);
+    self.write_reg_byte(Reg::A, d);
+    8
   }
 
   // LD (HL),r
