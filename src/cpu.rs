@@ -8,6 +8,7 @@ use super::mem;
 use super::video;
 use super::audio;
 use super::cartridge;
+use super::linkport;
 use super::reg::Reg;
 use super::flag::Flag;
 use super::disassembler::Instruction;
@@ -36,6 +37,7 @@ pub struct Cpu {
   video: Rc<RefCell<video::Video>>,
   audio: Rc<RefCell<audio::Audio>>,
   cartridge: Rc<RefCell<cartridge::Cartridge>>,
+  linkport: Rc<RefCell<linkport::LinkPort>>,
   disasm: Disassembler,
 }
 
@@ -61,6 +63,7 @@ impl Default for Cpu {
       video: Rc::new(RefCell::new(video::Video::new())),
       audio: Rc::new(RefCell::new(audio::Audio::new())),
       cartridge: Rc::new(RefCell::new(cartridge::Cartridge::new())),
+      linkport: Rc::new(RefCell::new(linkport::LinkPort::new())),
       disasm: Disassembler::new(),
     }
   }
@@ -108,6 +111,11 @@ impl Cpu {
     c.mem.map(mem::EXTERNAL_RAM_START,
               mem::EXTERNAL_RAM_END,
               c.cartridge.clone());
+
+    // Link port mapping.
+    c.mem.map(linkport::SERIAL_DATA,
+              linkport::SERIAL_CONTROL,
+              c.linkport.clone());
 
     c
   }

@@ -286,7 +286,8 @@ mod module {
           Err(format!("write_byte Addr::SpriteTable not implemented: {:?}", mapped))
         }
         Addr::IoPorts(_, _) => {
-          Err(format!("write_byte Addr::IOPorts not implemented: {:?}", mapped))
+          // Err(format!("write_byte Addr::IOPorts not implemented: {:?}", mapped))
+          Ok(())
         }
         Addr::HighRam(_, offset) => {
           self.high_ram[offset as usize] = value;
