@@ -1,4 +1,4 @@
-use nom::{self, multispace, eof, space, digit};
+use nom::{self, multispace, eof, space, digit, hex_u32};
 use std::str::{self, FromStr};
 use std::fmt;
 use std::error;
@@ -68,7 +68,7 @@ named!(breakpoint<Command>,
       tag!("break") |
       tag!("b")
     ) ~
-    loc: opt!(preceded!(space, usize_parser)),
+    loc: opt!(preceded!(space, hex_parser)),
     || Command::Breakpoint(loc)
   )
 );
@@ -122,6 +122,13 @@ named!(step<Command>,
     ) ~
     count: opt!(preceded!(space, usize_parser)),
     || Command::Step(count.unwrap_or(1))
+  )
+);
+
+named!(hex_parser<usize>,
+  chain!(
+    addr: hex_u32,
+    || { addr as usize }
   )
 );
 

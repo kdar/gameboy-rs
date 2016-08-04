@@ -51,7 +51,7 @@ impl Debugger {
     println!("{:#04x}: {:?}", pc, inst);
     for &b in &self.breakpoints {
       if pc as usize == b {
-        println!("Breakpoint hit @ {}", pc);
+        println!("Breakpoint hit @ {:#04x}", pc);
         return true;
       }
     }
@@ -103,10 +103,11 @@ impl Debugger {
             }
             Command::Breakpoint(Some(l)) => {
               self.breakpoints.push(l as usize);
+              println!("Added breakpoint @ {:#04x}", l);
             }
             Command::Breakpoints => {
               for loc in &self.breakpoints {
-                println!("Breakpoint @ {}", loc);
+                println!("Breakpoint @ {:#04x}", loc);
               }
             }
             Command::Exit => exit(0),
