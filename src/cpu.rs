@@ -322,6 +322,7 @@ impl Cpu {
       Instruction::RLA => self.inst_RLA(),
 
       Instruction::ADD_A_·HL· => self.inst_ADD_A_·HL·(),
+      Instruction::ADD_HL_rr(rr) => self.inst_ADD_HL_rr(rr),
       Instruction::AND_n(n) => self.inst_AND_n(n),
       Instruction::AND_r(r) => self.inst_AND_r(r),
       Instruction::CALL_nn(nn) => self.inst_CALL_nn(nn),
@@ -329,7 +330,7 @@ impl Cpu {
       Instruction::CP_n(n) => self.inst_CP_n(n),
       Instruction::DEC_r(r) => self.inst_DEC_r(r),
       Instruction::INC_r(r) => self.inst_INC_r(r),
-      Instruction::INC_rr(ss) => self.inst_INC_rr(ss),
+      Instruction::INC_rr(rr) => self.inst_INC_rr(rr),
       Instruction::JP_nn(nn) => self.inst_JP_nn(nn),
       Instruction::JR_cc_e(cc, e) => self.inst_JR_cc_e(cc, e),
       Instruction::JR_e(e) => self.inst_JR_e(e),
@@ -358,6 +359,14 @@ impl Cpu {
     };
 
     self.clock_t += t;
+  }
+
+  fn add_word(&mut self, a: u16, b: u16) -> u16 {
+    let (result, carry) = a.overflowing_add(b);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::C, carry);
+    self.write_flag(Flag::H, (result ^ a ^ b) & 0x1000 != 0);
+    result
   }
 
   // BIT b,r
@@ -447,6 +456,18 @@ impl Cpu {
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, ((result ^ a ^ d) & 0x10) > 0);
     self.write_flag(Flag::C, result < a);
+
+    8
+  }
+
+  // ADD HL,rr
+  // Opcode: 00rr1001
+  #[allow(non_snake_case)]
+  fn inst_ADD_HL_rr(&mut self, rr: Reg) -> u32 {
+    let dd = self.read_reg_word(rr);
+    let hl = self.read_reg_word(Reg::HL);
+    let hl = self.add_word(dd, hl);
+    self.write_reg_word(Reg::HL, hl);
 
     8
   }

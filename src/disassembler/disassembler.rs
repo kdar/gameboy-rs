@@ -62,6 +62,11 @@ impl Disassembler {
       match op {
         0x86 => Ok((Instruction::ADD_A_·HL·, pc)),
 
+        0x9 | 0x19 | 0x29 | 0x39 => {
+          let rr = op >> 4 & 0b11;
+          Ok((Instruction::ADD_HL_rr(Reg::from_pair(rr)), pc))
+        }
+
         0xe6 => {
           let n = try!(m.read_byte(addr + pc));
           pc += 1;
