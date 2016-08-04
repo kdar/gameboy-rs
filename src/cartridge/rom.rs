@@ -1,33 +1,34 @@
 
-#[derive(Debug, PartialEq)]
-enum RomSize {
-  Kbyte32 = 0x00,
-  Kbyte64 = 0x01,
-  Kbyte128 = 0x02,
-  Kbyte256 = 0x03,
-  Kbyte512 = 0x04,
-  Mbyte1 = 0x05,
-  Mbyte2 = 0x06,
-  Mbyte4 = 0x07,
-  Mbyte1_1 = 0x52,
-  Mbyte1_2 = 0x53,
-  Mbyte1_5 = 0x54,
+#[derive(Debug, PartialEq, NumFromPrimitive)]
+#[allow(enum_variant_names)]
+pub enum CartRomSize {
+  Rom32KB = 0x00,
+  Rom64KB = 0x01,
+  Rom128KB = 0x02,
+  Rom256KB = 0x03,
+  Rom512KB = 0x04,
+  Rom1MB = 0x05,
+  Rom2MB = 0x06,
+  Rom4MB = 0x07,
+  Rom1_1MB = 0x52,
+  Rom1_2MB = 0x53,
+  Rom1_5MB = 0x54,
 }
 
-impl RomSize {
+impl CartRomSize {
   pub fn banks(&self) -> usize {
     match *self {
-      RomSize::Kbyte32 => 0,
-      RomSize::Kbyte64 => 4,
-      RomSize::Kbyte128 => 8,
-      RomSize::Kbyte256 => 16,
-      RomSize::Kbyte512 => 32,
-      RomSize::Mbyte1 => 64, // only 63 banks used by MBC1
-      RomSize::Mbyte2 => 128, // only 125 banks used by MBC1
-      RomSize::Mbyte4 => 256,
-      RomSize::Mbyte1_1 => 72,
-      RomSize::Mbyte1_2 => 80,
-      RomSize::Mbyte1_5 => 96,
+      CartRomSize::Rom32KB => 0,
+      CartRomSize::Rom64KB => 4,
+      CartRomSize::Rom128KB => 8,
+      CartRomSize::Rom256KB => 16,
+      CartRomSize::Rom512KB => 32,
+      CartRomSize::Rom1MB => 64, // only 63 banks used by MBC1
+      CartRomSize::Rom2MB => 128, // only 125 banks used by MBC1
+      CartRomSize::Rom4MB => 256,
+      CartRomSize::Rom1_1MB => 72,
+      CartRomSize::Rom1_2MB => 80,
+      CartRomSize::Rom1_5MB => 96,
     }
   }
 }

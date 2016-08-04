@@ -8,6 +8,15 @@ mod rom;
 
 use super::mem::MemoryIo;
 
+#[allow(enum_variant_names)]
+enum Mbc {
+  None,
+  Mbc1,
+  Mbc2,
+  Mbc3,
+  Mbc5,
+}
+
 #[derive(PartialEq, Debug, NumFromPrimitive)]
 enum CartType {
   RomOnly = 0x00,
@@ -41,9 +50,33 @@ enum CartType {
   Huc1RamBattery = 0xFF,
 }
 
+impl CartType {
+  fn as_mbc(&self) -> Mbc {
+    use self::CartType::*;
+    match *self {
+      RomOnly | RomRam | RomRamBattery => Mbc::None,
+      Mbc1 | Mbc1Ram | Mbc1RamBattery => Mbc::Mbc1,
+      Mbc2 | Mbc2Battery => Mbc::Mbc2,
+      Mbc3 |
+      Mbc3Ram |
+      Mbc3RamBattery |
+      Mbc3TimerBattery |
+      Mbc3TimerRamBattery => Mbc::Mbc3,
+      Mbc5 |
+      Mbc5Ram |
+      Mbc5RamBattery |
+      Mbc5Rumble |
+      Mbc5RumbleRam |
+      Mbc5RumbleRamBattery => Mbc::Mbc5,
+      _ => panic!("unknown mbc type"),
+    }
+  }
+}
+
 pub struct Cartridge {
   rom: Vec<u8>,
   ram: Vec<u8>,
+  mbc: Mbc,
   cart_type: CartType,
   title: String,
 }
@@ -70,6 +103,7 @@ impl Default for Cartridge {
     Cartridge {
       rom: vec![],
       ram: vec![],
+      mbc: Mbc::None,
       cart_type: CartType::RomOnly,
       title: "".to_owned(),
     }
@@ -80,16 +114,6 @@ impl Cartridge {
   pub fn new() -> Cartridge {
     Cartridge::default()
   }
-
-  // pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Cartridge, String> {
-  //   let mut c = Cartridge::default();
-  //   c.load_from_path(path)
-  // }
-  //
-  // pub fn from_data(data: &[u8]) -> Result<Cartridge, String> {
-  //   let mut c = Cartridge::default();
-  //   c.load_from_data(data)
-  // }
 
   pub fn load_data(&mut self, data: &[u8]) -> Result<(), String> {
     if data.len() < 0x014F {
@@ -105,8 +129,27 @@ impl Cartridge {
       }
     };
 
-    let new_cartridge = self.rom[0x14b] == 0x33;
+    let rom_size: rom::CartRomSize = match num::FromPrimitive::from_u8(data[0x148]) {
+      Some(v) => v,
+      None => {
+        return Err(format!("unsupported ram size: {:#02x}", data[0x0148]));
+      }
+    };
 
+    let ram_size: ram::CartRamSize = match num::FromPrimitive::from_u8(data[0x149]) {
+      Some(v) => v,
+      None => {
+        return Err(format!("unsupported ram size: {:#02x}", data[0x0149]));
+      }
+    };
+
+    self.mbc = self.cart_type.as_mbc();
+    let ram_size = match self.mbc {
+      Mbc::Mbc2 => 512,
+      _ => ram_size.as_usize(),
+    };
+
+    let new_cartridge = self.rom[0x14b] == 0x33;
     let title = if new_cartridge {
       &data[0x134..0x13f]
     } else {
