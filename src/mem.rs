@@ -67,6 +67,7 @@ pub enum Addr {
   WorkRam1(u16, u16),
   SpriteTable(u16, u16),
   IoPorts(u16, u16),
+  Unusable(u16, u16),
   HighRam(u16, u16),
   BootingFlag(u16, u16),
   InterruptRegister,
@@ -170,7 +171,7 @@ mod module {
         WORK_RAM_0_START...WORK_RAM_0_END => Addr::WorkRam0(addr, addr - WORK_RAM_0_START),
         WORK_RAM_1_START...WORK_RAM_1_END => Addr::WorkRam1(addr, addr - WORK_RAM_1_START),
         ECHO_START...ECHO_END => self.memory_map(addr - ECHO_START + WORK_RAM_0_START),
-        UNUSABLE_START...UNUSABLE_END => panic!("unusable memory area!"),
+        UNUSABLE_START...UNUSABLE_END => Addr::Unusable(addr, addr - UNUSABLE_START),
         HIGH_RAM_START...HIGH_RAM_END => Addr::HighRam(addr, addr - HIGH_RAM_START),
         BOOTING_FLAG => Addr::BootingFlag(addr, addr - BOOTING_FLAG),
         INTERRUPT_REGISTER_START...INTERRUPT_REGISTER_END => Addr::InterruptRegister,
@@ -247,6 +248,10 @@ mod module {
         }
         Addr::SpriteTable(_, _) => Err(format!("read_byte not implemented: {:?}", mapped)),
         Addr::IoPorts(_, _) => Err(format!("read_byte not implemented: {:?}", mapped)),
+        Addr::Unusable(_, _) => {
+          // println!("read_byte occurred at unusable memory addr: {:#04x}", addr);
+          Ok((0))
+        }
         Addr::HighRam(_, offset) => {
           self.high_ram
             .get(offset as usize)
@@ -287,6 +292,10 @@ mod module {
         }
         Addr::IoPorts(_, _) => {
           // Err(format!("write_byte Addr::IOPorts not implemented: {:?}", mapped))
+          Ok(())
+        }
+        Addr::Unusable(_, _) => {
+          // println!("write_byte occurred at unusable memory addr: {:#04x}", addr);
           Ok(())
         }
         Addr::HighRam(_, offset) => {
