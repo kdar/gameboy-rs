@@ -144,7 +144,7 @@ impl Default for Video {
       bg_palette: Palette::default(),
       obj_palette0: Palette::default(),
       obj_palette1: Palette::default(),
-      current_line: 0,
+      current_line: 0x90,
       vram: [0; 8192],
       oam: [0; 160],
     }
@@ -153,7 +153,14 @@ impl Default for Video {
 
 impl fmt::Debug for Video {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    try!(write!(f, "\nVRAM: {:?}", &&self.vram[..]));
+    try!(write!(f, "\nVRAM:"));
+    for i in (0..self.vram.len()).step_by(2) {
+      // try!(write!(f,
+      //             "\nVRAM[{:#04x}] = 0x{:02x}{:02x}",
+      //             i + VIDEO_RAM_START as usize,
+      //             self.vram[i + 1] as u16,
+      //             self.vram[i] as u16));
+    }
     write!(f, "\n")
   }
 }
@@ -162,6 +169,7 @@ impl MemoryIo for Video {
   fn read_byte(&self, addr: u16) -> Result<u8, String> {
     println!("reading vid byte from: {:#04x}", addr);
     match addr {
+      VIDEO_RAM_START...VIDEO_RAM_END => Ok(self.vram[addr as usize - VIDEO_RAM_START as usize]),
       LCD_CONTROL => Ok(self.control),
       LCD_CONTROLLER_STATUS => Ok(self.status),
       SCROLL_Y => Ok(self.scroll_y),

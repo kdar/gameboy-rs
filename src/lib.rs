@@ -1,6 +1,7 @@
 #![feature(non_ascii_idents)]
 #![feature(custom_derive, plugin)]
 #![plugin(num_macros)]
+#![feature(step_by)]
 
 extern crate md5;
 #[cfg(test)]
