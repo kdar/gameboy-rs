@@ -19,7 +19,7 @@ pub enum CartRomSize {
 impl CartRomSize {
   pub fn banks(&self) -> usize {
     match *self {
-      CartRomSize::Rom32KB => 0,
+      CartRomSize::Rom32KB => 2,
       CartRomSize::Rom64KB => 4,
       CartRomSize::Rom128KB => 8,
       CartRomSize::Rom256KB => 16,
