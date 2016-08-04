@@ -300,14 +300,20 @@ impl Cpu {
   fn execute_instruction(&mut self, ins: Instruction) {
     let t = match ins {
       Instruction::Invalid(d) => {
-        panic!("execute_instruction: Invalid instruction encountered: {:#02x}\n{:?}",
-               d,
-               self)
+        // Ignore instructions that the Gameboy doesn't support.
+        match d {
+          0xFC => 0,
+          _ => {
+            panic!("execute_instruction: Invalid instruction encountered: {:#02x}\n{:?}",
+                   d,
+                   self)
+          }
+        }
       }
       Instruction::InvalidCB(d) => {
         panic!("execute_instruction: Invalid CB instruction encountered: {:#02x}\n{:?}",
                d,
-               self)
+               self);
       }
 
       // 0xCB instructions

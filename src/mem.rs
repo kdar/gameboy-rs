@@ -247,7 +247,10 @@ mod module {
             .and_then(|&x| Ok(x))
         }
         Addr::SpriteTable(_, _) => Err(format!("read_byte not implemented: {:?}", mapped)),
-        Addr::IoPorts(_, _) => Err(format!("read_byte not implemented: {:?}", mapped)),
+        Addr::IoPorts(_, _) => {
+          // Err(format!("read_byte not implemented: {:?}", mapped)),
+          Ok((0))
+        }
         Addr::Unusable(_, _) => {
           // println!("read_byte occurred at unusable memory addr: {:#04x}", addr);
           Ok((0))
