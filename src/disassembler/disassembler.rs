@@ -194,6 +194,7 @@ impl Disassembler {
           Ok((Instruction::LD_r_r(Reg::from(r1), Reg::from(r2)), pc))
         }
 
+        0x2a => Ok((Instruction::LDI_A_·HL·, pc)),
         0x32 => Ok((Instruction::LDD_·HL·_A, pc)),
         0x22 => Ok((Instruction::LDI_·HL·_A, pc)),
 

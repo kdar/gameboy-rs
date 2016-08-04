@@ -37,6 +37,7 @@ pub enum Instruction {
   LD_dd_nn(Reg, u16),
   LD_r_n(Reg, u8),
   LD_r_r(Reg, Reg),
+  LDI_A_·HL·, // Moved: LD HL,(nn) -> LDI A,(HL)
   LDD_·HL·_A, // Moved: LD (nn),A -> LDD (HL),A
   LDI_·HL·_A, // Moved: LD (nn),HL -> LDI (HL),A
   NOP,
@@ -83,6 +84,7 @@ impl fmt::Debug for Instruction {
       Instruction::LD_dd_nn(dd, nn) => write!(f, "LD {},${:#04x}", dd, nn),
       Instruction::LD_r_n(r, n) => write!(f, "LD {},${:#02x}", r, n),
       Instruction::LD_r_r(r1, r2) => write!(f, "LD {},{}", r1, r2),
+      Instruction::LDI_A_·HL· => write!(f, "LDI A,(HL)"),
       Instruction::LDD_·HL·_A => write!(f, "LDD (HL),A"),
       Instruction::LDI_·HL·_A => write!(f, "LDI (HL),A"),
       Instruction::NOP => write!(f, "NOP"),

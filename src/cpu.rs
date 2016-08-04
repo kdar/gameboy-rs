@@ -337,6 +337,7 @@ impl Cpu {
       Instruction::LD_dd_nn(dd, nn) => self.inst_LD_dd_nn(dd, nn),
       Instruction::LD_r_n(r, n) => self.inst_LD_r_n(r, n),
       Instruction::LD_r_r(r1, r2) => self.inst_LD_r_r(r1, r2),
+      Instruction::LDI_A_·HL· => self.inst_LDI_A_·HL·(),
       Instruction::LDD_·HL·_A => self.inst_LDD_·HL·_A(),
       Instruction::LDI_·HL·_A => self.inst_LDI_·HL·_A(),
       Instruction::POP_rr(rr) => self.inst_POP_rr(rr),
@@ -715,6 +716,19 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_LD_r_n(&mut self, r: Reg, n: u8) -> u32 {
     self.write_reg_byte(r, n);
+    8
+  }
+
+  // LDD (HL),A
+  // Opcode: 0x32
+  // Page: 149
+  // Moved: LD HL,(nn) -> LDI A,(HL)
+  #[allow(non_snake_case)]
+  fn inst_LDI_A_·HL·(&mut self) -> u32 {
+    let hl = self.read_reg_word(Reg::HL);
+    let d = self.read_byte(hl);
+    self.write_reg_byte(Reg::A, d);
+    self.write_reg_word(Reg::HL, hl + 1);
     8
   }
 
