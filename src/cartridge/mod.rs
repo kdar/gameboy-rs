@@ -75,7 +75,10 @@ impl CartType {
 
 pub struct Cartridge {
   rom: Vec<u8>,
+  rom_bank: usize,
+  rom_banks: usize,
   ram: Vec<u8>,
+  ram_offset: usize,
   mbc: Mbc,
   cart_type: CartType,
   title: String,
@@ -102,7 +105,10 @@ impl Default for Cartridge {
   fn default() -> Cartridge {
     Cartridge {
       rom: vec![],
+      rom_bank: 0,
+      rom_banks: 0,
       ram: vec![],
+      ram_offset: 0,
       mbc: Mbc::None,
       cart_type: CartType::RomOnly,
       title: "".to_owned(),
@@ -136,6 +142,14 @@ impl Cartridge {
       }
     };
 
+    if rom_size.as_usize() != data.len() {
+      return Err(format!("unexpected rom size: Got: {}, Expected: {}",
+                         data.len(),
+                         rom_size.as_usize()));
+    }
+
+    self.rom_banks = rom_size.banks();
+
     let ram_size: ram::CartRamSize = match num::FromPrimitive::from_u8(data[0x149]) {
       Some(v) => v,
       None => {
@@ -148,6 +162,8 @@ impl Cartridge {
       Mbc::Mbc2 => 512,
       _ => ram_size.as_usize(),
     };
+
+    self.ram = vec![0; ram_size];
 
     let new_cartridge = self.rom[0x14b] == 0x33;
     let title = if new_cartridge {
