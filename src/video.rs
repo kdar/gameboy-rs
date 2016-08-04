@@ -167,7 +167,7 @@ impl fmt::Debug for Video {
 
 impl MemoryIo for Video {
   fn read_byte(&self, addr: u16) -> Result<u8, String> {
-    println!("reading vid byte from: {:#04x}", addr);
+    // println!("reading vid byte from: {:#04x}", addr);
     match addr {
       VIDEO_RAM_START...VIDEO_RAM_END => Ok(self.vram[addr as usize - VIDEO_RAM_START as usize]),
       LCD_CONTROL => Ok(self.control),
@@ -227,15 +227,15 @@ impl MemoryIo for Video {
 
       // LCD_CONTROLLER_Y_COORDINATE => self.current_line = value,
       BG_PALETTE_DATA => {
-        println!("video: bg palette: {:#04x}", addr);
+        // println!("video: bg palette: {:#04x}", addr);
         self.bg_palette = Palette::from_u8(value);
       }
       OBJECT_PALETTE0_DATA => {
-        println!("video: obj 0 palette: {:#04x}", addr);
+        // println!("video: obj 0 palette: {:#04x}", addr);
         self.obj_palette0 = Palette::from_u8(value);
       }
       OBJECT_PALETTE1_DATA => {
-        println!("video: obj 1 palette: {:#04x}", addr);
+        // println!("video: obj 1 palette: {:#04x}", addr);
         self.obj_palette1 = Palette::from_u8(value);
       }
 
