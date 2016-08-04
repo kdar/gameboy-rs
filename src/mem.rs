@@ -260,7 +260,7 @@ mod module {
 
       let mapped = self.memory_map(addr);
       match mapped {
-        Addr::BootRom(_, _) => Err(format!("mem.write_byte: shouldn't be writing to boot rom")),
+        Addr::BootRom(_, _) => Err("mem.write_byte: shouldn't be writing to boot rom".to_owned()),
         Addr::WorkRam0(_, offset) => {
           self.work_ram_0[offset as usize] = value;
           Ok(())
