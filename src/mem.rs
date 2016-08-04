@@ -13,10 +13,6 @@ pub const ROM_00_END: u16 = 0x3FFF;
 pub const ROM_01_START: u16 = 0x4000;
 pub const ROM_01_END: u16 = 0x7FFF;
 
-// In cartridge, switchable bank, if any
-pub const EXTERNAL_RAM_START: u16 = 0xA000;
-pub const EXTERNAL_RAM_END: u16 = 0xBFFF;
-
 // 4KB work RAM bank 0 (WRAM)
 pub const WORK_RAM_0_START: u16 = 0xC000;
 pub const WORK_RAM_0_END: u16 = 0xCFFF;
@@ -62,7 +58,6 @@ pub const BOOTING_FLAG: u16 = 0xFF50;
 pub enum Addr {
   Rom00(u16, u16),
   Rom01(u16, u16),
-  ExternalRam(u16, u16),
   WorkRam0(u16, u16),
   WorkRam1(u16, u16),
   SpriteTable(u16, u16),
@@ -167,7 +162,6 @@ mod module {
       match addr {
         ROM_00_START...ROM_00_END => Addr::Rom00(addr, addr - ROM_00_START),
         ROM_01_START...ROM_01_END => Addr::Rom01(addr, addr - ROM_01_START),
-        EXTERNAL_RAM_START...EXTERNAL_RAM_END => Addr::ExternalRam(addr, addr - EXTERNAL_RAM_START),
         WORK_RAM_0_START...WORK_RAM_0_END => Addr::WorkRam0(addr, addr - WORK_RAM_0_START),
         WORK_RAM_1_START...WORK_RAM_1_END => Addr::WorkRam1(addr, addr - WORK_RAM_1_START),
         ECHO_START...ECHO_END => self.memory_map(addr - ECHO_START + WORK_RAM_0_START),
@@ -231,9 +225,6 @@ mod module {
             .and_then(|&x| Ok(x))
         }
         Addr::Rom01(_, _) => Err(format!("read_byte Addr::Rom01 not implemented: {:?}", mapped)),
-        Addr::ExternalRam(_, _) => {
-          Err(format!("read_byte Addr::ExternalRam not implemented: {:?}", mapped))
-        }
         Addr::WorkRam0(_, offset) => {
           self.work_ram_0
             .get(offset as usize)
@@ -284,9 +275,6 @@ mod module {
       match mapped {
         Addr::Rom00(_, _) => Err(format!("write_byte Addr::Rom00 not implemented: {:?}", mapped)),
         Addr::Rom01(_, _) => Err(format!("write_byte Addr::Rom01 not implemented: {:?}", mapped)),
-        Addr::ExternalRam(_, _) => {
-          Err(format!("write_byte Addr::ExternalRam not implemented: {:?}", mapped))
-        }
         Addr::WorkRam0(_, offset) => {
           self.work_ram_0[offset as usize] = value;
           Ok(())

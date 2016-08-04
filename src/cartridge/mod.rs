@@ -8,6 +8,9 @@ mod rom;
 
 use super::mem::MemoryIo;
 
+pub const CART_RAM_START: u16 = 0xA000;
+pub const CART_RAM_END: u16 = 0xBFFF;
+
 #[allow(enum_variant_names)]
 enum Mbc {
   None,
