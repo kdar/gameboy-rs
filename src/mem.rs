@@ -3,15 +3,8 @@ use std::cell::RefCell;
 
 pub use self::module::Mem;
 
-// 16KB ROM Bank 00
-// In cartridge, fixed at bank 00
-pub const ROM_00_START: u16 = 0x0000;
-pub const ROM_00_END: u16 = 0x3FFF;
-
-// 16KB ROM Bank 01..7F
-// In cartridge, switchable bank number
-pub const ROM_01_START: u16 = 0x4000;
-pub const ROM_01_END: u16 = 0x7FFF;
+pub const BOOT_ROM_START: u16 = 0x0000;
+pub const BOOT_ROM_END: u16 = 0xFF;
 
 // 4KB work RAM bank 0 (WRAM)
 pub const WORK_RAM_0_START: u16 = 0xC000;
@@ -37,9 +30,6 @@ pub const UNUSABLE_END: u16 = 0xFEFF;
 pub const IO_PORTS_START: u16 = 0xFF00;
 pub const IO_PORTS_END: u16 = 0xFF7F;
 
-pub const AUDIO_START: u16 = 0xFF10;
-pub const AUDIO_END: u16 = 0xFF3F;
-
 // High RAM (HRAM)
 pub const HIGH_RAM_START: u16 = 0xFF80;
 pub const HIGH_RAM_END: u16 = 0xFFFE;
@@ -56,8 +46,7 @@ pub const BOOTING_FLAG: u16 = 0xFF50;
 
 #[derive(Debug)]
 pub enum Addr {
-  Rom00(u16, u16),
-  Rom01(u16, u16),
+  BootRom(u16, u16),
   WorkRam0(u16, u16),
   WorkRam1(u16, u16),
   SpriteTable(u16, u16),
@@ -160,8 +149,7 @@ mod module {
 
     pub fn memory_map(&self, addr: u16) -> Addr {
       match addr {
-        ROM_00_START...ROM_00_END => Addr::Rom00(addr, addr - ROM_00_START),
-        ROM_01_START...ROM_01_END => Addr::Rom01(addr, addr - ROM_01_START),
+        BOOT_ROM_START...BOOT_ROM_END => Addr::BootRom(addr, addr - BOOT_ROM_START),
         WORK_RAM_0_START...WORK_RAM_0_END => Addr::WorkRam0(addr, addr - WORK_RAM_0_START),
         WORK_RAM_1_START...WORK_RAM_1_END => Addr::WorkRam1(addr, addr - WORK_RAM_1_START),
         ECHO_START...ECHO_END => self.memory_map(addr - ECHO_START + WORK_RAM_0_START),
@@ -206,7 +194,7 @@ mod module {
       // If we're not booting or if the address is greater than
       // 0xFF, then we need to check our mappings to see
       // if this address exists in there.
-      if !self.booting || addr >= 0xFF {
+      if !self.booting || addr >= BOOT_ROM_END {
         for i in &self.map {
           if i.0 <= addr && addr <= i.1 {
             return i.2.borrow_mut().read_byte(addr);
@@ -216,7 +204,7 @@ mod module {
 
       let mapped = self.memory_map(addr);
       match mapped {
-        Addr::Rom00(_, offset) => {
+        Addr::BootRom(_, offset) => {
           // If we get to this point, it means we're booting and/or the address
           // is less than 0xFF.
           self.boot_rom
@@ -224,7 +212,6 @@ mod module {
             .ok_or_else(|| format!("could not get byte at boot_rom offset {}", offset))
             .and_then(|&x| Ok(x))
         }
-        Addr::Rom01(_, _) => Err(format!("read_byte Addr::Rom01 not implemented: {:?}", mapped)),
         Addr::WorkRam0(_, offset) => {
           self.work_ram_0
             .get(offset as usize)
@@ -273,8 +260,7 @@ mod module {
 
       let mapped = self.memory_map(addr);
       match mapped {
-        Addr::Rom00(_, _) => Err(format!("write_byte Addr::Rom00 not implemented: {:?}", mapped)),
-        Addr::Rom01(_, _) => Err(format!("write_byte Addr::Rom01 not implemented: {:?}", mapped)),
+        Addr::BootRom(_, _) => Err(format!("mem.write_byte: shouldn't be writing to boot rom")),
         Addr::WorkRam0(_, offset) => {
           self.work_ram_0[offset as usize] = value;
           Ok(())

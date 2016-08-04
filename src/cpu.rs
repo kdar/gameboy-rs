@@ -103,11 +103,15 @@ impl Cpu {
               c.video.clone());
 
     // Audio mapping
-    c.mem.map(mem::AUDIO_START, mem::AUDIO_END, c.audio.clone());
+    c.mem.map(audio::AUDIO_START, audio::AUDIO_END, c.audio.clone());
 
     // Cartridge mapping
-    c.mem.map(mem::ROM_00_START, mem::ROM_00_END, c.cartridge.clone());
-    c.mem.map(mem::ROM_01_START, mem::ROM_01_END, c.cartridge.clone());
+    c.mem.map(cartridge::ROM_00_START,
+              cartridge::ROM_00_END,
+              c.cartridge.clone());
+    c.mem.map(cartridge::ROM_01_START,
+              cartridge::ROM_01_END,
+              c.cartridge.clone());
     c.mem.map(cartridge::CART_RAM_START,
               cartridge::CART_RAM_END,
               c.cartridge.clone());

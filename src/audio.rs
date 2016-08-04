@@ -1,5 +1,8 @@
 use super::mem::MemoryIo;
 
+pub const AUDIO_START: u16 = 0xFF10;
+pub const AUDIO_END: u16 = 0xFF3F;
+
 pub struct Audio;
 
 impl Default for Audio {

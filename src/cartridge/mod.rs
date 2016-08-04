@@ -8,6 +8,16 @@ mod rom;
 
 use super::mem::MemoryIo;
 
+// 16KB ROM Bank 00
+// In cartridge, fixed at bank 00
+pub const ROM_00_START: u16 = 0x0000;
+pub const ROM_00_END: u16 = 0x3FFF;
+
+// 16KB ROM Bank 01..7F
+// In cartridge, switchable bank number
+pub const ROM_01_START: u16 = 0x4000;
+pub const ROM_01_END: u16 = 0x7FFF;
+
 pub const CART_RAM_START: u16 = 0xA000;
 pub const CART_RAM_END: u16 = 0xBFFF;
 
