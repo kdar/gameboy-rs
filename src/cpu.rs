@@ -449,10 +449,11 @@ impl Cpu {
     // SetHighByte(&m_AF, AddByte(A, HL));
 
     let a = self.read_reg_byte(Reg::A);
-    let hl = self.reg_hl;
+    let hl = self.read_reg_word(Reg::HL);
     let d = self.read_byte(hl);
 
     let (result, carry) = a.overflowing_add(d);
+    self.write_reg_byte(Reg::A, result);
     self.write_flag(Flag::Z, result == 0);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, ((result ^ a ^ d) & 0x10) > 0);
