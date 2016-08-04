@@ -262,7 +262,12 @@ mod module {
             .and_then(|&x| Ok(x))
         }
         Addr::BootingFlag(_, _) => {
-          Err(format!("the booting flag shouldn't need to be read: {:?}", mapped))
+          // Err(format!("the booting flag shouldn't need to be read: {:?}", mapped))
+          if self.booting {
+            Ok((0))
+          } else {
+            Ok((1))
+          }
         }
         Addr::InterruptRegister => Ok(self.interrupt_enable),
       }
