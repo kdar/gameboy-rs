@@ -287,6 +287,7 @@ impl Cpu {
   pub fn step(&mut self) -> Instruction {
     match self.disasm.at(&self.mem, self.reg_pc) {
       Ok((inst, inc)) => {
+        // println!("{:#04x} {}", self.reg_pc, inc);
         self.reg_pc += inc;
         self.execute_instruction(inst);
         inst
@@ -377,7 +378,6 @@ impl Cpu {
     let d = self.read_reg_byte(r);
 
     self.write_flag(Flag::Z, d & (1 << b) == 0);
-
     self.write_flag(Flag::H, true);
     self.write_flag(Flag::N, false);
 
@@ -393,14 +393,14 @@ impl Cpu {
 
     let carry = self.read_flag(Flag::C);
 
-    self.write_flag(Flag::C, d & (1 << 7) > 0);
+    self.write_flag(Flag::C, d & (1 << 7) != 0);
 
     d <<= 1;
 
     if carry {
-      d |= 1;
+      d |= 1; // set bit 0 to 1
     } else {
-      d &= !1;
+      d &= !1; // set bit 0 to 0
     }
 
     self.write_reg_byte(r, d);
@@ -421,14 +421,14 @@ impl Cpu {
 
     let carry = self.read_flag(Flag::C);
 
-    self.write_flag(Flag::C, d & (1 << 7) > 0);
+    self.write_flag(Flag::C, d & (1 << 7) != 0);
 
     d <<= 1;
 
     if carry {
-      d |= 1;
+      d |= 1; // set bit 0 to 1
     } else {
-      d &= !1;
+      d &= !1; // set bit 0 to 0
     }
 
     self.write_reg_byte(Reg::A, d);
@@ -452,10 +452,11 @@ impl Cpu {
     let hl = self.reg_hl;
     let d = self.read_byte(hl);
 
-    let result = a + d;
+    let (result, carry) = a.overflowing_add(d);
+    self.write_flag(Flag::Z, result == 0);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, ((result ^ a ^ d) & 0x10) > 0);
-    self.write_flag(Flag::C, result < a);
+    self.write_flag(Flag::C, carry);
 
     8
   }

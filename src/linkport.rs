@@ -19,6 +19,7 @@ impl MemoryIo for LinkPort {
   }
 
   fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String> {
+    println!("link write: {:#04x} {}", addr, value);
     match addr {
       SERIAL_DATA => {
         self.last_byte = value;
