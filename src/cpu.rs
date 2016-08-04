@@ -552,7 +552,7 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_INC_r(&mut self, r: Reg) -> u32 {
     let d = self.read_reg_byte(r);
-    let newd = d + 1;
+    let (newd, _) = d.overflowing_add(1);
     self.write_reg_byte(r, newd);
 
     self.write_flag(Flag::H, ((d & 0xF) + (1 & 0xF)) & 0x10 > 0);
