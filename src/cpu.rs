@@ -73,14 +73,10 @@ impl Default for Cpu {
 
 impl fmt::Debug for Cpu {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    try!(write!(f, "\nA:       {0:#04x} [{0:08b}]", high_byte(self.reg_af)));
-    try!(write!(f, "\nF:       {0:#04x} [{0:08b}]", low_byte(self.reg_af)));
-    try!(write!(f, "\nB:       {0:#04x} [{0:08b}]", high_byte(self.reg_bc)));
-    try!(write!(f, "\nC:       {0:#04x} [{0:08b}]", low_byte(self.reg_bc)));
-    try!(write!(f, "\nD:       {0:#04x} [{0:08b}]", high_byte(self.reg_de)));
-    try!(write!(f, "\nE:       {0:#04x} [{0:08b}]", low_byte(self.reg_de)));
-    try!(write!(f, "\nH:       {0:#04x} [{0:08b}]", high_byte(self.reg_hl)));
-    try!(write!(f, "\nL:       {0:#04x} [{0:08b}]", low_byte(self.reg_hl)));
+    try!(write!(f, "\nAF:      {0:#06x} [{0:16b}]", self.reg_af));
+    try!(write!(f, "\nBC:      {0:#06x} [{0:16b}]", self.reg_bc));
+    try!(write!(f, "\nDE:      {0:#06x} [{0:16b}]", self.reg_de));
+    try!(write!(f, "\nHL:      {0:#06x} [{0:16b}]", self.reg_hl));
     try!(write!(f, "\nSP:      {0:#06x} [{0:016b}]", self.reg_sp));
     try!(write!(f, "\nPC:      {0:#06x} [{0:016b}]", self.reg_pc));
     try!(write!(f, "\nClock T: {}", self.clock_t));
@@ -523,6 +519,7 @@ impl Cpu {
     let sp = self.reg_sp;
     let pc = self.reg_pc;
     self.write_word(sp, pc);
+
     self.reg_pc = nn;
     24
   }
