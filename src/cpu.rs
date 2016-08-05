@@ -574,7 +574,7 @@ impl Cpu {
     self.write_flag(Flag::H, (newd ^ 0x01 ^ d) & 0x10 > 0);
     self.write_flag(Flag::Z, newd == 0);
 
-    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::N, true);
 
     4
   }
