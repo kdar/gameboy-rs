@@ -1,8 +1,8 @@
-const ROM_BANK_SIZE: usize = 0x4000;
+pub const ROM_BANK_SIZE: usize = 0x4000;
 
 #[derive(Debug, PartialEq, NumFromPrimitive)]
 #[allow(enum_variant_names, non_camel_case_types)]
-pub enum CartRomSize {
+pub enum RomSize {
   Rom32KB = 0x00, // 256kbit
   Rom64KB = 0x01, // 512kbit
   Rom128KB = 0x02, // 1mbit
@@ -16,20 +16,20 @@ pub enum CartRomSize {
   Rom1_5MB = 0x54,
 }
 
-impl CartRomSize {
+impl RomSize {
   pub fn banks(&self) -> usize {
     match *self {
-      CartRomSize::Rom32KB => 2,
-      CartRomSize::Rom64KB => 4,
-      CartRomSize::Rom128KB => 8,
-      CartRomSize::Rom256KB => 16,
-      CartRomSize::Rom512KB => 32,
-      CartRomSize::Rom1MB => 64, // only 63 banks used by MBC1
-      CartRomSize::Rom2MB => 128, // only 125 banks used by MBC1
-      CartRomSize::Rom4MB => 256,
-      CartRomSize::Rom1_1MB => 72,
-      CartRomSize::Rom1_2MB => 80,
-      CartRomSize::Rom1_5MB => 96,
+      RomSize::Rom32KB => 2,
+      RomSize::Rom64KB => 4,
+      RomSize::Rom128KB => 8,
+      RomSize::Rom256KB => 16,
+      RomSize::Rom512KB => 32,
+      RomSize::Rom1MB => 64, // only 63 banks used by MBC1
+      RomSize::Rom2MB => 128, // only 125 banks used by MBC1
+      RomSize::Rom4MB => 256,
+      RomSize::Rom1_1MB => 72,
+      RomSize::Rom1_2MB => 80,
+      RomSize::Rom1_5MB => 96,
     }
   }
 

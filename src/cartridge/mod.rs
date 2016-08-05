@@ -5,7 +5,9 @@ use num;
 
 mod ram;
 mod rom;
+mod mbc;
 
+use self::mbc::MbcType;
 use super::mem::MemoryIo;
 
 // 16KB ROM Bank 00
@@ -20,15 +22,6 @@ pub const ROM_01_END: u16 = 0x7FFF;
 
 pub const CART_RAM_START: u16 = 0xA000;
 pub const CART_RAM_END: u16 = 0xBFFF;
-
-#[allow(enum_variant_names)]
-enum Mbc {
-  None,
-  Mbc1,
-  Mbc2,
-  Mbc3,
-  Mbc5,
-}
 
 #[derive(PartialEq, Debug, NumFromPrimitive)]
 enum CartType {
@@ -64,65 +57,48 @@ enum CartType {
 }
 
 impl CartType {
-  fn as_mbc(&self) -> Mbc {
+  fn as_mbc_type(&self) -> MbcType {
     use self::CartType::*;
     match *self {
-      RomOnly | RomRam | RomRamBattery => Mbc::None,
-      Mbc1 | Mbc1Ram | Mbc1RamBattery => Mbc::Mbc1,
-      Mbc2 | Mbc2Battery => Mbc::Mbc2,
+      RomOnly | RomRam | RomRamBattery => MbcType::None,
+      Mbc1 | Mbc1Ram | Mbc1RamBattery => MbcType::Mbc1,
+      Mbc2 | Mbc2Battery => MbcType::Mbc2,
       Mbc3 |
       Mbc3Ram |
       Mbc3RamBattery |
       Mbc3TimerBattery |
-      Mbc3TimerRamBattery => Mbc::Mbc3,
+      Mbc3TimerRamBattery => MbcType::Mbc3,
       Mbc5 |
       Mbc5Ram |
       Mbc5RamBattery |
       Mbc5Rumble |
       Mbc5RumbleRam |
-      Mbc5RumbleRamBattery => Mbc::Mbc5,
+      Mbc5RumbleRamBattery => MbcType::Mbc5,
       _ => panic!("unknown mbc type"),
     }
   }
 }
 
 pub struct Cartridge {
-  rom: Vec<u8>,
-  rom_bank: usize,
-  rom_banks: usize,
-  ram: Vec<u8>,
-  ram_offset: usize,
-  mbc: Mbc,
+  mbc: Box<mbc::Mbc>,
   cart_type: CartType,
   title: String,
 }
 
 impl MemoryIo for Cartridge {
   fn read_byte(&self, addr: u16) -> Result<u8, String> {
-    if addr as usize >= self.rom.len() {
-      return Err(format!("cartridge.read_byte: tried to read at #{:04x} when the ROM size is \
-                          only #{:04x}",
-                         addr,
-                         self.rom.len()));
-    }
-
-    Ok(self.rom[addr as usize])
+    self.mbc.read_byte(addr)
   }
 
   fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String> {
-    panic!("writing to cartridge is illegal!");
+    self.mbc.write_byte(addr, value)
   }
 }
 
 impl Default for Cartridge {
   fn default() -> Cartridge {
     Cartridge {
-      rom: vec![],
-      rom_bank: 0,
-      rom_banks: 0,
-      ram: vec![],
-      ram_offset: 0,
-      mbc: Mbc::None,
+      mbc: Box::new(mbc::Mbc::new()),
       cart_type: CartType::RomOnly,
       title: "".to_owned(),
     }
@@ -139,8 +115,6 @@ impl Cartridge {
       return Err("invalid cartridge: too small".to_owned());
     }
 
-    self.rom = From::from(data);
-
     self.cart_type = match num::FromPrimitive::from_u8(data[0x0147]) {
       Some(v) => v,
       None => {
@@ -148,37 +122,20 @@ impl Cartridge {
       }
     };
 
-    let rom_size: rom::CartRomSize = match num::FromPrimitive::from_u8(data[0x148]) {
-      Some(v) => v,
-      None => {
-        return Err(format!("unsupported ram size: {:#02x}", data[0x0148]));
-      }
+    let mbc_type = self.cart_type.as_mbc_type();
+    match self.mbc.load(mbc_type, data) {
+      Ok(_) => (),
+      Err(e) => return Err(e),
     };
 
-    if rom_size.as_usize() != data.len() {
-      return Err(format!("unexpected rom size: Got: {}, Expected: {}",
-                         data.len(),
-                         rom_size.as_usize()));
-    }
+    // let ram_size = match self.mbc {
+    //   MbcType::Mbc2 => 512,
+    //   _ => ram_size.as_usize(),
+    // };
+    //
+    // self.ram = vec![0; ram_size];
 
-    self.rom_banks = rom_size.banks();
-
-    let ram_size: ram::CartRamSize = match num::FromPrimitive::from_u8(data[0x149]) {
-      Some(v) => v,
-      None => {
-        return Err(format!("unsupported ram size: {:#02x}", data[0x0149]));
-      }
-    };
-
-    self.mbc = self.cart_type.as_mbc();
-    let ram_size = match self.mbc {
-      Mbc::Mbc2 => 512,
-      _ => ram_size.as_usize(),
-    };
-
-    self.ram = vec![0; ram_size];
-
-    let new_cartridge = self.rom[0x14b] == 0x33;
+    let new_cartridge = data[0x14b] == 0x33;
     let title = if new_cartridge {
       &data[0x134..0x13f]
     } else {
@@ -186,8 +143,6 @@ impl Cartridge {
     };
 
     self.title = String::from_utf8_lossy(title).into_owned();
-
-    self.load_mbc();
 
     Ok(())
   }
@@ -199,8 +154,6 @@ impl Cartridge {
 
     self.load_data(&v.as_slice())
   }
-
-  fn load_mbc(&mut self) {}
 }
 
 #[cfg(test)]

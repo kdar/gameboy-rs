@@ -291,7 +291,6 @@ impl Cpu {
   pub fn step(&mut self) -> Instruction {
     match self.disasm.at(&self.mem, self.reg_pc) {
       Ok((inst, inc)) => {
-        // println!("{:#04x} {}", self.reg_pc, inc);
         self.reg_pc += inc;
         self.execute_instruction(inst);
         inst
