@@ -268,10 +268,10 @@ impl Cpu {
     let d = self.read_reg_byte(Reg::F);
 
     match flag {
-      Flag::Z => 0b10000000 & d > 0,
-      Flag::N => 0b01000000 & d > 0,
-      Flag::H => 0b00100000 & d > 0,
-      Flag::C => 0b00010000 & d > 0,
+      Flag::Z => 0b10000000 & d != 0,
+      Flag::N => 0b01000000 & d != 0,
+      Flag::H => 0b00100000 & d != 0,
+      Flag::C => 0b00010000 & d != 0,
       Flag::NZ => 0b10000000 & d == 0,
       Flag::NC => 0b00010000 & d == 0,
     }
@@ -675,8 +675,8 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_LD_·DE·_A(&mut self) -> u32 {
     let de = self.read_reg_word(Reg::DE);
-    let d = self.read_byte(de);
-    self.write_reg_byte(Reg::A, d);
+    let a = self.read_reg_byte(Reg::A);
+    self.write_byte(de, a);
     8
   }
 
@@ -963,6 +963,10 @@ mod tests {
     c.reg_af = 0b11111111_11111111;
     c.write_flag(Flag::C, true);
     assert_eq!(c.reg_af, 0b11111111_11111111);
+
+    c.reg_af = 0b00000000_00000000;
+    c.write_flag(Flag::NZ, true);
+    assert_eq!(c.reg_af, 0b00000000_00000000);
   }
 
   fn cpu_diff(c1: &Cpu, c2: &Cpu) -> String {
