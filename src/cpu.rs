@@ -358,6 +358,7 @@ impl Cpu {
       Instruction::POP_rr(rr) => self.inst_POP_rr(rr),
       Instruction::PUSH_rr(rr) => self.inst_PUSH_rr(rr),
       Instruction::RET => self.inst_RET(),
+      Instruction::SUB_n(n) => self.inst_SUB_n(n),
       Instruction::SUB_r(r) => self.inst_SUB_r(r),
       Instruction::NOP => self.inst_NOP(),
       Instruction::XOR_r(r) => self.inst_XOR_r(r),
@@ -863,6 +864,23 @@ impl Cpu {
     self.reg_pc = d;
     self.reg_sp += 2;
     16
+  }
+
+  // SUB n
+  // Opcode: 0xd6
+  // Page: 166
+  #[allow(non_snake_case)]
+  fn inst_SUB_n(&mut self, n: u8) -> u32 {
+    let a = self.read_reg_byte(Reg::A);
+    let (result, carry) = a.overflowing_sub(n);
+
+    self.write_flag(Flag::Z, result == 0);
+    self.write_flag(Flag::N, false);
+
+    self.write_flag(Flag::H, a & 0x0F < n & 0x0F);
+    self.write_flag(Flag::C, carry);
+
+    8
   }
 
   // SUB r

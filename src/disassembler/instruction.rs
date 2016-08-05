@@ -48,6 +48,7 @@ pub enum Instruction {
   RET,
   RLA,
   RLCA,
+  SUB_n(u8),
   SUB_r(Reg),
   XOR_r(Reg),
 }
@@ -97,6 +98,7 @@ impl fmt::Debug for Instruction {
       Instruction::RET => write!(f, "RET"),
       Instruction::RLA => write!(f, "RLA"),
       Instruction::RLCA => write!(f, "RLCA"),
+      Instruction::SUB_n(n) => write!(f, "SUB {}", n),
       Instruction::SUB_r(r) => write!(f, "SUB {}", r),
       Instruction::XOR_r(r) => write!(f, "XOR {}", r),
     }

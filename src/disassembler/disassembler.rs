@@ -219,6 +219,12 @@ impl Disassembler {
         0x17 => Ok((Instruction::RLA, pc)),
         0x07 => Ok((Instruction::RLCA, pc)),
 
+        0xd6 => {
+          let n = try!(m.read_byte(addr + pc));
+          pc += 1;
+          Ok((Instruction::SUB_n(n), pc))
+        }
+
         0x90 | 0x91 | 0x92 | 0x93 | 0x94 | 0x95 | 0x96 | 0x97 => {
           let r = op & 0b111;
           Ok((Instruction::SUB_r(Reg::from(r)), pc))
