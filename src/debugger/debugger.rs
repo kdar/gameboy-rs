@@ -47,10 +47,12 @@ impl Debugger {
     // };
 
     let pc = self.cpu.pc();
+
     let inst = self.cpu.step();
     println!("{:#04x}: {:?}", pc, inst);
+
     for &b in &self.breakpoints {
-      if pc as usize == b {
+      if self.cpu.pc() as usize == b {
         println!("Breakpoint hit @ {:#04x}", pc);
         return true;
       }
