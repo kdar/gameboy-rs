@@ -32,6 +32,7 @@ pub struct Cpu {
   reg_pc: u16, // Program counter
 
   clock_t: u32, // Cycles
+  interrupt_master_enable: bool,
 
   mem: Box<mem::Memory>,
   video: Rc<RefCell<video::Video>>,
@@ -59,6 +60,7 @@ impl Default for Cpu {
       reg_sp: 0,
       reg_pc: 0,
       clock_t: 0,
+      interrupt_master_enable: false,
       mem: Box::new(mem::Mem::new()),
       video: Rc::new(RefCell::new(video::Video::new())),
       audio: Rc::new(RefCell::new(audio::Audio::new())),
@@ -333,6 +335,7 @@ impl Cpu {
       Instruction::CP_·HL· => self.inst_CP_·HL·(),
       Instruction::CP_n(n) => self.inst_CP_n(n),
       Instruction::DEC_r(r) => self.inst_DEC_r(r),
+      Instruction::DI => self.inst_DI(),
       Instruction::INC_r(r) => self.inst_INC_r(r),
       Instruction::INC_rr(rr) => self.inst_INC_rr(rr),
       Instruction::JP_nn(nn) => self.inst_JP_nn(nn),
@@ -575,6 +578,15 @@ impl Cpu {
 
     self.write_flag(Flag::N, false);
 
+    4
+  }
+
+  // DI
+  // Opcode: 0xf3
+  // Page: 192
+  #[allow(non_snake_case)]
+  fn inst_DI(&mut self) -> u32 {
+    self.interrupt_master_enable = false;
     4
   }
 
