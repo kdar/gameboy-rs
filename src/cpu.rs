@@ -319,14 +319,14 @@ impl Cpu {
         match d {
           0xFC => 0,
           _ => {
-            panic!("execute_instruction: Invalid instruction encountered: {:#02x}\n{:?}",
+            panic!("execute_instruction: Invalid instruction encountered: {:#04x}\n{:?}",
                    d,
                    self)
           }
         }
       }
       Instruction::InvalidCB(d) => {
-        panic!("execute_instruction: Invalid CB instruction encountered: {:#02x}\n{:?}",
+        panic!("execute_instruction: Invalid CB instruction encountered: {:#04x}\n{:?}",
                d,
                self);
       }
