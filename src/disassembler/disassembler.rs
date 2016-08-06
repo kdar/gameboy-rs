@@ -53,6 +53,11 @@ impl Disassembler {
           Ok((Instruction::RL_r(Reg::from(r)), pc))
         }
 
+        0x38 | 0x39 | 0x3a | 0x3b | 0x3c | 0x3d | 0x3e | 0x3f => {
+          let r = op & 0b111;
+          Ok((Instruction::SRL_r(Reg::from(r)), pc))
+        }
+
         _ => {
           panic!("instruction_at: 0xCB instruction not implemented: 0x{:02x}",
                  op)

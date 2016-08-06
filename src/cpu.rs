@@ -322,6 +322,7 @@ impl Cpu {
       Instruction::BIT_b_r(b, r) => self.inst_BIT_b_r(b, r),
       Instruction::RL_r(r) => self.inst_RL_r(r),
       Instruction::RLA => self.inst_RLA(),
+      Instruction::SRL_r(r) => self.inst_SRL_r(r),
 
       Instruction::ADD_A_·HL· => self.inst_ADD_A_·HL·(),
       Instruction::ADD_A_n(n) => self.inst_ADD_A_n(n),
@@ -451,6 +452,24 @@ impl Cpu {
     self.write_flag(Flag::H, false);
 
     4
+  }
+
+  // SRL r
+  // Opcode: 0xCB 00111rrr
+  // Page: 235
+  #[allow(non_snake_case)]
+  fn inst_SRL_r(&mut self, r: Reg) -> u32 {
+    let mut d = self.read_reg_byte(r);
+    self.write_flag(Flag::C, d & 0x1 != 0);
+
+    let d = d.wrapping_shr(1);
+    self.write_reg_byte(r, d);
+
+    self.write_flag(Flag::Z, d == 0);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, false);
+
+    8
   }
 
   // ADD A,n

@@ -11,6 +11,7 @@ pub enum Instruction {
   // 0xCB instructions
   BIT_b_r(u8, Reg),
   RL_r(Reg),
+  SRL_r(Reg),
 
   ADD_A_·HL·,
   ADD_A_n(u8),
@@ -66,6 +67,7 @@ impl fmt::Debug for Instruction {
 
       Instruction::BIT_b_r(b, r) => write!(f, "BIT {},{}", b, r),
       Instruction::RL_r(r) => write!(f, "RL {}", r),
+      Instruction::SRL_r(r) => write!(f, "SRL {}", r),
 
       Instruction::ADD_A_·HL· => write!(f, "ADD A,(HL)"),
       Instruction::ADD_A_n(n) => write!(f, "ADD A,${:02x}", n),
