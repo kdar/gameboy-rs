@@ -365,6 +365,7 @@ impl Cpu {
       Instruction::SUB_n(n) => self.inst_SUB_n(n),
       Instruction::SUB_r(r) => self.inst_SUB_r(r),
       Instruction::NOP => self.inst_NOP(),
+      Instruction::XOR_n(n) => self.inst_XOR_n(n),
       Instruction::XOR_r(r) => self.inst_XOR_r(r),
 
       _ => panic!("instruction not implemented: {:?}\n{:?}", ins, self),
@@ -1045,6 +1046,26 @@ impl Cpu {
     4
   }
 
+  // XOR n
+  // Opcode: 0xee
+  // Page: 174
+  // This instruction is a subset of the defined instruction in the pdf.
+  // The superset instruction is XOR s, where s can be r, n, (HL), (IX+d)
+  // or (IY+d).
+  #[allow(non_snake_case)]
+  fn inst_XOR_n(&mut self, n: u8) -> u32 {
+    let mut a = self.read_reg_byte(Reg::A);
+    a ^= n;
+    self.write_reg_byte(Reg::A, a);
+
+    self.write_flag(Flag::Z, a == 0);
+
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::C, false);
+
+    4
+  }
+
   // XOR r
   // Opcode: 10110rrr
   // Page: 174
@@ -1052,13 +1073,13 @@ impl Cpu {
   // The superset instruction is XOR s, where s can be r, n, (HL), (IX+d)
   // or (IY+d).
   #[allow(non_snake_case)]
-  fn inst_XOR_r(&mut self, register: Reg) -> u32 {
-    let register = self.read_reg_byte(register);
-    let mut accumulator = self.read_reg_byte(Reg::A);
-    accumulator ^= register;
-    self.write_reg_byte(Reg::A, accumulator);
+  fn inst_XOR_r(&mut self, r: Reg) -> u32 {
+    let d = self.read_reg_byte(r);
+    let mut a = self.read_reg_byte(Reg::A);
+    a ^= d;
+    self.write_reg_byte(Reg::A, a);
 
-    self.write_flag(Flag::Z, accumulator == 0);
+    self.write_flag(Flag::Z, a == 0);
 
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::C, false);
