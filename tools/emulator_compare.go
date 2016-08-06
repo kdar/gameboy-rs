@@ -86,7 +86,7 @@ func main() {
 
 	go func() {
 		time.Sleep(2 * time.Second)
-		stdin.Write([]byte("b c7f0\n"))
+		stdin.Write([]byte("b c00a\n"))
 		stdin.Write([]byte("c\n"))
 		time.Sleep(3 * time.Second)
 
@@ -101,6 +101,9 @@ func main() {
 			time.Sleep(time.Second)
 		}
 	}()
+
+	compareOnHit := 0xC00A
+	comparing := false
 
 	rx := regexp.MustCompile(`(?m:^([AFBCDEHLSPC]{2}):\s+0x(....).*$)`)
 	go func() {
@@ -120,13 +123,19 @@ func main() {
 				membuf[i], membuf[i+1] = membuf[i+1], membuf[i]
 			}
 
-			for i, v := range rx.FindAllSubmatch(buf[:nr], -1) {
-				tmp := make([]byte, 2)
-				hex.Decode(tmp, v[2])
+			if membuf[10] == byte((compareOnHit>>8)&0xFF) && membuf[11] == byte(compareOnHit&0xFF) {
+				comparing = true
+			}
 
-				// fmt.Printf("%04x: %s: got: %04x, expected: %04x\n", pc, v[1], tmp, membuf[i*2:(i*2)+2])
-				if !bytes.Equal(membuf[i*2:(i*2)+2], tmp) {
-					log.Fatalf("%04x: missmatch!: %s: got: %04x, expected: %04x\n", membuf[10:12], v[1], tmp, membuf[i*2:(i*2)+2])
+			if comparing {
+				for i, v := range rx.FindAllSubmatch(buf[:nr], -1) {
+					tmp := make([]byte, 2)
+					hex.Decode(tmp, v[2])
+
+					// fmt.Printf("%04x: %s: got: %04x, expected: %04x\n", pc, v[1], tmp, membuf[i*2:(i*2)+2])
+					if !bytes.Equal(membuf[i*2:(i*2)+2], tmp) {
+						log.Fatalf("%04x: missmatch!: %s: got: %04x, expected: %04x\n", membuf[10:12], v[1], tmp, membuf[i*2:(i*2)+2])
+					}
 				}
 			}
 		}

@@ -129,7 +129,7 @@ impl Disassembler {
         }
 
         0x5 | 0xd | 0x15 | 0x1d | 0x25 | 0x2d | 0x35 | 0x3d => {
-          let r = op >> 3 & 0b11;
+          let r = op >> 3 & 0b111;
           Ok((Instruction::DEC_r(Reg::from(r)), pc))
         }
 
