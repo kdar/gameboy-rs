@@ -173,6 +173,12 @@ impl Disassembler {
 
         0x1a => Ok((Instruction::LD_A_·DE·, pc)),
 
+        0xfa => {
+          let nn = try!(m.read_word(addr + pc));
+          pc += 2;
+          Ok((Instruction::LD_A_·nn·(nn), pc))
+        }
+
         0xf0 => {
           let n = try!(m.read_byte(addr + pc));
           pc += 1;

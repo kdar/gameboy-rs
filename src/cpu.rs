@@ -344,6 +344,7 @@ impl Cpu {
       Instruction::LD_·nn·_A(nn) => self.inst_LD_·nn·_A(nn),
       Instruction::LD_A_·BC· => self.inst_LD_A_·BC·(),
       Instruction::LD_A_·DE· => self.inst_LD_A_·DE·(),
+      Instruction::LD_A_·nn·(nn) => self.inst_LD_A_·nn·(nn),
       Instruction::LD_A_·0xFF00n·(n) => self.inst_LD_A_·0xFF00n·(n),
       Instruction::LD_dd_nn(dd, nn) => self.inst_LD_dd_nn(dd, nn),
       Instruction::LD_r_n(r, n) => self.inst_LD_r_n(r, n),
@@ -732,6 +733,16 @@ impl Cpu {
     let val = self.read_byte(de);
     self.write_reg_byte(Reg::A, val);
     8
+  }
+
+  // LD A,(nn)
+  // Opcode: 0xFA
+  // Page:
+  #[allow(non_snake_case)]
+  fn inst_LD_A_·nn·(&mut self, nn: u16) -> u32 {
+    let d = self.read_byte(nn);
+    self.write_reg_byte(Reg::A, d);
+    16
   }
 
   // LD A,(0xFF00n)
