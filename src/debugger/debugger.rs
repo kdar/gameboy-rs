@@ -53,7 +53,7 @@ impl Debugger {
 
     for &b in &self.breakpoints {
       if self.cpu.pc() as usize == b {
-        println!("Breakpoint hit @ {:#04x}", pc);
+        println!("Breakpoint hit @ {:#04x}", self.cpu.pc());
         return true;
       }
     }

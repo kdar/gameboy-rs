@@ -10,6 +10,7 @@ If it fails, it prints the PC and the register that is wrong.
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -84,59 +85,90 @@ func main() {
 
 	p.Stderr = os.Stderr
 
+	time.Sleep(1 * time.Second)
+	stdin.Write([]byte("b 213\n"))
+	stdin.Write([]byte("c\n"))
+	time.Sleep(2 * time.Second)
+
+	// go func() {
+	// 	time.Sleep(2 * time.Second)
+	// 	stdin.Write([]byte("b cbed\n"))
+	// 	stdin.Write([]byte("c\n"))
+	// 	time.Sleep(3 * time.Second)
+	//
+	// 	for {
+	// 		stdin.Write([]byte("debug\n"))
+	//
+	// 		time.Sleep(time.Second * 1)
+	//
+	// 		w32.PostMessage(hwnd, w32.WM_KEYDOWN, w32.VK_F7, 0)
+	// 		stdin.Write([]byte("s\n"))
+	//
+	// 		time.Sleep(time.Second)
+	// 	}
+	// }()
+
+	externalData := make(chan []byte)
 	go func() {
-		time.Sleep(2 * time.Second)
-		stdin.Write([]byte("b c00a\n"))
-		stdin.Write([]byte("c\n"))
-		time.Sleep(3 * time.Second)
-
+		var lastMembuf []byte
 		for {
-			stdin.Write([]byte("debug\n"))
-
-			time.Sleep(time.Second * 1)
-
-			w32.PostMessage(hwnd, w32.WM_KEYDOWN, w32.VK_F7, 0)
-			stdin.Write([]byte("s\n"))
-
-			time.Sleep(time.Second)
+			membuf := make([]byte, 14)
+			harderror, softerrors = memaccess.CopyMemory(proc, uintptr(getBaseAddress(proc.Handle())+0x601E4), membuf[:12])
+			logErrors(harderror, softerrors)
+			if !bytes.Equal(membuf, lastMembuf) {
+				copy(lastMembuf, membuf)
+				externalData <- membuf
+			}
+			time.Sleep(time.Millisecond)
 		}
 	}()
 
-	compareOnHit := 0xC00A
-	comparing := false
+	compareOnHit := 0x213
+	comparing := true
 
 	rx := regexp.MustCompile(`(?m:^([AFBCDEHLSPC]{2}):\s+0x(....).*$)`)
 	go func() {
 		for {
-			buf := make([]byte, 32*1024)
-			nr, err := stdout.Read(buf)
-			if err != nil {
-				log.Fatal(err)
-			}
+			select {
+			case membuf := <-externalData:
+				stdin.Write([]byte("debug\n"))
 
-			membuf := make([]byte, 14)
-			harderror, softerrors = memaccess.CopyMemory(proc, uintptr(getBaseAddress(proc.Handle())+0x601E4), membuf[:12])
-			logErrors(harderror, softerrors)
+				buf := make([]byte, 32*1024)
+				nr, err := stdout.Read(buf)
+				if err != nil {
+					log.Fatal(err)
+				}
 
-			// fix endianess
-			for i := 0; i < len(membuf); i += 2 {
-				membuf[i], membuf[i+1] = membuf[i+1], membuf[i]
-			}
+				// fix endianess
+				for i := 0; i < len(membuf); i += 2 {
+					membuf[i], membuf[i+1] = membuf[i+1], membuf[i]
+				}
 
-			if membuf[10] == byte((compareOnHit>>8)&0xFF) && membuf[11] == byte(compareOnHit&0xFF) {
-				comparing = true
-			}
+				if membuf[10] == byte((compareOnHit>>8)&0xFF) && membuf[11] == byte(compareOnHit&0xFF) {
+					comparing = true
+				}
 
-			if comparing {
-				for i, v := range rx.FindAllSubmatch(buf[:nr], -1) {
-					tmp := make([]byte, 2)
-					hex.Decode(tmp, v[2])
+				if comparing {
+					fail := false
+					for i, v := range rx.FindAllSubmatch(buf[:nr], -1) {
+						tmp := make([]byte, 2)
+						hex.Decode(tmp, v[2])
 
-					// fmt.Printf("%04x: %s: got: %04x, expected: %04x\n", pc, v[1], tmp, membuf[i*2:(i*2)+2])
-					if !bytes.Equal(membuf[i*2:(i*2)+2], tmp) {
-						log.Fatalf("%04x: missmatch!: %s: got: %04x, expected: %04x\n", membuf[10:12], v[1], tmp, membuf[i*2:(i*2)+2])
+						// fmt.Printf("%04x: %s: got: %04x, expected: %04x\n", pc, v[1], tmp, membuf[i*2:(i*2)+2])
+						if !bytes.Equal(membuf[i*2:(i*2)+2], tmp) {
+							fmt.Printf("%04x: missmatch!: %s: got: %04x, expected: %04x\n", membuf[10:12], v[1], tmp, membuf[i*2:(i*2)+2])
+							fail = true
+						}
+					}
+					if fail {
+						os.Exit(1)
 					}
 				}
+
+				w32.PostMessage(hwnd, w32.WM_KEYDOWN, w32.VK_F7, 0)
+				stdin.Write([]byte("s\n"))
+
+				time.Sleep(time.Millisecond * 150)
 			}
 		}
 	}()
