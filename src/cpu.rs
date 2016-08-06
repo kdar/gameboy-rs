@@ -351,6 +351,7 @@ impl Cpu {
       Instruction::CP_·HL· => self.inst_CP_·HL·(),
       Instruction::CP_n(n) => self.inst_CP_n(n),
       Instruction::DEC_r(r) => self.inst_DEC_r(r),
+      Instruction::DEC_rr(r) => self.inst_DEC_rr(r),
       Instruction::DI => self.inst_DI(),
       Instruction::INC_r(r) => self.inst_INC_r(r),
       Instruction::INC_rr(rr) => self.inst_INC_rr(rr),
@@ -737,6 +738,18 @@ impl Cpu {
     self.write_flag(Flag::Z, newd == 0);
 
     self.write_flag(Flag::N, true);
+
+    4
+  }
+
+  // DEC rr
+  // Opcode: 00rr1011
+  // Page: 205
+  #[allow(non_snake_case)]
+  fn inst_DEC_rr(&mut self, r: Reg) -> u32 {
+    let d = self.read_reg_word(r);
+    let (newd, _) = d.overflowing_sub(1);
+    self.write_reg_word(r, newd);
 
     4
   }

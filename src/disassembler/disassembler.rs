@@ -133,6 +133,11 @@ impl Disassembler {
           Ok((Instruction::DEC_r(Reg::from(r)), pc))
         }
 
+        0x0b | 0x1b | 0x2b | 0x3b => {
+          let rr = op >> 4 & 0b11;
+          Ok((Instruction::DEC_rr(Reg::from_pair(rr, false)), pc))
+        }
+
         0xf3 => Ok((Instruction::DI, pc)),
 
         0x4 | 0xc | 0x14 | 0x1c | 0x24 | 0x2c | 0x3c => {
