@@ -325,6 +325,9 @@ impl Cpu {
       Instruction::RLA => self.inst_RLA(),
       Instruction::SRL_r(r) => self.inst_SRL_r(r),
 
+      Instruction::ADC_A_·HL· => self.inst_ADC_A_·HL·(),
+      Instruction::ADC_A_n(n) => self.inst_ADC_A_n(n),
+      Instruction::ADC_A_r(r) => self.inst_ADC_A_r(r),
       Instruction::ADD_A_·HL· => self.inst_ADD_A_·HL·(),
       Instruction::ADD_A_n(n) => self.inst_ADD_A_n(n),
       Instruction::ADD_HL_rr(rr) => self.inst_ADD_HL_rr(rr),
@@ -386,6 +389,25 @@ impl Cpu {
     self.reg_sp -= 2;
     let sp = self.reg_sp;
     self.write_word(sp, w);
+  }
+
+  fn adc(&mut self, d: u8) {
+    let a = self.read_reg_byte(Reg::A);
+    let c = if self.read_flag(Flag::C) {
+      1
+    } else {
+      0
+    };
+
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, (a & 0x0f) + (d & 0x0f) + c > 0x0f);
+
+    let (result, carry1) = a.overflowing_add(d);
+    let (result, carry2) = result.overflowing_add(c);
+
+    self.write_reg_byte(Reg::A, result);
+
+    self.write_flag(Flag::Z, carry1 || carry2);
   }
 
   // BIT b,r
@@ -502,6 +524,36 @@ impl Cpu {
     self.write_flag(Flag::H, false);
 
     8
+  }
+
+  // ADC A,(HL)
+  // Opcode: 0x8e
+  // Page: 164
+  #[allow(non_snake_case)]
+  fn inst_ADC_A_·HL·(&mut self) -> u32 {
+    let hl = self.reg_hl;
+    let d = self.read_byte(hl);
+    self.adc(d);
+    8
+  }
+
+  // ADC A,n
+  // Opcode: 0xce
+  // Page: 164
+  #[allow(non_snake_case)]
+  fn inst_ADC_A_n(&mut self, n: u8) -> u32 {
+    self.adc(n);
+    8
+  }
+
+  // ADC A,r
+  // Opcode: 10001rrr
+  // Page: 164
+  #[allow(non_snake_case)]
+  fn inst_ADC_A_r(&mut self, r: Reg) -> u32 {
+    let d = self.read_reg_byte(r);
+    self.adc(d);
+    4
   }
 
   // ADD A,n

@@ -70,6 +70,19 @@ impl Disassembler {
       }
     } else {
       match op {
+        0x8e => Ok((Instruction::ADC_A_·HL·, pc)),
+
+        0xce => {
+          let n = try!(m.read_byte(addr + pc));
+          pc += 1;
+          Ok((Instruction::ADC_A_n(n), pc))
+        }
+
+        0x88 | 0x89 | 0x8a | 0x8b | 0x8c | 0x8d | 0x8f => {
+          let r = op & 0b111;
+          Ok((Instruction::ADC_A_r(Reg::from(r)), pc))
+        }
+
         0x86 => Ok((Instruction::ADD_A_·HL·, pc)),
 
         0xc6 => {
