@@ -539,11 +539,8 @@ impl Cpu {
   // Page: 273
   #[allow(non_snake_case)]
   fn inst_CALL_nn(&mut self, nn: u16) -> u32 {
-    self.reg_sp -= 2;
-    let sp = self.reg_sp;
     let pc = self.reg_pc;
-    self.write_word(sp, pc);
-
+    self.push_word_to_sp(pc);
     self.reg_pc = nn;
     24
   }
@@ -895,9 +892,7 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_PUSH_rr(&mut self, rr: Reg) -> u32 {
     let d = self.read_reg_word(rr);
-    self.reg_sp -= 2;
-    let sp = self.reg_sp;
-    self.write_word(sp, d);
+    self.push_word_to_sp(d);
     16
   }
 
@@ -1206,6 +1201,7 @@ mod tests {
         after: {
           let mut c = Cpu { clock_t: 4, ..Cpu::default()};
           c.write_flag(Flag::H, true);
+          c.write_flag(Flag::N, true);
           c.write_reg_byte(r, 0x0F);
           c
         },
@@ -1242,7 +1238,7 @@ mod tests {
   #[allow(non_snake_case)]
   fn test_INC_rr() {
     for i in 0..3 {
-      let r = Reg::from_pair(i);
+      let r = Reg::from_pair(i, false);
       cpu_inline_test!({
         ins: Instruction::INC_rr(r),
         before: {
