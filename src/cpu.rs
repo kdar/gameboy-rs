@@ -645,8 +645,8 @@ impl Cpu {
   // Originally called INC ss
   #[allow(non_snake_case)]
   fn inst_INC_rr(&mut self, ss: Reg) -> u32 {
-    let mut d = self.read_reg_word(ss);
-    d += 1;
+    let d = self.read_reg_word(ss);
+    let (d, _) = d.overflowing_add(1);
     self.write_reg_word(ss, d);
     4
   }
