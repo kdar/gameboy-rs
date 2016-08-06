@@ -27,7 +27,7 @@ impl MemoryIo for LinkPort {
       }
       SERIAL_CONTROL => {
         // if value == 0x81 {
-        println!("Char: {}", self.last_byte as char);
+        print!("{}", self.last_byte as char);
         // }
         Ok(())
       }

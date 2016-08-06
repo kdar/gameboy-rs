@@ -271,6 +271,11 @@ impl Disassembler {
 
         0xc9 => Ok((Instruction::RET, pc)),
 
+        0xc0 | 0xc8 | 0xd0 | 0xd8 => {
+          let cc = op >> 3 & 0b111;
+          Ok((Instruction::RET_cc(Flag::from(cc)), pc))
+        }
+
         0x17 => Ok((Instruction::RLA, pc)),
         0x07 => Ok((Instruction::RLCA, pc)),
 

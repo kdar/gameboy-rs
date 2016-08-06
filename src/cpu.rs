@@ -364,6 +364,7 @@ impl Cpu {
       Instruction::POP_rr(rr) => self.inst_POP_rr(rr),
       Instruction::PUSH_rr(rr) => self.inst_PUSH_rr(rr),
       Instruction::RET => self.inst_RET(),
+      Instruction::RET_cc(cc) => self.inst_RET_cc(cc),
       Instruction::RRA => self.inst_RRA(),
       Instruction::SUB_n(n) => self.inst_SUB_n(n),
       Instruction::SUB_r(r) => self.inst_SUB_r(r),
@@ -385,10 +386,17 @@ impl Cpu {
     result
   }
 
-  fn push_word_to_sp(&mut self, w: u16) {
+  fn push_word(&mut self, w: u16) {
     self.reg_sp -= 2;
     let sp = self.reg_sp;
     self.write_word(sp, w);
+  }
+
+  fn pop_word(&mut self) -> u16 {
+    let sp = self.reg_sp;
+    let d = self.read_word(sp);
+    self.reg_sp += 2;
+    d
   }
 
   fn adc(&mut self, d: u8) {
@@ -643,7 +651,7 @@ impl Cpu {
   fn inst_CALL_cc_nn(&mut self, cc: Flag, nn: u16) -> u32 {
     if self.read_flag(cc) {
       let pc = self.reg_pc;
-      self.push_word_to_sp(pc);
+      self.push_word(pc);
       self.reg_pc = nn;
       24
     } else {
@@ -657,7 +665,7 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_CALL_nn(&mut self, nn: u16) -> u32 {
     let pc = self.reg_pc;
-    self.push_word_to_sp(pc);
+    self.push_word(pc);
     self.reg_pc = nn;
     24
   }
@@ -1020,8 +1028,21 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_PUSH_rr(&mut self, rr: Reg) -> u32 {
     let d = self.read_reg_word(rr);
-    self.push_word_to_sp(d);
+    self.push_word(d);
     16
+  }
+
+  // RET cc
+  // Opcode: 11ccc000
+  // Page: 279
+  #[allow(non_snake_case)]
+  fn inst_RET_cc(&mut self, cc: Flag) -> u32 {
+    if self.read_flag(cc) {
+      self.reg_pc = self.pop_word();
+      20
+    } else {
+      8
+    }
   }
 
   // RET
@@ -1029,10 +1050,7 @@ impl Cpu {
   // Page: 278
   #[allow(non_snake_case)]
   fn inst_RET(&mut self) -> u32 {
-    let sp = self.reg_sp;
-    let d = self.read_word(sp);
-    self.reg_pc = d;
-    self.reg_sp += 2;
+    self.reg_pc = self.pop_word();
     16
   }
 
