@@ -365,6 +365,7 @@ impl Cpu {
       Instruction::LD_·HL·_n(n) => self.inst_LD_·HL·_n(n),
       Instruction::LD_·HL·_r(r) => self.inst_LD_·HL·_r(r),
       Instruction::LD_·nn·_A(nn) => self.inst_LD_·nn·_A(nn),
+      Instruction::LD_·nn·_SP(nn) => self.inst_LD_·nn·_SP(nn),
       Instruction::LD_A_·BC· => self.inst_LD_A_·BC·(),
       Instruction::LD_A_·DE· => self.inst_LD_A_·DE·(),
       Instruction::LD_A_·nn·(nn) => self.inst_LD_A_·nn·(nn),
@@ -751,7 +752,7 @@ impl Cpu {
     let (newd, _) = d.overflowing_sub(1);
     self.write_reg_word(r, newd);
 
-    4
+    8
   }
 
   // DI
@@ -905,6 +906,16 @@ impl Cpu {
     let d = self.read_reg_byte(Reg::A);
     self.write_byte(nn, d);
     16
+  }
+
+  // LD (nn),SP
+  // Opcode: 0x08
+  // Page: 
+  #[allow(non_snake_case)]
+  fn inst_LD_·nn·_SP(&mut self, nn: u16) -> u32 {
+    let sp = self.reg_sp;
+    self.write_word(nn, sp);
+    20
   }
 
   // LD A,(BC)
