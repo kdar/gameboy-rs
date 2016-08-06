@@ -30,13 +30,6 @@ var (
 	procFindWindowW         = moduser32.NewProc("FindWindowW")
 )
 
-func SetForegroundWindow(hwnd w32.HWND) bool {
-	ret, _, _ := procSetForegroundWindow.Call(
-		uintptr(hwnd))
-
-	return ret != 0
-}
-
 func FindWindow(name string) w32.HWND {
 	ret, _, _ := procFindWindowW.Call(
 		0,
@@ -93,7 +86,7 @@ func main() {
 
 	go func() {
 		time.Sleep(2 * time.Second)
-		stdin.Write([]byte("b c179\n"))
+		stdin.Write([]byte("b c7f0\n"))
 		stdin.Write([]byte("c\n"))
 		time.Sleep(3 * time.Second)
 
@@ -102,11 +95,7 @@ func main() {
 
 			time.Sleep(time.Second * 1)
 
-			SetForegroundWindow(hwnd)
-			err = kb.Launching()
-			if err != nil {
-				panic(err)
-			}
+			w32.PostMessage(hwnd, w32.WM_KEYDOWN, w32.VK_F7, 0)
 			stdin.Write([]byte("s\n"))
 
 			time.Sleep(time.Second)
