@@ -66,6 +66,7 @@ pub enum Instruction {
   RST_t(u8),
   SUB_n(u8),
   SUB_r(Reg),
+  XOR_·HL·,
   XOR_n(u8),
   XOR_r(Reg),
 }
@@ -133,6 +134,7 @@ impl fmt::Debug for Instruction {
       Instruction::RST_t(t) => write!(f, "RST ${:02x}", t),
       Instruction::SUB_n(n) => write!(f, "SUB ${:02x}", n),
       Instruction::SUB_r(r) => write!(f, "SUB {}", r),
+      Instruction::XOR_·HL· => write!(f, "XOR (HL)"),
       Instruction::XOR_n(n) => write!(f, "XOR {}", n),
       Instruction::XOR_r(r) => write!(f, "XOR {}", r),
     }

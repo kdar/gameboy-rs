@@ -198,7 +198,8 @@ impl MemoryIo for Video {
             panic!("The LCD should not be turned off while not in VBlank. This action can cause \
                     damage in a real Gameboy.");
           }
-          self.current_line = 0;
+          // FIXME: disabled for testing purposes.
+          // self.current_line = 0;
         }
 
         // The value coming in tells us to turn on the LCD, while the

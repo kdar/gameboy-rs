@@ -311,12 +311,13 @@ impl Disassembler {
         }
 
         0x00 => Ok((Instruction::NOP, pc)),
+        0xae => Ok((Instruction::XOR_·HL·, pc)),
         0xee => {
           let n = try!(m.read_byte(addr + pc));
           pc += 1;
           Ok((Instruction::XOR_n(n), pc))
         }
-        0xa8 | 0xa9 | 0xaa | 0xab | 0xac | 0xad | 0xae | 0xaf => {
+        0xa8 | 0xa9 | 0xaa | 0xab | 0xac | 0xad | 0xaf => {
           let r = op & 0b111;
           Ok((Instruction::XOR_r(Reg::from(r)), pc))
         }

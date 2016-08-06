@@ -387,6 +387,7 @@ impl Cpu {
       Instruction::SUB_n(n) => self.inst_SUB_n(n),
       Instruction::SUB_r(r) => self.inst_SUB_r(r),
       Instruction::NOP => self.inst_NOP(),
+      Instruction::XOR_·HL· => self.inst_XOR_·HL·(),
       Instruction::XOR_n(n) => self.inst_XOR_n(n),
       Instruction::XOR_r(r) => self.inst_XOR_r(r),
 
@@ -910,7 +911,7 @@ impl Cpu {
 
   // LD (nn),SP
   // Opcode: 0x08
-  // Page: 
+  // Page:
   #[allow(non_snake_case)]
   fn inst_LD_·nn·_SP(&mut self, nn: u16) -> u32 {
     let sp = self.reg_sp;
@@ -1192,6 +1193,22 @@ impl Cpu {
     4
   }
 
+  #[allow(non_snake_case)]
+  fn inst_XOR_·HL·(&mut self) -> u32 {
+    let hl = self.reg_hl;
+    let d = self.read_byte(hl);
+    let mut a = self.read_reg_byte(Reg::A);
+    a ^= d;
+    self.write_reg_byte(Reg::A, a);
+
+    self.write_flag(Flag::Z, a == 0);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, false);
+    self.write_flag(Flag::C, false);
+
+    4
+  }
+
   // XOR n
   // Opcode: 0xee
   // Page: 174
@@ -1205,8 +1222,8 @@ impl Cpu {
     self.write_reg_byte(Reg::A, a);
 
     self.write_flag(Flag::Z, a == 0);
-
     self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, false);
     self.write_flag(Flag::C, false);
 
     4
@@ -1226,8 +1243,8 @@ impl Cpu {
     self.write_reg_byte(Reg::A, a);
 
     self.write_flag(Flag::Z, a == 0);
-
     self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, false);
     self.write_flag(Flag::C, false);
 
     4

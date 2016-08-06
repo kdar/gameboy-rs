@@ -38,7 +38,7 @@ func (r *Regs) Set(name string, value uint16) {
 }
 
 func main() {
-	p1 := exec.Command("target/debug/gameboy-emu", "-b", "res/DMG_ROM.bin", "res/cpu_instrs/individual/11-op a,(hl).gb", "--debug")
+	p1 := exec.Command("target/debug/gameboy-emu", "-b", "res/DMG_ROM.bin", "res/cpu_instrs/cpu_instrs.gb", "--debug")
 
 	stdin1, err := p1.StdinPipe()
 	if err != nil {
@@ -54,7 +54,7 @@ func main() {
 
 	p1.Stderr = os.Stderr
 
-	p2 := exec.Command("/home/outroot/build/realboy-0.2.2/src/realboy", "-d", "res/cpu_instrs/individual/11-op a,(hl).gb")
+	p2 := exec.Command("/home/outroot/build/realboy-0.2.2/src/realboy", "-d", "res/cpu_instrs/cpu_instrs.gb")
 
 	stdin2, err := p2.StdinPipe()
 	if err != nil {
@@ -71,9 +71,9 @@ func main() {
 	p2.Stderr = os.Stderr
 
 	time.Sleep(1 * time.Second)
-	stdin1.Write([]byte("b 213\n"))
+	stdin1.Write([]byte("b 2d2\n"))
 	stdin1.Write([]byte("c\n"))
-	stdin2.Write([]byte("break 0x213\n"))
+	stdin2.Write([]byte("break 0x2d2\n"))
 	stdin2.Write([]byte("step 0xFFFFFFFF\n"))
 	time.Sleep(3 * time.Second)
 

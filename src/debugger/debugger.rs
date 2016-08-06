@@ -40,7 +40,7 @@ impl Debugger {
     self.cpu.set_boot_rom(rom);
   }
 
-  fn step(&mut self) -> bool {
+  fn step(&mut self, display_instructions: bool) -> bool {
     // let result = panic::catch_unwind(|| {
     //   return self.cpu.step();
     // });
@@ -56,7 +56,9 @@ impl Debugger {
     let pc = self.cpu.pc();
 
     let inst = self.cpu.step();
-    // println!("{:#04x}: {:?}", pc, inst);
+    if display_instructions {
+      println!("{:#04x}: {:?}", pc, inst);
+    }
 
     for &b in &self.breakpoints {
       if self.cpu.pc() as usize == b {
@@ -99,7 +101,7 @@ impl Debugger {
           match c {
             Command::Continue => {
               loop {
-                if self.step() {
+                if self.step(false) {
                   break;
                 }
               }
@@ -109,7 +111,7 @@ impl Debugger {
             }
             Command::Step(s) => {
               for _ in 0..s {
-                if self.step() {
+                if self.step(true) {
                   break;
                 }
               }
