@@ -1140,7 +1140,7 @@ impl Cpu {
     self.write_reg_byte(Reg::A, result);
 
     self.write_flag(Flag::Z, result == 0);
-    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::N, true);
 
     self.write_flag(Flag::H, a & 0x0F < n & 0x0F);
     self.write_flag(Flag::C, carry);
