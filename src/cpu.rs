@@ -341,6 +341,7 @@ impl Cpu {
       Instruction::DI => self.inst_DI(),
       Instruction::INC_r(r) => self.inst_INC_r(r),
       Instruction::INC_rr(rr) => self.inst_INC_rr(rr),
+      Instruction::JP_·HL· => self.inst_JP_·HL·(),
       Instruction::JP_nn(nn) => self.inst_JP_nn(nn),
       Instruction::JR_cc_e(cc, e) => self.inst_JR_cc_e(cc, e),
       Instruction::JR_e(e) => self.inst_JR_e(e),
@@ -760,6 +761,17 @@ impl Cpu {
     let d = self.read_reg_word(ss);
     let (d, _) = d.overflowing_add(1);
     self.write_reg_word(ss, d);
+    4
+  }
+
+  // JP (HL)
+  // Opcode: 0xe9
+  //
+  #[allow(non_snake_case)]
+  fn inst_JP_·HL·(&mut self) -> u32 {
+    let hl = self.read_reg_word(Reg::HL);
+    let d = self.read_word(hl);
+    self.reg_pc = d;
     4
   }
 

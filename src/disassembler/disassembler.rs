@@ -145,6 +145,8 @@ impl Disassembler {
           Ok((Instruction::INC_rr(Reg::from_pair(ss, false)), pc))
         }
 
+        0xe9 => Ok((Instruction::JP_·HL·, pc)),
+
         0xc3 => {
           let nn = try!(m.read_word(addr + pc));
           pc += 2;
