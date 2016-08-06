@@ -13,6 +13,7 @@ pub enum Instruction {
   RL_r(Reg),
 
   ADD_A_·HL·,
+  ADD_A_n(u8),
   ADD_HL_rr(Reg),
   AND_n(u8),
   AND_r(Reg),
@@ -66,11 +67,12 @@ impl fmt::Debug for Instruction {
       Instruction::RL_r(r) => write!(f, "RL {}", r),
 
       Instruction::ADD_A_·HL· => write!(f, "ADD A,(HL)"),
+      Instruction::ADD_A_n(n) => write!(f, "ADD A,${:02x}", n),
       Instruction::ADD_HL_rr(rr) => write!(f, "ADD HL,{}", rr),
       Instruction::AND_n(n) => write!(f, "AND ${:02x}", n),
       Instruction::AND_r(r) => write!(f, "AND {}", r),
-      Instruction::CALL_cc_nn(cc, nn) => write!(f, "CALL {},{}", cc, nn),
-      Instruction::CALL_nn(nn) => write!(f, "CALL {}", nn),
+      Instruction::CALL_cc_nn(cc, nn) => write!(f, "CALL {},{:#04x}", cc, nn),
+      Instruction::CALL_nn(nn) => write!(f, "CALL {:#04x}", nn),
       Instruction::CP_·HL· => write!(f, "CP (HL)"),
       Instruction::CP_n(n) => write!(f, "CP ${:02x}", n),
       Instruction::DEC_r(r) => write!(f, "DEC {}", r),
@@ -104,7 +106,7 @@ impl fmt::Debug for Instruction {
       Instruction::RET => write!(f, "RET"),
       Instruction::RLA => write!(f, "RLA"),
       Instruction::RLCA => write!(f, "RLCA"),
-      Instruction::SUB_n(n) => write!(f, "SUB {}", n),
+      Instruction::SUB_n(n) => write!(f, "SUB {:02x}", n),
       Instruction::SUB_r(r) => write!(f, "SUB {}", r),
       Instruction::XOR_r(r) => write!(f, "XOR {}", r),
     }

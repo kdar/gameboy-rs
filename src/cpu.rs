@@ -324,6 +324,7 @@ impl Cpu {
       Instruction::RLA => self.inst_RLA(),
 
       Instruction::ADD_A_·HL· => self.inst_ADD_A_·HL·(),
+      Instruction::ADD_A_n(n) => self.inst_ADD_A_n(n),
       Instruction::ADD_HL_rr(rr) => self.inst_ADD_HL_rr(rr),
       Instruction::AND_n(n) => self.inst_AND_n(n),
       Instruction::AND_r(r) => self.inst_AND_r(r),
@@ -451,15 +452,27 @@ impl Cpu {
     4
   }
 
+  // ADD A,n
+  // Opcode: 0xc6
+  // Page: 160
+  #[allow(non_snake_case)]
+  fn inst_ADD_A_n(&mut self, n: u8) -> u32 {
+    let a = self.read_reg_byte(Reg::A);
+    let (result, carry) = a.overflowing_add(n);
+    self.write_reg_byte(Reg::A, result);
+    self.write_flag(Flag::Z, result == 0);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, ((result ^ a ^ n) & 0x10) > 0);
+    self.write_flag(Flag::C, carry);
+
+    8
+  }
+
   // ADD A,(HL)
   // Opcode: 0x86
   // Page: 161
   #[allow(non_snake_case)]
   fn inst_ADD_A_·HL·(&mut self) -> u32 {
-    // byte A = GetHighByte(m_AF);
-    // byte HL = m_MMU->Read(m_HL);
-    // SetHighByte(&m_AF, AddByte(A, HL));
-
     let a = self.read_reg_byte(Reg::A);
     let hl = self.read_reg_word(Reg::HL);
     let d = self.read_byte(hl);

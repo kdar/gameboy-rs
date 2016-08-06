@@ -62,6 +62,12 @@ impl Disassembler {
       match op {
         0x86 => Ok((Instruction::ADD_A_·HL·, pc)),
 
+        0xc6 => {
+          let n = try!(m.read_byte(addr + pc));
+          pc += 1;
+          Ok((Instruction::ADD_A_n(n), pc))
+        }
+
         0x9 | 0x19 | 0x29 | 0x39 => {
           let rr = op >> 4 & 0b11;
           Ok((Instruction::ADD_HL_rr(Reg::from_pair(rr, false)), pc))
@@ -249,7 +255,10 @@ impl Disassembler {
         }
 
         0x00 => Ok((Instruction::NOP, pc)),
-        0xaf => Ok((Instruction::XOR_r(Reg::A), pc)),
+        0xa8 | 0xa9 | 0xaa | 0xab | 0xac | 0xad | 0xae | 0xaf => {
+          let r = op & 0b111;
+          Ok((Instruction::XOR_r(Reg::from(r)), pc))
+        }
 
         _ => Ok((Instruction::Invalid(op), pc)),
         // _ => panic!("instruction_at: instruction not implemented: 0x{:02x}", op),
