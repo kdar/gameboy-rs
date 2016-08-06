@@ -348,6 +348,7 @@ impl Cpu {
       Instruction::LD_·0xFF00C·_A => self.inst_LD_·0xFF00C·_A(),
       Instruction::LD_·0xFF00n·_A(n) => self.inst_LD_·0xFF00n·_A(n),
       Instruction::LD_·DE·_A => self.inst_LD_·DE·_A(),
+      Instruction::LD_·HL·_n(n) => self.inst_LD_·HL·_n(n),
       Instruction::LD_·HL·_r(r) => self.inst_LD_·HL·_r(r),
       Instruction::LD_·nn·_A(nn) => self.inst_LD_·nn·_A(nn),
       Instruction::LD_A_·BC· => self.inst_LD_A_·BC·(),
@@ -367,6 +368,7 @@ impl Cpu {
       Instruction::RET => self.inst_RET(),
       Instruction::RET_cc(cc) => self.inst_RET_cc(cc),
       Instruction::RRA => self.inst_RRA(),
+      Instruction::RST_t(t) => self.inst_RST_t(t),
       Instruction::SUB_n(n) => self.inst_SUB_n(n),
       Instruction::SUB_r(r) => self.inst_SUB_r(r),
       Instruction::NOP => self.inst_NOP(),
@@ -847,6 +849,16 @@ impl Cpu {
     8
   }
 
+  // LD (HL),n
+  // Opcode: 0x36
+  // Page: 107
+  #[allow(non_snake_case)]
+  fn inst_LD_·HL·_n(&mut self, n: u8) -> u32 {
+    let hl = self.reg_hl;
+    self.write_byte(hl, n);
+    8
+  }
+
   // LD (HL),r
   // Opcode: 01110rrr
   // Page: 104
@@ -1091,6 +1103,17 @@ impl Cpu {
     self.write_flag(Flag::H, false);
 
     4
+  }
+
+  // RST n
+  // Opcode: 11ttt111
+  // Page: 285
+  #[allow(non_snake_case)]
+  fn inst_RST_t(&mut self, t: u8) -> u32 {
+    let pc = self.reg_pc;
+    self.push_word(pc);
+    self.reg_pc = t as u16 * 0x08;
+    16
   }
 
   // SUB n

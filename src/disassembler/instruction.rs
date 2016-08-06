@@ -38,6 +38,7 @@ pub enum Instruction {
   LD_·0xFF00n·_A(u8), // Moved: JP PO,nn -> LD (FF00+C),A
   LD_·BC·_A,
   LD_·DE·_A,
+  LD_·HL·_n(u8),
   LD_·HL·_r(Reg),
   LD_·nn·_A(u16), // Moved: JP PE,nn -> LD (nn),A
   LD_·nn·_SP(u16), // Moved: EX AF,AF -> LD (nn),SP
@@ -61,6 +62,7 @@ pub enum Instruction {
   RLA,
   RLCA,
   RRA,
+  RST_t(u8),
   SUB_n(u8),
   SUB_r(Reg),
   XOR_n(u8),
@@ -102,6 +104,7 @@ impl fmt::Debug for Instruction {
       Instruction::LD_·0xFF00n·_A(n) => write!(f, "LD (0xFF00+${:02x}),A", n),
       Instruction::LD_·BC·_A => write!(f, "LD (BC),A"),
       Instruction::LD_·DE·_A => write!(f, "LD (DE),A"),
+      Instruction::LD_·HL·_n(n) => write!(f, "LD (HL),${:02x}", n),
       Instruction::LD_·HL·_r(r) => write!(f, "LD (HL),{}", r),
       Instruction::LD_·nn·_A(nn) => write!(f, "LD (${:04x}),A", nn),
       Instruction::LD_·nn·_SP(nn) => write!(f, "LD (${:04x}),SP", nn),
@@ -125,6 +128,7 @@ impl fmt::Debug for Instruction {
       Instruction::RLA => write!(f, "RLA"),
       Instruction::RLCA => write!(f, "RLCA"),
       Instruction::RRA => write!(f, "RRA"),
+      Instruction::RST_t(t) => write!(f, "RST ${:02x}", t),
       Instruction::SUB_n(n) => write!(f, "SUB ${:02x}", n),
       Instruction::SUB_r(r) => write!(f, "SUB {}", r),
       Instruction::XOR_n(n) => write!(f, "XOR {}", n),
