@@ -321,6 +321,7 @@ impl Cpu {
       // 0xCB instructions
       Instruction::BIT_b_r(b, r) => self.inst_BIT_b_r(b, r),
       Instruction::RL_r(r) => self.inst_RL_r(r),
+      Instruction::RR_r(r) => self.inst_RR_r(r),
       Instruction::RLA => self.inst_RLA(),
       Instruction::SRL_r(r) => self.inst_SRL_r(r),
 
@@ -416,6 +417,35 @@ impl Cpu {
       d |= 1; // set bit 0 to 1
     } else {
       d &= !1; // set bit 0 to 0
+    }
+
+    self.write_reg_byte(r, d);
+
+    self.write_flag(Flag::Z, d == 0);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, false);
+
+    8
+  }
+
+  // RR r
+  // Opcode: 0xCB 00011rrr
+  // Page: 226
+  // Opcode incorrect in z80undocumented manual
+  #[allow(non_snake_case)]
+  fn inst_RR_r(&mut self, r: Reg) -> u32 {
+    let mut d = self.read_reg_byte(r);
+
+    let carry = self.read_flag(Flag::C);
+
+    self.write_flag(Flag::C, d & 1 != 0);
+
+    d >>= 1;
+
+    if carry {
+      d |= 0b10000000; // set bit 7 to 1
+    } else {
+      d &= !0b10000000; // set bit 7 to 0
     }
 
     self.write_reg_byte(r, d);
