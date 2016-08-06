@@ -1193,6 +1193,9 @@ impl Cpu {
     4
   }
 
+  // XOR (HL)
+  // Opcode: 0xae
+  // Page: 174
   #[allow(non_snake_case)]
   fn inst_XOR_·HL·(&mut self) -> u32 {
     let hl = self.reg_hl;
