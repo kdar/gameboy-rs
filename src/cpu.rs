@@ -79,6 +79,19 @@ impl fmt::Debug for Cpu {
     try!(write!(f, "\nHL:      {0:#06x} [{0:16b}]", self.reg_hl));
     try!(write!(f, "\nSP:      {0:#06x} [{0:016b}]", self.reg_sp));
     try!(write!(f, "\nPC:      {0:#06x} [{0:016b}]", self.reg_pc));
+    try!(write!(f, "\nFlags:   "));
+    if self.read_flag(Flag::Z) {
+      try!(write!(f, "Z"));
+    }
+    if self.read_flag(Flag::N) {
+      try!(write!(f, "N"));
+    }
+    if self.read_flag(Flag::H) {
+      try!(write!(f, "H"));
+    }
+    if self.read_flag(Flag::C) {
+      try!(write!(f, "C"));
+    }
     try!(write!(f, "\nClock T: {}", self.clock_t));
     try!(write!(f, "\n{:?}", self.video));
     write!(f, "\n")
@@ -417,8 +430,8 @@ impl Cpu {
     let (result, carry2) = result.overflowing_add(c);
 
     self.write_reg_byte(Reg::A, result);
-
-    self.write_flag(Flag::Z, carry1 || carry2);
+    self.write_flag(Flag::Z, result == 0);
+    self.write_flag(Flag::C, carry1 || carry2);
   }
 
   // BIT b,r
