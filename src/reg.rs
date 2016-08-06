@@ -50,7 +50,7 @@ impl From<u8> for Reg {
       0b101 => Reg::L,
       0b110 => Reg::F,
       0b111 => Reg::A,
-      _ => panic!("reg.from_raw_byte unknown register: {}", v),
+      _ => panic!("reg.from unknown register: {}", v),
     }
   }
 }

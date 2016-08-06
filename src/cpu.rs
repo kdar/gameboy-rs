@@ -327,6 +327,7 @@ impl Cpu {
       Instruction::ADD_HL_rr(rr) => self.inst_ADD_HL_rr(rr),
       Instruction::AND_n(n) => self.inst_AND_n(n),
       Instruction::AND_r(r) => self.inst_AND_r(r),
+      Instruction::CALL_cc_nn(cc, nn) => self.inst_CALL_cc_nn(cc, nn),
       Instruction::CALL_nn(nn) => self.inst_CALL_nn(nn),
       Instruction::CP_·HL· => self.inst_CP_·HL·(),
       Instruction::CP_n(n) => self.inst_CP_n(n),
@@ -373,6 +374,12 @@ impl Cpu {
     self.write_flag(Flag::C, carry);
     self.write_flag(Flag::H, (result ^ a ^ b) & 0x1000 != 0);
     result
+  }
+
+  fn push_word_to_sp(&mut self, w: u16) {
+    self.reg_sp -= 2;
+    let sp = self.reg_sp;
+    self.write_word(sp, w);
   }
 
   // BIT b,r
@@ -510,6 +517,21 @@ impl Cpu {
     self.write_flag(Flag::C, false);
 
     4
+  }
+
+  // CALL cc,nn
+  // Opcode: 11ccc100
+  // Page: 275
+  #[allow(non_snake_case)]
+  fn inst_CALL_cc_nn(&mut self, cc: Flag, nn: u16) -> u32 {
+    if self.read_flag(cc) {
+      let pc = self.reg_pc;
+      self.push_word_to_sp(pc);
+      self.reg_pc = nn;
+      24
+    } else {
+      12
+    }
   }
 
   // CALL nn

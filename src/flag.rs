@@ -23,16 +23,14 @@ impl fmt::Display for Flag {
   }
 }
 
-// impl Flag {
-//   pub fn from(&self, v: u8) -> Flag {
-//     match v {
-//       // Flag::NZ => 0b10000000,
-//       Flag::Z => 0b10000000,
-//       Flag::N => 0b01000000,
-//       Flag::H => 0b00100000,
-//       // Flag::NC => 0b00010000,
-//       Flag::C => 0b00010000,
-//       _ => panic!("flag.pos unknown flag"),
-//     }
-//   }
-// }
+impl From<u8> for Flag {
+  fn from(v: u8) -> Flag {
+    match v {
+      0b000 => Flag::NZ,
+      0b001 => Flag::Z,
+      0b010 => Flag::NC,
+      0b011 => Flag::C,
+      _ => panic!("flag.from unknown flag: {}", v),
+    }
+  }
+}

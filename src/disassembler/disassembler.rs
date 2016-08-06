@@ -78,6 +78,13 @@ impl Disassembler {
           Ok((Instruction::AND_r(Reg::from(r)), pc))
         }
 
+        0xc4 | 0xcc | 0xd4 | 0xdc | 0xe4 | 0xec | 0xf4 | 0xfc => {
+          let cc = op >> 3 & 0b111;
+          let nn = try!(m.read_word(addr + pc));
+          pc += 2;
+          Ok((Instruction::CALL_cc_nn(Flag::from(cc), nn), pc))
+        }
+
         0xcd => {
           let nn = try!(m.read_word(addr + pc));
           pc += 2;
