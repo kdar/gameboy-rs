@@ -64,7 +64,7 @@ impl Disassembler {
 
         0x9 | 0x19 | 0x29 | 0x39 => {
           let rr = op >> 4 & 0b11;
-          Ok((Instruction::ADD_HL_rr(Reg::from_pair(rr)), pc))
+          Ok((Instruction::ADD_HL_rr(Reg::from_pair(rr, false)), pc))
         }
 
         0xe6 => {
@@ -106,7 +106,7 @@ impl Disassembler {
 
         0x3 | 0x13 | 0x23 | 0x33 => {
           let ss = op >> 4 & 0b11;
-          Ok((Instruction::INC_rr(Reg::from_pair(ss)), pc))
+          Ok((Instruction::INC_rr(Reg::from_pair(ss, false)), pc))
         }
 
         0xc3 => {
@@ -183,7 +183,7 @@ impl Disassembler {
           let r = op >> 4 & 0b11;
           let nn = try!(m.read_word(addr + pc));
           pc += 2;
-          Ok((Instruction::LD_dd_nn(Reg::from_pair(r), nn), pc))
+          Ok((Instruction::LD_dd_nn(Reg::from_pair(r, false), nn), pc))
         }
 
         0x6 | 0xe | 0x16 | 0x1e | 0x26 | 0x2e | 0x3e => {
@@ -206,12 +206,12 @@ impl Disassembler {
 
         0xc1 | 0xd1 | 0xe1 | 0xf1 => {
           let rr = op >> 4 & 0b11;
-          Ok((Instruction::POP_rr(Reg::from_pair(rr)), pc))
+          Ok((Instruction::POP_rr(Reg::from_pair(rr, true)), pc))
         }
 
         0xc5 | 0xd5 | 0xe5 | 0xf5 => {
           let rr = op >> 4 & 0b11;
-          Ok((Instruction::PUSH_rr(Reg::from_pair(rr)), pc))
+          Ok((Instruction::PUSH_rr(Reg::from_pair(rr, true)), pc))
         }
 
         0xc9 => Ok((Instruction::RET, pc)),

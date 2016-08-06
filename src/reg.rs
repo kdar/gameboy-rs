@@ -56,12 +56,20 @@ impl From<u8> for Reg {
 }
 
 impl Reg {
-  pub fn from_pair(v: u8) -> Reg {
+  // Some instructions (PUSH rr and POP rr) map 0b11 to AF and others map to SP.
+  // Setting use_af to true will map it to AF.
+  pub fn from_pair(v: u8, use_af: bool) -> Reg {
     match v {
       0b00 => Reg::BC,
       0b01 => Reg::DE,
       0b10 => Reg::HL,
-      0b11 => Reg::SP,
+      0b11 => {
+        if use_af {
+          Reg::AF
+        } else {
+          Reg::SP
+        }
+      }
       _ => panic!("reg.from_raw_byte unknown register: {}", v),
     }
   }
