@@ -1019,6 +1019,8 @@ impl Cpu {
     let a = self.read_reg_byte(Reg::A);
     let (result, carry) = a.overflowing_sub(n);
 
+    self.write_reg_byte(Reg::A, result);
+
     self.write_flag(Flag::Z, result == 0);
     self.write_flag(Flag::N, false);
 
