@@ -12,6 +12,7 @@ extern crate piston_window;
 extern crate image as im;
 extern crate time;
 extern crate num;
+extern crate libc;
 
 mod gameboy;
 pub mod mem;

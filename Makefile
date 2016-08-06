@@ -11,7 +11,7 @@ test_noboot:
 	cargo run -- "res\Tetris.gb"
 
 test_debugger:
-	cargo run -- -b "res\DMG_ROM.bin" "res\Tetris.gb" --debug
+	cargo run -- -b "res/DMG_ROM.bin" "res/Tetris.gb" --debug
 
 test_game:
 	cargo run -- -b "res\DMG_ROM.bin" "res\Tetris.gb" --debug

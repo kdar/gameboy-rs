@@ -1,9 +1,16 @@
+use libc;
+use std::mem;
+
 use super::rustyline::error::ReadlineError;
 use super::rustyline::Editor;
 use std::process::exit;
 
 use super::super::cpu;
 use super::command::Command;
+
+extern "C" {
+  pub static stdout: *mut libc::FILE;
+}
 
 pub struct Debugger {
   cpu: cpu::Cpu,
@@ -49,7 +56,7 @@ impl Debugger {
     let pc = self.cpu.pc();
 
     let inst = self.cpu.step();
-    println!("{:#04x}: {:?}", pc, inst);
+    // println!("{:#04x}: {:?}", pc, inst);
 
     for &b in &self.breakpoints {
       if self.cpu.pc() as usize == b {
@@ -62,6 +69,10 @@ impl Debugger {
   }
 
   pub fn run(&mut self) {
+    unsafe {
+      libc::setbuf(stdout as *mut libc::FILE, 0 as *mut i8);
+    }
+
     let mut rl = Editor::<()>::new();
     if let Err(_) = rl.load_history("history.txt") {
       println!("No previous history.");
