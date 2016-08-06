@@ -261,6 +261,8 @@ impl Disassembler {
         0x17 => Ok((Instruction::RLA, pc)),
         0x07 => Ok((Instruction::RLCA, pc)),
 
+        0x1f => Ok((Instruction::RRA, pc)),
+
         0xd6 => {
           let n = try!(m.read_byte(addr + pc));
           pc += 1;

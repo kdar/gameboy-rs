@@ -361,6 +361,7 @@ impl Cpu {
       Instruction::POP_rr(rr) => self.inst_POP_rr(rr),
       Instruction::PUSH_rr(rr) => self.inst_PUSH_rr(rr),
       Instruction::RET => self.inst_RET(),
+      Instruction::RRA => self.inst_RRA(),
       Instruction::SUB_n(n) => self.inst_SUB_n(n),
       Instruction::SUB_r(r) => self.inst_SUB_r(r),
       Instruction::NOP => self.inst_NOP(),
@@ -980,6 +981,33 @@ impl Cpu {
     self.reg_pc = d;
     self.reg_sp += 2;
     16
+  }
+
+  // RRA
+  // Opcode: 0x1f
+  // Page: 211
+  #[allow(non_snake_case)]
+  fn inst_RRA(&mut self) -> u32 {
+    let mut d = self.read_reg_byte(Reg::A);
+
+    let carry = self.read_flag(Flag::C);
+
+    self.write_flag(Flag::C, d & 1 != 0);
+
+    d >>= 1;
+
+    if carry {
+      d |= 0b10000000; // set bit 7 to 1
+    } else {
+      d &= !0b10000000; // set bit 7 to 0
+    }
+
+    self.write_reg_byte(Reg::A, d);
+
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, false);
+
+    4
   }
 
   // SUB n
