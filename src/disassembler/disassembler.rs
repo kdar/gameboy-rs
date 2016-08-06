@@ -204,6 +204,11 @@ impl Disassembler {
         0x32 => Ok((Instruction::LDD_·HL·_A, pc)),
         0x22 => Ok((Instruction::LDI_·HL·_A, pc)),
 
+        0xb0 | 0xb1 | 0xb2 | 0xb3 | 0xb4 | 0xb5 | 0xb6 | 0xb7 => {
+          let r = op & 0b111;
+          Ok((Instruction::OR_r(Reg::from(r)), pc))
+        }
+
         0xc1 | 0xd1 | 0xe1 | 0xf1 => {
           let rr = op >> 4 & 0b11;
           Ok((Instruction::POP_rr(Reg::from_pair(rr, true)), pc))

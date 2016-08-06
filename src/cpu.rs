@@ -351,6 +351,7 @@ impl Cpu {
       Instruction::LDI_A_·HL· => self.inst_LDI_A_·HL·(),
       Instruction::LDD_·HL·_A => self.inst_LDD_·HL·_A(),
       Instruction::LDI_·HL·_A => self.inst_LDI_·HL·_A(),
+      Instruction::OR_r(r) => self.inst_OR_r(r),
       Instruction::POP_rr(rr) => self.inst_POP_rr(rr),
       Instruction::PUSH_rr(rr) => self.inst_PUSH_rr(rr),
       Instruction::RET => self.inst_RET(),
@@ -823,6 +824,22 @@ impl Cpu {
   // 0x00
   #[allow(non_snake_case)]
   fn inst_NOP(&self) -> u32 {
+    4
+  }
+
+  // OR r
+  // Opcode: 10110rrr
+  // Page: 172
+  fn inst_OR_r(&mut self, r: Reg) -> u32 {
+    let d = self.read_reg_byte(r);
+    let result = self.read_reg_byte(Reg::A) | d;
+    self.write_reg_byte(Reg::A, result);
+
+    self.write_flag(Flag::Z, result == 0);
+    self.write_flag(Flag::H, false);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::C, false);
+
     4
   }
 

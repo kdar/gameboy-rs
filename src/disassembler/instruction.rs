@@ -43,6 +43,7 @@ pub enum Instruction {
   LDD_·HL·_A, // Moved: LD (nn),A -> LDD (HL),A
   LDI_·HL·_A, // Moved: LD (nn),HL -> LDI (HL),A
   NOP,
+  OR_r(Reg),
   POP_rr(Reg),
   PUSH_rr(Reg),
   RET,
@@ -93,6 +94,7 @@ impl fmt::Debug for Instruction {
       Instruction::LDD_·HL·_A => write!(f, "LDD (HL),A"),
       Instruction::LDI_·HL·_A => write!(f, "LDI (HL),A"),
       Instruction::NOP => write!(f, "NOP"),
+      Instruction::OR_r(r) => write!(f, "OR {}", r),
       Instruction::POP_rr(rr) => write!(f, "POP {}", rr),
       Instruction::PUSH_rr(rr) => write!(f, "PUSH {}", rr),
       Instruction::RET => write!(f, "RET"),

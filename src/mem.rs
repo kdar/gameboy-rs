@@ -262,9 +262,6 @@ mod module {
       match mapped {
         Addr::BootRom(_, _) => Err("mem.write_byte: shouldn't be writing to boot rom".to_owned()),
         Addr::WorkRam0(_, offset) => {
-          if addr == 0xC000 {
-            println!("wrote work ram: {:x}", value);
-          }
           self.work_ram_0[offset as usize] = value;
           Ok(())
         }
