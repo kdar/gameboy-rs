@@ -15,6 +15,7 @@ extern "C" {
 pub struct Debugger {
   cpu: cpu::Cpu,
   breakpoints: Vec<usize>,
+  break_after_inst: bool,
 }
 
 impl Default for Debugger {
@@ -22,6 +23,7 @@ impl Default for Debugger {
     Debugger {
       cpu: cpu::Cpu::default(),
       breakpoints: vec![],
+      break_after_inst: false,
     }
   }
 }
@@ -53,17 +55,31 @@ impl Debugger {
     //   }
     // };
 
-    let pc = self.cpu.pc();
+    if self.break_after_inst {
+      let pc = self.cpu.pc();
 
-    let inst = self.cpu.step();
-    if display_instructions {
-      println!("{:#04x}: {:?}", pc, inst);
-    }
+      let inst = self.cpu.step();
+      if display_instructions {
+        println!("{:#04x}: {:?}", self.cpu.pc(), inst);
+      }
 
-    for &b in &self.breakpoints {
-      if self.cpu.pc() as usize == b {
-        println!("Breakpoint hit @ {:#04x}", self.cpu.pc());
-        return true;
+      for &b in &self.breakpoints {
+        if pc as usize == b {
+          println!("Breakpoint hit @ {:#04x}", self.cpu.pc());
+          return true;
+        }
+      }
+    } else {
+      let inst = self.cpu.step();
+      if display_instructions {
+        println!("{:#04x}: {:?}", self.cpu.pc(), inst);
+      }
+
+      for &b in &self.breakpoints {
+        if self.cpu.pc() as usize == b {
+          println!("Breakpoint hit @ {:#04x}", self.cpu.pc());
+          return true;
+        }
       }
     }
 
@@ -113,6 +129,13 @@ impl Debugger {
               for _ in 0..s {
                 if self.step(true) {
                   break;
+                }
+              }
+            }
+            Command::Config(args) => {
+              if let Some(args) = args {
+                if args[0] == "break-after" {
+                  self.break_after_inst = true;
                 }
               }
             }

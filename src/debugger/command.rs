@@ -1,12 +1,13 @@
-use nom::{self, multispace, eof, space, digit, hex_u32};
+use nom::{self, multispace, eof, space, digit, hex_u32, rest};
 use std::str::{self, FromStr};
 use std::fmt;
 use std::error;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum Command {
   Breakpoint(Option<usize>),
   Breakpoints,
+  Config(Option<Vec<String>>),
   Continue,
   Debug,
   Exit,
@@ -49,6 +50,7 @@ named!(command<Command>,
   chain!(
     c: alt_complete!(
         step |
+        config |
         continue_ |
         breakpoints |
         breakpoint |
@@ -60,6 +62,24 @@ named!(command<Command>,
     || c
   )
 );
+
+// named!(config<Vec<String>>,
+//   chain!(
+//     tag!("config") ~
+//     args: opt!(preceded!(space, ))
+//     || Command::Config(From::from(args))
+//   )
+// );
+
+named!(config<Command>,
+  chain!(
+    tag!("config") ~
+    args: opt!(preceded!(space, many0!(map_res!(map_res!(rest, str::from_utf8), FromStr::from_str)))),
+    || Command::Config(args)
+  )
+);
+
+
 
 named!(breakpoint<Command>,
   chain!(
