@@ -11,6 +11,10 @@ impl GameBoy {
     GameBoy { cpu: cpu }
   }
 
+  pub fn bootstrap(&mut self) {
+    self.cpu.bootstrap();
+  }
+
   pub fn set_boot_rom(&mut self, rom: Box<[u8]>) {
     self.cpu.set_boot_rom(rom);
   }

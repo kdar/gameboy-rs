@@ -36,6 +36,10 @@ impl Debugger {
     Debugger { cpu: cpu, ..Debugger::default() }
   }
 
+  pub fn bootstrap(&mut self) {
+    self.cpu.bootstrap();
+  }
+
   pub fn set_cart_rom(&mut self, rom: &[u8]) {
     self.cpu.set_cart_rom(rom);
   }

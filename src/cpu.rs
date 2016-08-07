@@ -135,6 +135,36 @@ impl Cpu {
     c
   }
 
+  // Sets the system state as if the bootloader was run.
+  pub fn bootstrap(&mut self) {
+    self.reg_af = 0x01b0;
+    self.reg_bc = 0x0013;
+    self.reg_de = 0x00d8;
+    self.reg_hl = 0x014d;
+    self.reg_sp = 0xfffe;
+    self.reg_pc = 0x100;
+
+    self.write_byte(0xff10, 0x80);
+    self.write_byte(0xff11, 0xbf);
+    self.write_byte(0xff12, 0xf3);
+    self.write_byte(0xff14, 0xbf);
+    self.write_byte(0xff16, 0x3f);
+    self.write_byte(0xff19, 0xbf);
+    self.write_byte(0xff1a, 0x7f);
+    self.write_byte(0xff1b, 0xff);
+    self.write_byte(0xff1c, 0x9f);
+    self.write_byte(0xff1e, 0xbf);
+    self.write_byte(0xff20, 0xff);
+    self.write_byte(0xff23, 0xbf);
+    self.write_byte(0xff24, 0x77);
+    self.write_byte(0xff25, 0xf3);
+    self.write_byte(0xff26, 0xf1);
+    self.write_byte(0xff40, 0x91);
+    self.write_byte(0xff47, 0xfc);
+    self.write_byte(0xff48, 0xff);
+    self.write_byte(0xff49, 0xff);
+  }
+
   pub fn set_boot_rom(&mut self, rom: Box<[u8]>) {
     self.mem.set_boot_rom(rom);
   }
@@ -316,6 +346,11 @@ impl Cpu {
         let pc_at_inst = self.reg_pc;
         self.reg_pc += inc;
         self.execute_instruction(inst);
+
+        let video = self.video.clone();
+        let mut video = video.borrow_mut();
+        video.step(self.clock_t);
+
         (inst, pc_at_inst)
       }
       Err(e) => {
@@ -553,7 +588,7 @@ impl Cpu {
   // Page: 235
   #[allow(non_snake_case)]
   fn inst_SRL_r(&mut self, r: Reg) -> u32 {
-    let mut d = self.read_reg_byte(r);
+    let d = self.read_reg_byte(r);
     self.write_flag(Flag::C, d & 0x1 != 0);
 
     let d = d.wrapping_shr(1);
@@ -747,7 +782,7 @@ impl Cpu {
   fn inst_DEC_·HL·(&mut self) -> u32 {
     let hl = self.reg_hl;
     let d = self.read_byte(hl);
-    let newd = d.wrapping_sub(1);
+    let (newd, _) = d.overflowing_sub(1);
 
     self.write_byte(hl, newd);
 
@@ -765,7 +800,7 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_DEC_r(&mut self, r: Reg) -> u32 {
     let d = self.read_reg_byte(r);
-    let newd = d.wrapping_sub(1);
+    let (newd, _) = d.overflowing_sub(1);
     self.write_reg_byte(r, newd);
 
     self.write_flag(Flag::H, (newd ^ 0x01 ^ d) & 0x10 > 0);
@@ -1094,6 +1129,7 @@ impl Cpu {
   // OR r
   // Opcode: 10110rrr
   // Page: 172
+  #[allow(non_snake_case)]
   fn inst_OR_r(&mut self, r: Reg) -> u32 {
     let d = self.read_reg_byte(r);
     let result = self.read_reg_byte(Reg::A) | d;

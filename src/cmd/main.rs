@@ -69,6 +69,8 @@ fn main() {
     gb.set_cart_rom(&*cart_rom);
     if let Some(boot_rom_path) = matches.value_of("boot-rom") {
       gb.set_boot_rom(load_rom(boot_rom_path));
+    } else {
+      gb.bootstrap();
     }
 
     gb.run();
@@ -76,6 +78,8 @@ fn main() {
     let mut gb = gameboy::GameBoy::new(&*cart_rom);
     if let Some(boot_rom_path) = matches.value_of("boot-rom") {
       gb.set_boot_rom(load_rom(boot_rom_path));
+    } else {
+      gb.bootstrap();
     }
 
     gb.run();
