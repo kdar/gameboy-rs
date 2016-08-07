@@ -350,6 +350,7 @@ impl Cpu {
       Instruction::CALL_nn(nn) => self.inst_CALL_nn(nn),
       Instruction::CP_·HL· => self.inst_CP_·HL·(),
       Instruction::CP_n(n) => self.inst_CP_n(n),
+      Instruction::DEC_·HL· => self.inst_DEC_·HL·(),
       Instruction::DEC_r(r) => self.inst_DEC_r(r),
       Instruction::DEC_rr(r) => self.inst_DEC_rr(r),
       Instruction::DI => self.inst_DI(),
@@ -725,6 +726,25 @@ impl Cpu {
     self.write_flag(Flag::N, true);
 
     4
+  }
+
+  // DEC (HL)
+  // Opcode: 0x35
+  // Page:
+  #[allow(non_snake_case)]
+  fn inst_DEC_·HL·(&mut self) -> u32 {
+    let hl = self.reg_hl;
+    let d = self.read_byte(hl);
+    let newd = d.wrapping_sub(1);
+
+    self.write_byte(hl, newd);
+
+    self.write_flag(Flag::H, (newd ^ 0x01 ^ d) & 0x10 > 0);
+    self.write_flag(Flag::Z, newd == 0);
+
+    self.write_flag(Flag::N, true);
+
+    12
   }
 
   // DEC r
