@@ -8,7 +8,7 @@ pub enum Command {
   Breakpoint(Option<usize>),
   Breakpoints,
   Config(Option<Vec<String>>),
-  Continue,
+  Continue(Option<usize>),
   Debug,
   Print(usize),
   Exit,
@@ -114,12 +114,13 @@ named!(breakpoints<Command>,
 );
 
 named!(continue_<Command>,
-  map!(
+  chain!(
     alt_complete!(
       tag!("continue") |
       tag!("c")
-    ),
-    |_| Command::Continue
+    ) ~
+    skip: opt!(preceded!(space, usize_parser)),
+    || Command::Continue(skip)
   )
 );
 

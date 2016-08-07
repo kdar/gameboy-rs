@@ -120,10 +120,18 @@ impl Debugger {
           };
 
           match c {
-            Command::Continue => {
+            Command::Continue(skip) => {
+              let mut skip = match skip {
+                Some(v) => v,
+                None => 0,
+              };
+
               loop {
-                if self.step(true) {
-                  break;
+                if self.step(false) {
+                  if skip == 0 {
+                    break;
+                  }
+                  skip -= 1;
                 }
               }
             }
