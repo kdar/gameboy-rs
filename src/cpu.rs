@@ -733,7 +733,7 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_DEC_r(&mut self, r: Reg) -> u32 {
     let d = self.read_reg_byte(r);
-    let (newd, _) = d.overflowing_sub(1);
+    let newd = d.wrapping_sub(1);
     self.write_reg_byte(r, newd);
 
     self.write_flag(Flag::H, (newd ^ 0x01 ^ d) & 0x10 > 0);
@@ -971,16 +971,6 @@ impl Cpu {
     12
   }
 
-  // LD r,r
-  // Opcode: 01_rrr_rrr
-  // Page: 120
-  #[allow(non_snake_case)]
-  fn inst_LD_r_r(&mut self, r1: Reg, r2: Reg) -> u32 {
-    let tmp = self.read_reg_byte(r2);
-    self.write_reg_byte(r1, tmp);
-    4
-  }
-
   // LD r,(HL)
   // Opcode: 01rrr110
   // Page: 101
@@ -992,6 +982,16 @@ impl Cpu {
     8
   }
 
+  // LD r,r
+  // Opcode: 01_rrr_rrr
+  // Page: 120
+  #[allow(non_snake_case)]
+  fn inst_LD_r_r(&mut self, r1: Reg, r2: Reg) -> u32 {
+    let tmp = self.read_reg_byte(r2);
+    self.write_reg_byte(r1, tmp);
+    4
+  }
+
   // LD r,n
   // Opcode: 00rrr110
   // Page: 100
@@ -1001,7 +1001,7 @@ impl Cpu {
     8
   }
 
-  // LDD (HL),A
+  // LDI (HL),A
   // Opcode: 0x32
   // Page: 149
   // Moved: LD HL,(nn) -> LDI A,(HL)
@@ -1011,6 +1011,10 @@ impl Cpu {
     let d = self.read_byte(hl);
     self.write_reg_byte(Reg::A, d);
     self.write_reg_word(Reg::HL, hl + 1);
+
+    // self.write_flag(Flag::H, false);
+    // self.write_flag(Flag::N, false);
+
     8
   }
 
@@ -1043,7 +1047,7 @@ impl Cpu {
     self.reg_hl += 1;
 
     self.write_flag(Flag::H, false);
-    self.write_flag(Flag::N, false);
+    // self.write_flag(Flag::N, false);
 
     8
   }
