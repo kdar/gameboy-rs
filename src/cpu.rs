@@ -404,6 +404,7 @@ impl Cpu {
       Instruction::INC_r(r) => self.inst_INC_r(r),
       Instruction::INC_rr(rr) => self.inst_INC_rr(rr),
       Instruction::JP_·HL· => self.inst_JP_·HL·(),
+      Instruction::JP_cc_nn(cc, nn) => self.inst_JP_cc_nn(cc, nn),
       Instruction::JP_nn(nn) => self.inst_JP_nn(nn),
       Instruction::JR_cc_e(cc, e) => self.inst_JR_cc_e(cc, e),
       Instruction::JR_e(e) => self.inst_JR_e(e),
@@ -870,6 +871,19 @@ impl Cpu {
     let d = self.read_word(hl);
     self.reg_pc = d;
     4
+  }
+
+  // JP cc, nn
+  // Opcode: 11ccc010
+  // Page: 257
+  #[allow(non_snake_case)]
+  fn inst_JP_cc_nn(&mut self, cc: Flag, nn: u16) -> u32 {
+    if self.read_flag(cc) {
+      self.reg_pc = nn;
+      16
+    } else {
+      12
+    }
   }
 
   // JP nn

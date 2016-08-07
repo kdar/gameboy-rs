@@ -154,6 +154,13 @@ impl Disassembler {
 
         0xe9 => Ok((Instruction::JP_·HL·, pc)),
 
+        0xc2 | 0xca | 0xd2 | 0xda => {
+          let cc = op >> 3 & 0b111;
+          let nn = try!(m.read_word(addr + pc));
+          pc += 2;
+          Ok((Instruction::JP_cc_nn(Flag::from(cc), nn), pc))
+        }
+
         0xc3 => {
           let nn = try!(m.read_word(addr + pc));
           pc += 2;
