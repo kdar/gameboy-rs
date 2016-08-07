@@ -80,7 +80,7 @@ impl Debugger {
 
       for &b in &self.breakpoints {
         if self.cpu.pc() as usize == b {
-          println!("Breakpoint hit @ {:#04x}", self.cpu.pc());
+          println!("Breakpoint hit @ {:#04x}: {:?}", self.cpu.pc(), self.cpu.peek());
           return true;
         }
       }

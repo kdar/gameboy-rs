@@ -23,15 +23,25 @@ child1.expect('(gameboy)')
 child1.sendline('b c24c')
 child1.expect('(gameboy)')
 child1.sendline('c')
+child1.expect('Breakpoint hit.*?: ')
 child1.expect('(gameboy)')
+
+inst1 = str(child1.before).split('\\r')[0][2:]
 
 child2.expect('gddb>')
 child2.sendline('break 0xc24c')
 child2.expect('gddb>')
 child2.sendline('step 0xFFFFFFFF')
+child2.expect('Breakpoint')
+child2.expect('0x')
 child2.expect('gddb>')
 
+split2 = str(child2.before).split('\\t')
+pc = "0x" + split2[0].split('\\r')[0][2:]
+inst2 = split2[1]
+
 while True:
+  print("{}: {}  <->  {}".format(pc, inst1, inst2))
   child1.sendline('debug')
   child1.expect('(gameboy)')
   regex1 = re.compile('([AFBCDEHLSPC]{2}):\s+0x(....).*?', re.MULTILINE)
@@ -62,5 +72,13 @@ while True:
 
   child1.sendline('s')
   child1.expect('(gameboy)')
+  split1 = str(child1.before).split('\\r\\n')
+  split1 = split1[1].split(': ')
+  pc = split1[0]
+  inst1 = split1[1]
+
   child2.sendline('step')
   child2.expect('gddb>')
+  split2 = str(child2.before).split('\\r\\n')
+  split2 = split2[1].split('\\t')
+  inst2 = split2[1]
