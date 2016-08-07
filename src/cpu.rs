@@ -218,7 +218,7 @@ impl Cpu {
   //   }
   // }
 
-  fn read_byte(&mut self, addr: u16) -> u8 {
+  pub fn read_byte(&mut self, addr: u16) -> u8 {
     let d = self.mem.read_byte(addr);
     match d {
       Ok(v) => v,
@@ -310,12 +310,13 @@ impl Cpu {
     }
   }
 
-  pub fn step(&mut self) -> Instruction {
+  pub fn step(&mut self) -> (Instruction, u16) {
     match self.disasm.at(&self.mem, self.reg_pc) {
       Ok((inst, inc)) => {
+        let pc_at_inst = self.reg_pc;
         self.reg_pc += inc;
         self.execute_instruction(inst);
-        inst
+        (inst, pc_at_inst)
       }
       Err(e) => {
         panic!("cpu.step: {}", e);
@@ -1111,11 +1112,8 @@ impl Cpu {
   // Page: 137
   #[allow(non_snake_case)]
   fn inst_POP_rr(&mut self, rr: Reg) -> u32 {
-    let sp = self.reg_sp;
-    let d = self.read_word(sp);
-
+    let d = self.pop_word();
     self.write_reg_word(rr, d);
-    self.reg_sp += 2;
     12
   }
 
@@ -1126,6 +1124,15 @@ impl Cpu {
   fn inst_PUSH_rr(&mut self, rr: Reg) -> u32 {
     let d = self.read_reg_word(rr);
     self.push_word(d);
+    16
+  }
+
+  // RET
+  // Opcode: 0xC9
+  // Page: 278
+  #[allow(non_snake_case)]
+  fn inst_RET(&mut self) -> u32 {
+    self.reg_pc = self.pop_word();
     16
   }
 
@@ -1140,15 +1147,6 @@ impl Cpu {
     } else {
       8
     }
-  }
-
-  // RET
-  // Opcode: 0xC9
-  // Page: 278
-  #[allow(non_snake_case)]
-  fn inst_RET(&mut self) -> u32 {
-    self.reg_pc = self.pop_word();
-    16
   }
 
   // RRA

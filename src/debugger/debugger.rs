@@ -10,6 +10,8 @@ use super::command::Command;
 
 extern "C" {
   pub static stdout: *mut libc::FILE;
+  pub static stderr: *mut libc::FILE;
+  pub static stdin: *mut libc::FILE;
 }
 
 pub struct Debugger {
@@ -70,11 +72,10 @@ impl Debugger {
     //     }
     //   }
     // } else {
-      let pc = self.cpu.pc();
-      self.cpu.step();
+      let (inst, pc_at_inst) = self.cpu.step();
 
       if display_instructions {
-        println!("{:#04x}: {:?}", self.cpu.pc(), self.cpu.peek());
+        println!("{:#04x}: {:?}", pc_at_inst, inst);
       }
 
       for &b in &self.breakpoints {
@@ -91,6 +92,8 @@ impl Debugger {
   pub fn run(&mut self) {
     unsafe {
       libc::setbuf(stdout as *mut libc::FILE, 0 as *mut i8);
+      libc::setbuf(stderr as *mut libc::FILE, 0 as *mut i8);
+      libc::setbuf(stdin as *mut libc::FILE, 0 as *mut i8);
     }
 
     let mut rl = Editor::<()>::new();
@@ -119,7 +122,7 @@ impl Debugger {
           match c {
             Command::Continue => {
               loop {
-                if self.step(false) {
+                if self.step(true) {
                   break;
                 }
               }
@@ -141,6 +144,10 @@ impl Debugger {
                 //   self.break_after_inst = true;
                 // }
               }
+            }
+            Command::Print(addr) => {
+              let d = self.cpu.read_byte(addr as u16);
+              println!("{:#04x}", d);
             }
             Command::Breakpoint(Some(l)) => {
               self.breakpoints.push(l as usize);

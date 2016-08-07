@@ -10,6 +10,7 @@ pub enum Command {
   Config(Option<Vec<String>>),
   Continue,
   Debug,
+  Print(usize),
   Exit,
   Step(usize),
 }
@@ -55,6 +56,7 @@ named!(command<Command>,
         breakpoints |
         breakpoint |
         debug |
+        print |
         exit
     ) ~
     multispace? ~
@@ -88,6 +90,17 @@ named!(breakpoint<Command>,
     ) ~
     loc: opt!(preceded!(space, hex_parser)),
     || Command::Breakpoint(loc)
+  )
+);
+
+named!(print<Command>,
+  chain!(
+    alt_complete!(
+      tag!("print") |
+      tag!("p")
+    ) ~
+    loc: preceded!(space, hex_parser),
+    || Command::Print(loc)
   )
 );
 

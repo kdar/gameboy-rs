@@ -137,7 +137,7 @@ impl fmt::Debug for Instruction {
       Instruction::SUB_n(n) => write!(f, "SUB ${:02x}", n),
       Instruction::SUB_r(r) => write!(f, "SUB {}", r),
       Instruction::XOR_·HL· => write!(f, "XOR (HL)"),
-      Instruction::XOR_n(n) => write!(f, "XOR {}", n),
+      Instruction::XOR_n(n) => write!(f, "XOR ${:02x}", n),
       Instruction::XOR_r(r) => write!(f, "XOR {}", r),
     }
   }
