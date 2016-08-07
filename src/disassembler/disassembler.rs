@@ -142,6 +142,8 @@ impl Disassembler {
 
         0xf3 => Ok((Instruction::DI, pc)),
 
+        0xfb => Ok((Instruction::EI, pc)),
+
         0x04 | 0x0c | 0x14 | 0x1c | 0x24 | 0x2c | 0x3c => {
           let r = op >> 3 & 0b111;
           Ok((Instruction::INC_r(Reg::from(r)), pc))

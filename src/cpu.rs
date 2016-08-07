@@ -401,6 +401,7 @@ impl Cpu {
       Instruction::DEC_r(r) => self.inst_DEC_r(r),
       Instruction::DEC_rr(r) => self.inst_DEC_rr(r),
       Instruction::DI => self.inst_DI(),
+      Instruction::EI => self.inst_EI(),
       Instruction::INC_r(r) => self.inst_INC_r(r),
       Instruction::INC_rr(rr) => self.inst_INC_rr(rr),
       Instruction::JP_·HL· => self.inst_JP_·HL·(),
@@ -830,6 +831,15 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_DI(&mut self) -> u32 {
     self.interrupt_master_enable = false;
+    4
+  }
+
+  // EI
+  // Opcode: 0xfb
+  // Page: 193
+  #[allow(non_snake_case)]
+  fn inst_EI(&mut self) -> u32 {
+    self.interrupt_master_enable = true;
     4
   }
 
