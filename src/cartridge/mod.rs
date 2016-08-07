@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::fs::File;
 use std::io::Read;
-use num;
+use num::FromPrimitive;
 
 mod ram;
 mod rom;
@@ -115,7 +115,7 @@ impl Cartridge {
       return Err("invalid cartridge: too small".to_owned());
     }
 
-    self.cart_type = match num::FromPrimitive::from_u8(data[0x0147]) {
+    self.cart_type = match FromPrimitive::from_u8(data[0x0147]) {
       Some(v) => v,
       None => {
         return Err(format!("unknown cartridge type: {:#02x}", data[0x0147]));
