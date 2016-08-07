@@ -15,7 +15,7 @@ extern "C" {
 pub struct Debugger {
   cpu: cpu::Cpu,
   breakpoints: Vec<usize>,
-  break_after_inst: bool,
+  // break_after_inst: bool,
 }
 
 impl Default for Debugger {
@@ -23,7 +23,7 @@ impl Default for Debugger {
     Debugger {
       cpu: cpu::Cpu::default(),
       breakpoints: vec![],
-      break_after_inst: false,
+      // break_after_inst: false,
     }
   }
 }
@@ -55,24 +55,26 @@ impl Debugger {
     //   }
     // };
 
-    if self.break_after_inst {
+    // if self.break_after_inst {
+    //   let pc = self.cpu.pc();
+    //
+    //   let inst = self.cpu.step();
+    //   if display_instructions {
+    //     println!("{:#04x}: {:?}", self.cpu.pc(), inst);
+    //   }
+    //
+    //   for &b in &self.breakpoints {
+    //     if pc as usize == b {
+    //       println!("Breakpoint hit @ {:#04x}", self.cpu.pc());
+    //       return true;
+    //     }
+    //   }
+    // } else {
       let pc = self.cpu.pc();
+      self.cpu.step();
 
-      let inst = self.cpu.step();
       if display_instructions {
-        println!("{:#04x}: {:?}", self.cpu.pc(), inst);
-      }
-
-      for &b in &self.breakpoints {
-        if pc as usize == b {
-          println!("Breakpoint hit @ {:#04x}", self.cpu.pc());
-          return true;
-        }
-      }
-    } else {
-      let inst = self.cpu.step();
-      if display_instructions {
-        println!("{:#04x}: {:?}", self.cpu.pc(), inst);
+        println!("{:#04x}: {:?}", self.cpu.pc(), self.cpu.peek());
       }
 
       for &b in &self.breakpoints {
@@ -81,7 +83,7 @@ impl Debugger {
           return true;
         }
       }
-    }
+    // }
 
     false
   }
@@ -134,9 +136,10 @@ impl Debugger {
             }
             Command::Config(args) => {
               if let Some(args) = args {
-                if args[0] == "break-after" {
-                  self.break_after_inst = true;
-                }
+                // if args[0] == "break-after" {
+                //   println!("breakpoints will now break after the instruction executes");
+                //   self.break_after_inst = true;
+                // }
               }
             }
             Command::Breakpoint(Some(l)) => {

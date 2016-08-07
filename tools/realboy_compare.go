@@ -105,9 +105,9 @@ func main() {
 	}()
 
 	time.Sleep(1 * time.Second)
-	stdin1.Write([]byte("b 81d\n"))
+	stdin1.Write([]byte("b 73b\n")) // 81d
 	stdin1.Write([]byte("c\n"))
-	stdin2.Write([]byte("break 0x81d\n"))
+	stdin2.Write([]byte("break 0x73b\n"))
 	stdin2.Write([]byte("step 0xFFFFFFFF\n"))
 	time.Sleep(3 * time.Second)
 
@@ -145,13 +145,18 @@ func main() {
 	<-cont
 
 	rx1 := regexp.MustCompile(`(?m:^([AFBCDEHLSPC]{2}):\s+0x(....).*$)`)
+	instr_rx1 := regexp.MustCompile(`(?m:^0x.*?: (.*?)$)`)
 	rx2 := regexp.MustCompile(`(?m:^([AFBCDEHLSPC]{2}) = 0x(....).*$)`)
+	instr_rx2 := regexp.MustCompile(`(?m:^0x.*?\s+(.*)\s+\(.*?\)$)`) // (?m:^0x.*?\s+(.*?)  \s+.*$)
+	// lastInst1 := ""
 	go func() {
 		for {
+			stdin1.Write([]byte("s\n"))
 			stdin1.Write([]byte("debug\n"))
+			stdin2.Write([]byte("step\n"))
 			stdin2.Write([]byte("show regs\n"))
 
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(30 * time.Millisecond)
 
 			nr1, err := stdout1.Read(buf1)
 			if err != nil {
@@ -179,6 +184,25 @@ func main() {
 				reg2.Set(string(v[1]), uint16(tmp[0])<<8|uint16(tmp[1]))
 			}
 
+			inst2 := "UNKNOWN"
+			for _, v := range instr_rx2.FindAllSubmatch(buf2[:nr2], 1) {
+				inst2 = string(v[1])
+			}
+
+			inst1 := "UNKNOWN"
+			for _, v := range instr_rx1.FindAllSubmatch(buf1[:nr1], 1) {
+				inst1 = string(v[1])
+			}
+
+			fmt.Printf("%04x: %s  <->  %s\n", reg1.PC, inst1, inst2)
+
+			// Gameboy-rs debugs a bit differently from realboy. So we
+			// need to delay the display of this instruction until next
+			// evocation.
+			// for _, v := range instr_rx1.FindAllSubmatch(buf1[:nr1], 1) {
+			// 	lastInst1 = string(v[1])
+			// }
+
 			if !reflect.DeepEqual(reg1, reg2) {
 				fmt.Printf("AF: Got: %04x, Expect: %04x\n", reg1.AF, reg2.AF)
 				fmt.Printf("BC: Got: %04x, Expect: %04x\n", reg1.BC, reg2.BC)
@@ -189,10 +213,6 @@ func main() {
 				fmt.Printf("Flags: Got: %s, Expect: %s\n", reg1.Flags(), reg2.Flags())
 				os.Exit(0)
 			}
-
-			fmt.Printf("%04x\n", reg1.PC)
-			stdin1.Write([]byte("s\n"))
-			stdin2.Write([]byte("step\n"))
 		}
 	}()
 

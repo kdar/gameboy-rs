@@ -299,6 +299,17 @@ impl Cpu {
     self.reg_pc
   }
 
+  pub fn peek(&mut self) -> Instruction {
+    match self.disasm.at(&self.mem, self.reg_pc) {
+      Ok((inst, _)) => {
+        inst
+      }
+      Err(e) => {
+        panic!("cpu.peek: {}", e);
+      }
+    }
+  }
+
   pub fn step(&mut self) -> Instruction {
     match self.disasm.at(&self.mem, self.reg_pc) {
       Ok((inst, inc)) => {
