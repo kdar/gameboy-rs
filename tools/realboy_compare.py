@@ -20,6 +20,8 @@ child1 = pexpect.spawn('target/debug/gameboy-emu -b "res/DMG_ROM.bin" "res/cpu_i
 child2 = pexpect.spawn('/home/outroot/build/realboy-0.2.2/src/realboy -d "res/cpu_instrs/individual/11-op a,(hl).gb"')
 
 child1.expect('(gameboy)')
+child1.sendline('config break-after')
+child1.expect('(gameboy)')
 child1.sendline('b c24c')
 child1.expect('(gameboy)')
 child1.sendline('c')
@@ -55,6 +57,10 @@ while True:
   fail = False
   for i in range(len(match1)):
     if match1[i][1] != match2[i][1]:
+      # if i == 0 and match1[i][1][2:] == match2[i][1][2:]:
+      #   continue
+      # if i == 0:
+      #   continue
       fail = True
       break
 

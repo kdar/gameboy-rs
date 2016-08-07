@@ -299,8 +299,8 @@ impl Cpu {
     self.reg_pc
   }
 
-  pub fn peek(&mut self) -> Instruction {
-    match self.disasm.at(&self.mem, self.reg_pc) {
+  pub fn peek_at(&self, pc: u16) -> Instruction {
+    match self.disasm.at(&self.mem, pc) {
       Ok((inst, _)) => {
         inst
       }
