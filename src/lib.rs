@@ -3,9 +3,12 @@
 #![plugin(num_macros)]
 #![feature(step_by)]
 
-extern crate md5;
 #[cfg(test)]
 extern crate difference;
+#[cfg(test)]
+extern crate yaml_rust;
+
+extern crate md5;
 #[macro_use]
 extern crate nom;
 extern crate piston_window;

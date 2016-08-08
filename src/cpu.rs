@@ -73,10 +73,10 @@ impl Default for Cpu {
 
 impl fmt::Debug for Cpu {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    try!(write!(f, "\nAF:      {0:#06x} [{0:16b}]", self.reg_af));
-    try!(write!(f, "\nBC:      {0:#06x} [{0:16b}]", self.reg_bc));
-    try!(write!(f, "\nDE:      {0:#06x} [{0:16b}]", self.reg_de));
-    try!(write!(f, "\nHL:      {0:#06x} [{0:16b}]", self.reg_hl));
+    try!(write!(f, "\nAF:      {0:#06x} [{0:016b}]", self.reg_af));
+    try!(write!(f, "\nBC:      {0:#06x} [{0:016b}]", self.reg_bc));
+    try!(write!(f, "\nDE:      {0:#06x} [{0:016b}]", self.reg_de));
+    try!(write!(f, "\nHL:      {0:#06x} [{0:016b}]", self.reg_hl));
     try!(write!(f, "\nSP:      {0:#06x} [{0:016b}]", self.reg_sp));
     try!(write!(f, "\nPC:      {0:#06x} [{0:016b}]", self.reg_pc));
     try!(write!(f, "\nFlags:   "));
@@ -1355,6 +1355,122 @@ mod tests {
   use super::super::disassembler::Instruction;
   use difference::{self, Difference};
   use std::io::Write;
+
+  use yaml_rust::{YamlLoader};
+  use yaml_rust::yaml::Yaml;
+
+  #[test]
+  fn test_runner() {
+    let s = include_str!("../testdata/cpu.yaml");
+    let docs = YamlLoader::load_from_str(s).unwrap();
+    let doc = &docs[0];
+
+    for (k, v) in doc.as_hash().unwrap() {
+      let test_name = k.as_str().unwrap();
+      let unit = &doc[test_name];
+      let setup = &unit["setup"];
+      let test = &unit["test"];
+
+      let mut c = Cpu::default();
+      for (key, value) in setup.as_hash().unwrap() {
+        match key.as_str().unwrap() {
+          "A" => c.write_reg_byte(Reg::A, value.as_i64().unwrap() as u8),
+          "F" => c.write_reg_byte(Reg::F, value.as_i64().unwrap() as u8),
+          "B" => c.write_reg_byte(Reg::B, value.as_i64().unwrap() as u8),
+          "C" => c.write_reg_byte(Reg::C, value.as_i64().unwrap() as u8),
+          "D" => c.write_reg_byte(Reg::D, value.as_i64().unwrap() as u8),
+          "E" => c.write_reg_byte(Reg::E, value.as_i64().unwrap() as u8),
+          "H" => c.write_reg_byte(Reg::H, value.as_i64().unwrap() as u8),
+          "L" => c.write_reg_byte(Reg::L, value.as_i64().unwrap() as u8),
+          "SP" => c.reg_sp = value.as_i64().unwrap() as u16,
+          "PC" => c.reg_pc = value.as_i64().unwrap() as u16,
+          "mem" => {
+            match value {
+              &Yaml::Array(ref a) => {
+                let mut count = 0;
+                for x in a {
+                  c.mem.write_byte(count, x.as_i64().unwrap() as u8);
+                  count += 1;
+                }
+              }
+              _ => panic!("unknown mem value"),
+            };
+          }
+          _ => panic!("unknown key in setup")
+        }
+      }
+
+      c.step();
+
+      for (key, value) in test.as_hash().unwrap() {
+        match key.as_str().unwrap() {
+          "A" => {
+            let v1 = c.read_reg_byte(Reg::A);
+            let v2 = value.as_i64().unwrap() as u8;
+            assert!(v1 == v2, "\n{0}:\n A:\n  Got:      {1:#04x} [{1:016b}],\n  Expected: {2:#04x} [{2:016b}]", test_name, v1, v2);
+          },
+          "F" => {
+            let v1 = c.read_reg_byte(Reg::F);
+            let v2 = value.as_i64().unwrap() as u8;
+            assert!(v1 == v2, "\n{0}:\n F:\n  Got:      {1:#04x} [{1:016b}],\n  Expected: {2:#04x} [{2:016b}]", test_name, v1, v2);
+          },
+          "B" => {
+            let v1 = c.read_reg_byte(Reg::B);
+            let v2 = value.as_i64().unwrap() as u8;
+            assert!(v1 == v2, "\n{0}:\n B:\n  Got:      {1:#04x} [{1:016b}],\n  Expected: {2:#04x} [{2:016b}]", test_name, v1, v2);
+          },
+          "C" => {
+            let v1 = c.read_reg_byte(Reg::C);
+            let v2 = value.as_i64().unwrap() as u8;
+            assert!(v1 == v2, "\n{0}:\n C:\n  Got:      {1:#04x} [{1:016b}],\n  Expected: {2:#04x} [{2:016b}]", test_name, v1, v2);
+          },
+          "D" => {
+            let v1 = c.read_reg_byte(Reg::D);
+            let v2 = value.as_i64().unwrap() as u8;
+            assert!(v1 == v2, "\n{0}:\n D:\n  Got:      {1:#04x} [{1:016b}],\n  Expected: {2:#04x} [{2:016b}]", test_name, v1, v2);
+          },
+          "E" => {
+            let v1 = c.read_reg_byte(Reg::E);
+            let v2 = value.as_i64().unwrap() as u8;
+            assert!(v1 == v2, "\n{0}:\n E:\n  Got:      {1:#04x} [{1:016b}],\n  Expected: {2:#04x} [{2:016b}]", test_name, v1, v2);
+          },
+          "H" => {
+            let v1 = c.read_reg_byte(Reg::H);
+            let v2 = value.as_i64().unwrap() as u8;
+            assert!(v1 == v2, "\n{0}:\n H:\n  Got:      {1:#04x} [{1:016b}],\n  Expected: {2:#04x} [{2:016b}]", test_name, v1, v2);
+          },
+          "L" => {
+            let v1 = c.read_reg_byte(Reg::L);
+            let v2 = value.as_i64().unwrap() as u8;
+            assert!(v1 == v2, "\n{0}:\n L:\n  Got:      {1:#04x} [{1:016b}],\n  Expected: {2:#04x} [{2:016b}]", test_name, v1, v2);
+          },
+          "SP" => {
+            let v1 = c.reg_sp;
+            let v2 = value.as_i64().unwrap() as u16;
+            assert!(v1 == v2, "\n{0}:\n SP:\n  Got:      {1:#04x} [{1:016b}],\n  Expected: {2:#04x} [{2:016b}]", test_name, v1, v2);
+          },
+          "PC" => {
+            let v1 = c.reg_pc;
+            let v2 = value.as_i64().unwrap() as u16;
+            assert!(v1 == v2, "\n{0}:\n PC:\n  Got:      {1:#04x} [{1:016b}],\n  Expected: {2:#04x} [{2:016b}]", test_name, v1, v2);
+          },
+          "mem" => {
+            match value {
+              &Yaml::Array(ref a) => {
+                let mut count = 0;
+                for x in a {
+                  assert!(c.read_byte(count) == x.as_i64().unwrap() as u8);
+                  count += 1;
+                }
+              }
+              _ => panic!("unknown mem value"),
+            };
+          }
+          _ => panic!("unknown key in setup")
+        }
+      }
+    }
+  }
 
   #[test]
   fn test_write_read_reg_byte() {

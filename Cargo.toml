@@ -17,6 +17,7 @@ time = "0.1"
 num = "0.1"
 num-macros = "0.1"
 libc = "0.2"
+yaml-rust = "0.3"
 
 [lib]
 name = "gameboy"
