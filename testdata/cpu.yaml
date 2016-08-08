@@ -1,0 +1,57 @@
+# AND r
+and_a:
+  setup:
+    A: 0x11
+    mem: [0xa7]
+  test:
+    A: 0x11
+and_b:
+  setup:
+    A: 0x89
+    B: 0xF6
+    mem: [0xa0]
+  test:
+    A: 0x80
+and_c:
+  setup:
+    A: 0x89
+    C: 0xf6
+    mem: [0xa1]
+  test:
+    A: 0x80
+and_d:
+  setup:
+    A: 0x89
+    D: 0xf6
+    mem: [0xa2]
+  test:
+    A: 0x80
+and_e:
+  setup:
+    A: 0x89
+    E: 0xf6
+    mem: [0xa3]
+  test:
+    A: 0x80
+and_h:
+  setup:
+    A: 0x89
+    H: 0xf6
+    mem: [0xa4]
+  test:
+    A: 0x80
+and_l:
+  setup:
+    A: 0x89
+    L: 0xf6
+    mem: [0xa5]
+  test:
+    A: 0x80
+
+# AND n
+and_n:
+  setup:
+    A: 0x89
+    mem: [0xe6, 0xf6]
+  test:
+    A: 0x80
