@@ -102,7 +102,7 @@ impl Disassembler {
           Ok((Instruction::AND_n(n), pc))
         }
 
-        0xa0 | 0xa1 | 0xa2 | 0xa3 | 0xa4 | 0xa5 | 0xa6 | 0xa7 => {
+        0xa0 | 0xa1 | 0xa2 | 0xa3 | 0xa4 | 0xa5 | 0xa7 => {
           let r = op & 0b111;
           Ok((Instruction::AND_r(Reg::from(r)), pc))
         }
