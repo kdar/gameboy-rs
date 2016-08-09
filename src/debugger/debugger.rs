@@ -7,6 +7,7 @@ use std::process::exit;
 
 use super::super::cpu;
 use super::command::Command;
+use super::super::reg::Reg;
 
 extern "C" {
   pub static stdout: *mut libc::FILE;
@@ -79,12 +80,16 @@ impl Debugger {
     let (inst, pc_at_inst) = self.cpu.step();
 
     if display_instructions {
-      println!("{:#04x}: {:?}", self.cpu.pc(), self.cpu.peek_at(self.cpu.pc()));
+      println!("{:#04x}: {:?}",
+               self.cpu.pc(),
+               self.cpu.peek_at(self.cpu.pc()));
     }
 
     for &b in &self.breakpoints {
       if self.cpu.pc() as usize == b {
-        println!("Breakpoint hit @ {:#04x}: {:?}", self.cpu.pc(), self.cpu.peek_at(self.cpu.pc()));
+        println!("Breakpoint hit @ {:#04x}: {:?}",
+                 self.cpu.pc(),
+                 self.cpu.peek_at(self.cpu.pc()));
         return true;
       }
     }
@@ -142,6 +147,23 @@ impl Debugger {
             Command::Debug => {
               println!("{:?}", self.cpu);
             }
+            Command::Set(s, v) => {
+              match s.as_str() {
+                "a" => self.cpu.write_reg_byte(Reg::A, v as u8),
+                "f" => self.cpu.write_reg_byte(Reg::F, v as u8),
+                "b" => self.cpu.write_reg_byte(Reg::B, v as u8),
+                "c" => self.cpu.write_reg_byte(Reg::C, v as u8),
+                "d" => self.cpu.write_reg_byte(Reg::D, v as u8),
+                "e" => self.cpu.write_reg_byte(Reg::E, v as u8),
+                "h" => self.cpu.write_reg_byte(Reg::H, v as u8),
+                "l" => self.cpu.write_reg_byte(Reg::L, v as u8),
+                "af" => self.cpu.write_reg_word(Reg::AF, v as u16),
+                "bc" => self.cpu.write_reg_word(Reg::BC, v as u16),
+                "de" => self.cpu.write_reg_word(Reg::DE, v as u16),
+                "hl" => self.cpu.write_reg_word(Reg::HL, v as u16),
+                _ => {}
+              }
+            }
             Command::Step(s) => {
               for _ in 0..s {
                 if self.step(true) {
@@ -171,7 +193,9 @@ impl Debugger {
               }
             }
             Command::Exit => exit(0),
-            _ => {}
+            _ => {
+              println!("Unknown command: {:?}", c);
+            }
           };
         }
         Err(ReadlineError::Interrupted) => {

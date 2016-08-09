@@ -1,4 +1,4 @@
-use nom::{self, multispace, eof, space, digit, hex_u32, rest};
+use nom::{self, multispace, eof, space, digit, hex_u32, rest, is_alphanumeric};
 use std::str::{self, FromStr};
 use std::fmt;
 use std::error;
@@ -12,6 +12,7 @@ pub enum Command {
   Debug,
   Print(usize),
   Exit,
+  Set(String, usize),
   Step(usize),
 }
 
@@ -50,6 +51,7 @@ impl<'a> From<nom::Err<&'a [u8]>> for ParserError {
 named!(command<Command>,
   chain!(
     c: alt_complete!(
+        set |
         step |
         config |
         continue_ |
@@ -143,6 +145,16 @@ named!(exit<Command>,
       tag!("q")
     ),
     |_| Command::Exit
+  )
+);
+
+named!(set<Command>,
+  chain!(
+    tag!("set ") ~
+    to: take_while!(is_alphanumeric) ~
+    multispace ~
+    val: hex_parser,
+    || Command::Set(String::from_utf8_lossy(to).into_owned(), val)
   )
 );
 

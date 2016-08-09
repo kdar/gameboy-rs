@@ -205,7 +205,7 @@ impl Cpu {
     }
   }
 
-  fn write_reg_word(&mut self, register: Reg, value: u16) {
+  pub fn write_reg_word(&mut self, register: Reg, value: u16) {
     match register {
       Reg::BC => self.reg_bc = value,
       Reg::DE => self.reg_de = value,
