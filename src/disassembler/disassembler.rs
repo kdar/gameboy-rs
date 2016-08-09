@@ -58,7 +58,7 @@ impl Disassembler {
           Ok((Instruction::RR_r(Reg::from(r)), pc))
         }
 
-        0x38 | 0x39 | 0x3b | 0x3c | 0x3d | 0x3f => {
+        0x38 | 0x39 | 0x3a | 0x3b | 0x3c | 0x3d | 0x3f => {
           let r = op & 0b111;
           Ok((Instruction::SRL_r(Reg::from(r)), pc))
         }
@@ -107,7 +107,8 @@ impl Disassembler {
           Ok((Instruction::AND_r(Reg::from(r)), pc))
         }
 
-        0xc4 | 0xcc | 0xd4 | 0xdc | 0xe4 | 0xec | 0xf4 | 0xfc => {
+        0xc4 | 0xcc | 0xd4 | 0xdc => {
+          // | 0xe4 | 0xec | 0xf4 | 0xfc => {
           let cc = op >> 3 & 0b111;
           let nn = try!(m.read_word(addr + pc));
           pc += 2;
@@ -130,7 +131,7 @@ impl Disassembler {
 
         0x35 => Ok((Instruction::DEC_·HL·, pc)),
 
-        0x05 | 0x0d | 0x15 | 0x1d | 0x25 | 0x2d  | 0x3d => {
+        0x05 | 0x0d | 0x15 | 0x1d | 0x25 | 0x2d | 0x3d => {
           let r = op >> 3 & 0b111;
           Ok((Instruction::DEC_r(Reg::from(r)), pc))
         }
@@ -252,7 +253,7 @@ impl Disassembler {
           Ok((Instruction::LD_dd_nn(Reg::from_pair(r, false), nn), pc))
         }
 
-        0x46 | 0x4e | 0x56 | 0x5e | 0x66 | 0x6e | 0x76 | 0x7e => {
+        0x46 | 0x4e | 0x56 | 0x5e | 0x66 | 0x6e | 0x7e => {
           let r = op >> 3 & 0b111;
           Ok((Instruction::LD_r_·HL·(Reg::from(r)), pc))
         }
@@ -278,7 +279,9 @@ impl Disassembler {
         0x32 => Ok((Instruction::LDD_·HL·_A, pc)),
         0x22 => Ok((Instruction::LDI_·HL·_A, pc)),
 
-        0xb0 | 0xb1 | 0xb2 | 0xb3 | 0xb4 | 0xb5 | 0xb6 | 0xb7 => {
+        0xb6 => Ok((Instruction::OR_A_·HL·, pc)),
+
+        0xb0 | 0xb1 | 0xb2 | 0xb3 | 0xb4 | 0xb5 | 0xb7 => {
           let r = op & 0b111;
           Ok((Instruction::OR_r(Reg::from(r)), pc))
         }

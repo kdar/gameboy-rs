@@ -131,7 +131,7 @@ impl Debugger {
               };
 
               loop {
-                if self.step(false) {
+                if self.step(true) {
                   if skip == 0 {
                     break;
                   }

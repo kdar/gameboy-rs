@@ -331,9 +331,7 @@ impl Cpu {
 
   pub fn peek_at(&self, pc: u16) -> Instruction {
     match self.disasm.at(&self.mem, pc) {
-      Ok((inst, _)) => {
-        inst
-      }
+      Ok((inst, _)) => inst,
       Err(e) => {
         panic!("cpu.peek: {}", e);
       }
@@ -427,6 +425,7 @@ impl Cpu {
       Instruction::LDI_A_·HL· => self.inst_LDI_A_·HL·(),
       Instruction::LDD_·HL·_A => self.inst_LDD_·HL·_A(),
       Instruction::LDI_·HL·_A => self.inst_LDI_·HL·_A(),
+      Instruction::OR_A_·HL· => self.inst_OR_A_·HL·(),
       Instruction::OR_r(r) => self.inst_OR_r(r),
       Instruction::POP_rr(rr) => self.inst_POP_rr(rr),
       Instruction::PUSH_rr(rr) => self.inst_PUSH_rr(rr),
@@ -450,8 +449,8 @@ impl Cpu {
   fn add_word(&mut self, a: u16, b: u16) -> u16 {
     let (result, carry) = a.overflowing_add(b);
     self.write_flag(Flag::N, false);
-    self.write_flag(Flag::C, carry);
     self.write_flag(Flag::H, (result ^ a ^ b) & 0x1000 != 0);
+    self.write_flag(Flag::C, carry);
     result
   }
 
@@ -476,14 +475,13 @@ impl Cpu {
       0
     };
 
-    self.write_flag(Flag::N, false);
-    self.write_flag(Flag::H, (a & 0x0f) + (d & 0x0f) + c > 0x0f);
-
     let (result, carry1) = a.overflowing_add(d);
     let (result, carry2) = result.overflowing_add(c);
 
     self.write_reg_byte(Reg::A, result);
     self.write_flag(Flag::Z, result == 0);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, (a & 0x0f) + (d & 0x0f) + c > 0x0f);
     self.write_flag(Flag::C, carry1 || carry2);
   }
 
@@ -495,8 +493,8 @@ impl Cpu {
     let d = self.read_reg_byte(r);
 
     self.write_flag(Flag::Z, d & (1 << b) == 0);
-    self.write_flag(Flag::H, true);
     self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, true);
 
     8
   }
@@ -510,8 +508,6 @@ impl Cpu {
 
     let carry = self.read_flag(Flag::C);
 
-    self.write_flag(Flag::C, d & (1 << 7) != 0);
-
     d <<= 1;
 
     if carry {
@@ -521,10 +517,10 @@ impl Cpu {
     }
 
     self.write_reg_byte(r, d);
-
     self.write_flag(Flag::Z, d == 0);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, false);
+    self.write_flag(Flag::C, d & (1 << 7) != 0);
 
     8
   }
@@ -536,24 +532,22 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_RR_r(&mut self, r: Reg) -> u32 {
     let mut d = self.read_reg_byte(r);
-
-    let carry = self.read_flag(Flag::C);
-
-    self.write_flag(Flag::C, d & 1 != 0);
+    let prev_carry = self.read_flag(Flag::C);
+    let carry = d & 1 != 0;
 
     d >>= 1;
 
-    if carry {
+    if prev_carry {
       d |= 0b10000000; // set bit 7 to 1
     } else {
       d &= !0b10000000; // set bit 7 to 0
     }
 
     self.write_reg_byte(r, d);
-
     self.write_flag(Flag::Z, d == 0);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, false);
+    self.write_flag(Flag::C, carry);
 
     8
   }
@@ -564,23 +558,22 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_RLA(&mut self) -> u32 {
     let mut d = self.read_reg_byte(Reg::A);
-
-    let carry = self.read_flag(Flag::C);
-
-    self.write_flag(Flag::C, d & (1 << 7) != 0);
+    let prev_carry = self.read_flag(Flag::C);
+    let carry = d & (1 << 7) != 0;
 
     d <<= 1;
 
-    if carry {
+    if prev_carry {
       d |= 1; // set bit 0 to 1
     } else {
       d &= !1; // set bit 0 to 0
     }
 
     self.write_reg_byte(Reg::A, d);
-
+    self.write_flag(Flag::Z, false);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, false);
+    self.write_flag(Flag::C, carry);
 
     4
   }
@@ -591,14 +584,15 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_SRL_r(&mut self, r: Reg) -> u32 {
     let d = self.read_reg_byte(r);
-    self.write_flag(Flag::C, d & 0x1 != 0);
+    let carry = d & 0x1 != 0;
 
     let d = d.wrapping_shr(1);
-    self.write_reg_byte(r, d);
 
+    self.write_reg_byte(r, d);
     self.write_flag(Flag::Z, d == 0);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, false);
+    self.write_flag(Flag::C, carry);
 
     8
   }
@@ -639,7 +633,9 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_ADD_A_n(&mut self, n: u8) -> u32 {
     let a = self.read_reg_byte(Reg::A);
+
     let (result, carry) = a.overflowing_add(n);
+
     self.write_reg_byte(Reg::A, result);
     self.write_flag(Flag::Z, result == 0);
     self.write_flag(Flag::N, false);
@@ -659,6 +655,7 @@ impl Cpu {
     let d = self.read_byte(hl);
 
     let (result, carry) = a.overflowing_add(d);
+
     self.write_reg_byte(Reg::A, result);
     self.write_flag(Flag::Z, result == 0);
     self.write_flag(Flag::N, false);
@@ -747,12 +744,12 @@ impl Cpu {
     let hl = self.reg_hl;
     let d = self.read_byte(hl);
     let a = self.read_reg_byte(Reg::A);
-    let result = a - d;
+    let (result, carry) = a.overflowing_sub(d);
 
     self.write_flag(Flag::Z, result == 0);
-    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::N, true);
     self.write_flag(Flag::H, a & 0x0F < d & 0x0F);
-    self.write_flag(Flag::C, a & 0xFF < d & 0xFF);
+    self.write_flag(Flag::C, carry);
 
     8
   }
@@ -766,13 +763,9 @@ impl Cpu {
     let (result, carry) = a.overflowing_sub(n);
 
     self.write_flag(Flag::Z, result == 0);
-    self.write_flag(Flag::C, carry);
-
-    // Set the half carry flag if half of register A is less than
-    // half of n.
-    self.write_flag(Flag::H, a & 0x0F < n & 0x0F);
-
     self.write_flag(Flag::N, true);
+    self.write_flag(Flag::H, a & 0x0F < n & 0x0F);
+    self.write_flag(Flag::C, carry);
 
     4
   }
@@ -784,14 +777,12 @@ impl Cpu {
   fn inst_DEC_·HL·(&mut self) -> u32 {
     let hl = self.reg_hl;
     let d = self.read_byte(hl);
-    let (newd, _) = d.overflowing_sub(1);
+    let newd = d.wrapping_sub(1);
 
     self.write_byte(hl, newd);
-
-    self.write_flag(Flag::H, (newd ^ 0x01 ^ d) & 0x10 > 0);
     self.write_flag(Flag::Z, newd == 0);
-
     self.write_flag(Flag::N, true);
+    self.write_flag(Flag::H, d & 0xf == 0);
 
     12
   }
@@ -802,13 +793,12 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_DEC_r(&mut self, r: Reg) -> u32 {
     let d = self.read_reg_byte(r);
-    let (newd, _) = d.overflowing_sub(1);
+    let newd = d.wrapping_sub(1);
+
     self.write_reg_byte(r, newd);
-
-    self.write_flag(Flag::H, (newd ^ 0x01 ^ d) & 0x10 > 0);
     self.write_flag(Flag::Z, newd == 0);
-
     self.write_flag(Flag::N, true);
+    self.write_flag(Flag::H, d & 0xf == 0);
 
     4
   }
@@ -819,7 +809,7 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_DEC_rr(&mut self, r: Reg) -> u32 {
     let d = self.read_reg_word(r);
-    let (newd, _) = d.overflowing_sub(1);
+    let newd = d.wrapping_sub(1);
     self.write_reg_word(r, newd);
 
     8
@@ -849,13 +839,12 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_INC_r(&mut self, r: Reg) -> u32 {
     let d = self.read_reg_byte(r);
-    let (newd, _) = d.overflowing_add(1);
+    let newd = d.wrapping_add(1);
+
     self.write_reg_byte(r, newd);
-
-    self.write_flag(Flag::H, ((d & 0xF) + (1 & 0xF)) & 0x10 > 0);
     self.write_flag(Flag::Z, newd == 0);
-
     self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, d & 0xf == 0xf);
 
     4
   }
@@ -867,7 +856,7 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_INC_rr(&mut self, ss: Reg) -> u32 {
     let d = self.read_reg_word(ss);
-    let (d, _) = d.overflowing_add(1);
+    let d = d.wrapping_add(1);
     self.write_reg_word(ss, d);
     4
   }
@@ -982,10 +971,10 @@ impl Cpu {
   // Opcode: 01110rrr
   // Page: 104
   #[allow(non_snake_case)]
-  fn inst_LD_·HL·_r(&mut self, reg: Reg) -> u32 {
+  fn inst_LD_·HL·_r(&mut self, r: Reg) -> u32 {
     let hl = self.reg_hl;
-    let a = self.read_reg_byte(reg);
-    self.write_byte(hl, a);
+    let d = self.read_reg_byte(r);
+    self.write_byte(hl, d);
     8
   }
 
@@ -1037,8 +1026,8 @@ impl Cpu {
   // Page:
   #[allow(non_snake_case)]
   fn inst_LD_A_·nn·(&mut self, nn: u16) -> u32 {
-    let d = self.read_byte(nn);
-    self.write_reg_byte(Reg::A, d);
+    let val = self.read_byte(nn);
+    self.write_reg_byte(Reg::A, val);
     16
   }
 
@@ -1047,9 +1036,8 @@ impl Cpu {
   // Moved: RET P -> LD A,(FF00+n)
   #[allow(non_snake_case)]
   fn inst_LD_A_·0xFF00n·(&mut self, n: u8) -> u32 {
-    let d = self.read_byte(0xFF00 + n as u16);
-
-    self.write_reg_byte(Reg::A, d);
+    let val = self.read_byte(0xFF00 + n as u16);
+    self.write_reg_byte(Reg::A, val);
     12
   }
 
@@ -1068,8 +1056,8 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_LD_r_·HL·(&mut self, r: Reg) -> u32 {
     let hl = self.read_reg_word(Reg::HL);
-    let d = self.read_byte(hl);
-    self.write_reg_byte(r, d);
+    let val = self.read_byte(hl);
+    self.write_reg_byte(r, val);
     8
   }
 
@@ -1078,8 +1066,8 @@ impl Cpu {
   // Page: 120
   #[allow(non_snake_case)]
   fn inst_LD_r_r(&mut self, r1: Reg, r2: Reg) -> u32 {
-    let tmp = self.read_reg_byte(r2);
-    self.write_reg_byte(r1, tmp);
+    let val = self.read_reg_byte(r2);
+    self.write_reg_byte(r1, val);
     4
   }
 
@@ -1099,12 +1087,10 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_LDI_A_·HL·(&mut self) -> u32 {
     let hl = self.read_reg_word(Reg::HL);
-    let d = self.read_byte(hl);
-    self.write_reg_byte(Reg::A, d);
-    self.write_reg_word(Reg::HL, hl + 1);
+    let val = self.read_byte(hl);
 
-    // self.write_flag(Flag::H, false);
-    // self.write_flag(Flag::N, false);
+    self.write_reg_byte(Reg::A, val);
+    self.write_reg_word(Reg::HL, hl + 1);
 
     8
   }
@@ -1120,9 +1106,6 @@ impl Cpu {
     self.write_byte(hl, a);
     self.reg_hl -= 1;
 
-    self.write_flag(Flag::H, false);
-    self.write_flag(Flag::N, false);
-
     8
   }
 
@@ -1137,9 +1120,6 @@ impl Cpu {
     self.write_byte(hl, a);
     self.reg_hl += 1;
 
-    self.write_flag(Flag::H, false);
-    // self.write_flag(Flag::N, false);
-
     8
   }
 
@@ -1151,14 +1131,32 @@ impl Cpu {
   }
 
   // OR r
+  // Opcode: 0xb6
+  // Page: 172
+  #[allow(non_snake_case)]
+  fn inst_OR_A_·HL·(&mut self) -> u32 {
+    let hl = self.reg_hl;
+    let val = self.read_byte(hl);
+    let result = self.read_reg_byte(Reg::A) | val;
+
+    self.write_reg_byte(Reg::A, result);
+    self.write_flag(Flag::Z, result == 0);
+    self.write_flag(Flag::H, false);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::C, false);
+
+    8
+  }
+
+  // OR r
   // Opcode: 10110rrr
   // Page: 172
   #[allow(non_snake_case)]
   fn inst_OR_r(&mut self, r: Reg) -> u32 {
-    let d = self.read_reg_byte(r);
-    let result = self.read_reg_byte(Reg::A) | d;
-    self.write_reg_byte(Reg::A, result);
+    let val = self.read_reg_byte(r);
+    let result = self.read_reg_byte(Reg::A) | val;
 
+    self.write_reg_byte(Reg::A, result);
     self.write_flag(Flag::Z, result == 0);
     self.write_flag(Flag::H, false);
     self.write_flag(Flag::N, false);
@@ -1172,8 +1170,8 @@ impl Cpu {
   // Page: 137
   #[allow(non_snake_case)]
   fn inst_POP_rr(&mut self, rr: Reg) -> u32 {
-    let d = self.pop_word();
-    self.write_reg_word(rr, d);
+    let val = self.pop_word();
+    self.write_reg_word(rr, val);
     12
   }
 
@@ -1182,8 +1180,8 @@ impl Cpu {
   // Page: 134
   #[allow(non_snake_case)]
   fn inst_PUSH_rr(&mut self, rr: Reg) -> u32 {
-    let d = self.read_reg_word(rr);
-    self.push_word(d);
+    let val = self.read_reg_word(rr);
+    self.push_word(val);
     16
   }
 
@@ -1214,24 +1212,23 @@ impl Cpu {
   // Page: 211
   #[allow(non_snake_case)]
   fn inst_RRA(&mut self) -> u32 {
-    let mut d = self.read_reg_byte(Reg::A);
+    let mut val = self.read_reg_byte(Reg::A);
+    let prev_carry = self.read_flag(Flag::C);
+    let carry = val & 1 != 0;
 
-    let carry = self.read_flag(Flag::C);
+    val >>= 1;
 
-    self.write_flag(Flag::C, d & 1 != 0);
-
-    d >>= 1;
-
-    if carry {
-      d |= 0b10000000; // set bit 7 to 1
+    if prev_carry {
+      val |= 0b10000000; // set bit 7 to 1
     } else {
-      d &= !0b10000000; // set bit 7 to 0
+      val &= !0b10000000; // set bit 7 to 0
     }
 
-    self.write_reg_byte(Reg::A, d);
-
+    self.write_reg_byte(Reg::A, val);
+    self.write_flag(Flag::Z, false);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, false);
+    self.write_flag(Flag::C, carry);
 
     4
   }
@@ -1355,14 +1352,35 @@ mod tests {
   use super::super::disassembler::Instruction;
   use difference::{self, Difference};
   use std::io::Write;
+  use std::io::Read;
+  use std::fs::File;
+  use std;
 
-  use yaml_rust::{YamlLoader};
+  use yaml_rust::YamlLoader;
   use yaml_rust::yaml::Yaml;
+
+  struct HexVec(Vec<u8>);
+  impl std::fmt::LowerHex for HexVec {
+    fn fmt(&self, fmtr: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+      try!(fmtr.write_fmt(format_args!("[")));
+      for (i, byte) in self.0.iter().enumerate() {
+        try!(fmtr.write_fmt(format_args!("{:02x}", byte)));
+        if i + 1 != self.0.len() {
+          try!(fmtr.write_fmt(format_args!(" ")));
+        }
+      }
+      try!(fmtr.write_fmt(format_args!("]")));
+      Ok(())
+    }
+  }
 
   #[test]
   fn test_runner() {
-    let s = include_str!("../testdata/cpu.yaml");
-    let docs = YamlLoader::load_from_str(s).unwrap();
+    // let s = include_str!("../testdata/cpu.yaml");
+    let mut f = File::open("testdata/cpu.yaml").unwrap();
+    let mut s = String::new();
+    f.read_to_string(&mut s).unwrap();
+    let docs = YamlLoader::load_from_str(&s).unwrap();
     let doc = &docs[0];
 
     for (k, v) in doc.as_hash().unwrap() {
@@ -1372,20 +1390,20 @@ mod tests {
       let test = &unit["test"];
 
       let mut c = Cpu::default();
-      for (key, value) in setup.as_hash().unwrap() {
-        match key.as_str().unwrap() {
-          "A" => c.write_reg_byte(Reg::A, value.as_i64().unwrap() as u8),
-          "F" => c.write_reg_byte(Reg::F, value.as_i64().unwrap() as u8),
-          "B" => c.write_reg_byte(Reg::B, value.as_i64().unwrap() as u8),
-          "C" => c.write_reg_byte(Reg::C, value.as_i64().unwrap() as u8),
-          "D" => c.write_reg_byte(Reg::D, value.as_i64().unwrap() as u8),
-          "E" => c.write_reg_byte(Reg::E, value.as_i64().unwrap() as u8),
-          "H" => c.write_reg_byte(Reg::H, value.as_i64().unwrap() as u8),
-          "L" => c.write_reg_byte(Reg::L, value.as_i64().unwrap() as u8),
-          "SP" => c.reg_sp = value.as_i64().unwrap() as u16,
-          "PC" => c.reg_pc = value.as_i64().unwrap() as u16,
+      for (setup_k, setup_v) in setup.as_hash().unwrap() {
+        match setup_k.as_str().unwrap() {
+          "A" => c.write_reg_byte(Reg::A, setup_v.as_i64().unwrap() as u8),
+          "F" => c.write_reg_byte(Reg::F, setup_v.as_i64().unwrap() as u8),
+          "B" => c.write_reg_byte(Reg::B, setup_v.as_i64().unwrap() as u8),
+          "C" => c.write_reg_byte(Reg::C, setup_v.as_i64().unwrap() as u8),
+          "D" => c.write_reg_byte(Reg::D, setup_v.as_i64().unwrap() as u8),
+          "E" => c.write_reg_byte(Reg::E, setup_v.as_i64().unwrap() as u8),
+          "H" => c.write_reg_byte(Reg::H, setup_v.as_i64().unwrap() as u8),
+          "L" => c.write_reg_byte(Reg::L, setup_v.as_i64().unwrap() as u8),
+          "SP" => c.reg_sp = setup_v.as_i64().unwrap() as u16,
+          "PC" => c.reg_pc = setup_v.as_i64().unwrap() as u16,
           "mem" => {
-            match value {
+            match setup_v {
               &Yaml::Array(ref a) => {
                 let mut count = 0;
                 for x in a {
@@ -1396,77 +1414,158 @@ mod tests {
               _ => panic!("unknown mem value"),
             };
           }
-          _ => panic!("unknown key in setup")
-        }
+          _ => panic!("unknown key in setup"),
+        };
       }
 
       c.step();
 
-      for (key, value) in test.as_hash().unwrap() {
-        match key.as_str().unwrap() {
+      for (test_k, test_v) in test.as_hash().unwrap() {
+        match test_k.as_str().unwrap() {
           "A" => {
             let v1 = c.read_reg_byte(Reg::A);
-            let v2 = value.as_i64().unwrap() as u8;
-            assert!(v1 == v2, "\n{0}:\n A:\n  Got:      {1:#04x} [{1:016b}],\n  Expected: {2:#04x} [{2:016b}]", test_name, v1, v2);
-          },
+            let v2 = test_v.as_i64().unwrap() as u8;
+            assert!(v1 == v2,
+                    "\n{0}:\n A:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
+                    test_name,
+                    v1,
+                    v2);
+          }
           "F" => {
             let v1 = c.read_reg_byte(Reg::F);
-            let v2 = value.as_i64().unwrap() as u8;
-            assert!(v1 == v2, "\n{0}:\n F:\n  Got:      {1:#04x} [{1:016b}],\n  Expected: {2:#04x} [{2:016b}]", test_name, v1, v2);
-          },
+            let v2 = test_v.as_i64().unwrap() as u8;
+            let mut flags1 = vec![];
+            if v1 & 0b10000000 != 0 {
+              flags1.push("Z");
+            }
+            if v1 & 0b01000000 != 0 {
+              flags1.push("N");
+            }
+            if v1 & 0b00100000 != 0 {
+              flags1.push("H");
+            }
+            if v1 & 0b00010000 != 0 {
+              flags1.push("C");
+            }
+            let mut flags2 = vec![];
+            if v2 & 0b10000000 != 0 {
+              flags2.push("Z");
+            }
+            if v2 & 0b01000000 != 0 {
+              flags2.push("N");
+            }
+            if v2 & 0b00100000 != 0 {
+              flags2.push("H");
+            }
+            if v2 & 0b00010000 != 0 {
+              flags2.push("C");
+            }
+            assert!(v1 == v2,
+                    "\n{0}:\n F:\n  Got:      {1:#04x} [{2:}],\n  Expected: {3:#04x} [{4:}]",
+                    test_name,
+                    v1,
+                    flags1.join(""),
+                    v2,
+                    flags2.join(""));
+          }
           "B" => {
             let v1 = c.read_reg_byte(Reg::B);
-            let v2 = value.as_i64().unwrap() as u8;
-            assert!(v1 == v2, "\n{0}:\n B:\n  Got:      {1:#04x} [{1:016b}],\n  Expected: {2:#04x} [{2:016b}]", test_name, v1, v2);
-          },
+            let v2 = test_v.as_i64().unwrap() as u8;
+            assert!(v1 == v2,
+                    "\n{0}:\n B:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
+                    test_name,
+                    v1,
+                    v2);
+          }
           "C" => {
             let v1 = c.read_reg_byte(Reg::C);
-            let v2 = value.as_i64().unwrap() as u8;
-            assert!(v1 == v2, "\n{0}:\n C:\n  Got:      {1:#04x} [{1:016b}],\n  Expected: {2:#04x} [{2:016b}]", test_name, v1, v2);
-          },
+            let v2 = test_v.as_i64().unwrap() as u8;
+            assert!(v1 == v2,
+                    "\n{0}:\n C:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
+                    test_name,
+                    v1,
+                    v2);
+          }
           "D" => {
             let v1 = c.read_reg_byte(Reg::D);
-            let v2 = value.as_i64().unwrap() as u8;
-            assert!(v1 == v2, "\n{0}:\n D:\n  Got:      {1:#04x} [{1:016b}],\n  Expected: {2:#04x} [{2:016b}]", test_name, v1, v2);
-          },
+            let v2 = test_v.as_i64().unwrap() as u8;
+            assert!(v1 == v2,
+                    "\n{0}:\n D:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
+                    test_name,
+                    v1,
+                    v2);
+          }
           "E" => {
             let v1 = c.read_reg_byte(Reg::E);
-            let v2 = value.as_i64().unwrap() as u8;
-            assert!(v1 == v2, "\n{0}:\n E:\n  Got:      {1:#04x} [{1:016b}],\n  Expected: {2:#04x} [{2:016b}]", test_name, v1, v2);
-          },
+            let v2 = test_v.as_i64().unwrap() as u8;
+            assert!(v1 == v2,
+                    "\n{0}:\n E:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
+                    test_name,
+                    v1,
+                    v2);
+          }
           "H" => {
             let v1 = c.read_reg_byte(Reg::H);
-            let v2 = value.as_i64().unwrap() as u8;
-            assert!(v1 == v2, "\n{0}:\n H:\n  Got:      {1:#04x} [{1:016b}],\n  Expected: {2:#04x} [{2:016b}]", test_name, v1, v2);
-          },
+            let v2 = test_v.as_i64().unwrap() as u8;
+            assert!(v1 == v2,
+                    "\n{0}:\n H:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
+                    test_name,
+                    v1,
+                    v2);
+          }
           "L" => {
             let v1 = c.read_reg_byte(Reg::L);
-            let v2 = value.as_i64().unwrap() as u8;
-            assert!(v1 == v2, "\n{0}:\n L:\n  Got:      {1:#04x} [{1:016b}],\n  Expected: {2:#04x} [{2:016b}]", test_name, v1, v2);
-          },
+            let v2 = test_v.as_i64().unwrap() as u8;
+            assert!(v1 == v2,
+                    "\n{0}:\n L:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
+                    test_name,
+                    v1,
+                    v2);
+          }
           "SP" => {
             let v1 = c.reg_sp;
-            let v2 = value.as_i64().unwrap() as u16;
-            assert!(v1 == v2, "\n{0}:\n SP:\n  Got:      {1:#04x} [{1:016b}],\n  Expected: {2:#04x} [{2:016b}]", test_name, v1, v2);
-          },
+            let v2 = test_v.as_i64().unwrap() as u16;
+            assert!(v1 == v2,
+                    "\n{0}:\n SP:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} \
+                     [{2:08b}]",
+                    test_name,
+                    v1,
+                    v2);
+          }
           "PC" => {
             let v1 = c.reg_pc;
-            let v2 = value.as_i64().unwrap() as u16;
-            assert!(v1 == v2, "\n{0}:\n PC:\n  Got:      {1:#04x} [{1:016b}],\n  Expected: {2:#04x} [{2:016b}]", test_name, v1, v2);
-          },
+            let v2 = test_v.as_i64().unwrap() as u16;
+            assert!(v1 == v2,
+                    "\n{0}:\n PC:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} \
+                     [{2:08b}]",
+                    test_name,
+                    v1,
+                    v2);
+          }
           "mem" => {
-            match value {
+            match test_v {
               &Yaml::Array(ref a) => {
                 let mut count = 0;
+                let mut v1 = vec![];
+                let mut v2 = vec![];
                 for x in a {
-                  assert!(c.read_byte(count) == x.as_i64().unwrap() as u8);
+                  let m1 = c.read_byte(count);
+                  let m2 = x.as_i64().unwrap() as u8;
+                  v1.push(m1);
+                  v2.push(m2);
                   count += 1;
                 }
+
+                assert!(v1 == v2,
+                        "\n{0}:\n mem:\n  Got:      {1:#04x},\n  Expected: {2:#04x}",
+                        test_name,
+                        HexVec(v1),
+                        HexVec(v2));
               }
               _ => panic!("unknown mem value"),
             };
           }
-          _ => panic!("unknown key in setup")
+          _ => panic!("unknown key in setup"),
         }
       }
     }
