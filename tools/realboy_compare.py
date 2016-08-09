@@ -31,7 +31,7 @@ try:
   # child2.logfile = logger
 
   child1.expect('(gameboy)')
-  child1.sendline('b 101') # c8db, cc41
+  child1.sendline('b c8a7') # c8db, cc41
   child1.expect('(gameboy)')
   child1.sendline('c')
   child1.expect('Breakpoint hit.*?: ')
@@ -40,7 +40,7 @@ try:
   inst1 = child1.before.decode().split('\r')[0]
 
   child2.expect('gddb>')
-  child2.sendline('break 0x101')
+  child2.sendline('break 0xc8a7')
   child2.expect('gddb>')
   child2.sendline('step 0xFFFFFFFF')
   child2.expect('Breakpoint')
