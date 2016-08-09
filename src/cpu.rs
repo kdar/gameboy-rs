@@ -33,6 +33,7 @@ pub struct Cpu {
 
   clock_t: u32, // Cycles
   interrupt_master_enable: bool,
+  halt: bool,
 
   mem: Box<mem::Memory>,
   video: Rc<RefCell<video::Video>>,
@@ -61,6 +62,7 @@ impl Default for Cpu {
       reg_pc: 0,
       clock_t: 0,
       interrupt_master_enable: false,
+      halt: false,
       mem: Box::new(mem::Mem::new()),
       video: Rc::new(RefCell::new(video::Video::new())),
       audio: Rc::new(RefCell::new(audio::Audio::new())),
@@ -339,6 +341,11 @@ impl Cpu {
   }
 
   pub fn step(&mut self) -> (Instruction, u16) {
+    // TODO: unhalt on interrupt
+    // if self.halt {
+    //
+    // }
+
     match self.disasm.at(&self.mem, self.reg_pc) {
       Ok((inst, inc)) => {
         let pc_at_inst = self.reg_pc;
@@ -400,6 +407,7 @@ impl Cpu {
       Instruction::DEC_rr(r) => self.inst_DEC_rr(r),
       Instruction::DI => self.inst_DI(),
       Instruction::EI => self.inst_EI(),
+      Instruction::HALT => self.inst_HALT(),
       Instruction::INC_r(r) => self.inst_INC_r(r),
       Instruction::INC_rr(rr) => self.inst_INC_rr(rr),
       Instruction::JP_·HL· => self.inst_JP_·HL·(),
@@ -832,6 +840,13 @@ impl Cpu {
     self.interrupt_master_enable = true;
     4
   }
+
+  fn inst_HALT(&mut self) -> u32 {
+    self.halt = true;
+    println!("halted @ {:#06x}!", self.reg_pc);
+    0
+  }
+
 
   // INC r
   // Opcode: 00rrr100
