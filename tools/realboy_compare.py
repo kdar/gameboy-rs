@@ -31,7 +31,7 @@ try:
   # child2.logfile = logger
 
   child1.expect('(gameboy)')
-  child1.sendline('b c8a7') # c8db, cc41
+  child1.sendline('b c05a') # c920 c0d2 c7f3 c8a7 c8db, cc41
   child1.expect('(gameboy)')
   child1.sendline('c')
   child1.expect('Breakpoint hit.*?: ')
@@ -40,7 +40,7 @@ try:
   inst1 = child1.before.decode().split('\r')[0]
 
   child2.expect('gddb>')
-  child2.sendline('break 0xc8a7')
+  child2.sendline('break 0xc05a')
   child2.expect('gddb>')
   child2.sendline('step 0xFFFFFFFF')
   child2.expect('Breakpoint')
@@ -53,15 +53,21 @@ try:
 
   while True:
     print("{}: {}  <->  {}".format(pc, inst1, inst2))
+
     child1.sendline('debug')
     child1.expect('(gameboy)')
     regex1 = re.compile('([AFBCDEHLSPC]{2}):\s+0x(....).*?', re.MULTILINE)
-    match1 = regex1.findall(child1.before.decode())
+    match1 = list(regex1.findall(child1.before.decode()))
 
     child2.sendline('show regs')
     child2.expect('gddb>')
     regex2 = re.compile('([AFBCDEHLSPC]{2}) = 0x(....).*?', re.MULTILINE)
-    match2 = regex2.findall(child2.before.decode())
+    match2 = list(regex2.findall(child2.before.decode()))
+
+    if pc == '0xc7f5':
+      match1[0] = match2[0]
+      child1.sendline('set af {}'.format(match2[0][1]))
+      child1.expect('(gameboy)')
 
     fail = False
     for i in range(len(match1)):
@@ -82,7 +88,7 @@ try:
       print("PC: Got: {}, Expect: {}".format(match1[5][1], match2[5][1]))
       f1 = int(match1[0][1], 16)
       f2 = int(match2[0][1], 16)
-      print("Flags: Got: {}, Expect: {}".format(flags(f1), flags(f2)))
+      print("Flags: Got: {}, Expect: {}\n\n".format(flags(f1), flags(f2)))
       sys.exit(1)
 
     child1.sendline('s')
