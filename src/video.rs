@@ -45,7 +45,7 @@ const VBLANK_CYCLES: isize = 114;
 const HBLANK_CYCLES: isize = 50;
 const READING_OAM_CYCLES: isize = 21;
 const READING_VRAM_CYCLES: isize = 43;
-const TILE_DATA_SIZE: usize = 192*2;
+const TILE_DATA_SIZE: usize = 192 * 2;
 const TILE_MAP_SIZE: usize = 1024;
 
 #[derive(Copy, Clone, NumFromPrimitive)]
@@ -129,7 +129,7 @@ pub struct Video {
   obj_palette0: Palette,
   obj_palette1: Palette,
   current_line: u8,
-  character_tiles: [[u8; 16]; TILE_DATA_SIZE],
+  tile_data: [[u8; 16]; TILE_DATA_SIZE],
   tile_map1: [u8; TILE_MAP_SIZE],
   tile_map2: [u8; TILE_MAP_SIZE],
   oam: [u8; 160], // Sprite attribute table
@@ -152,7 +152,7 @@ impl Default for Video {
       obj_palette0: Palette::default(),
       obj_palette1: Palette::default(),
       current_line: 0x0,
-      character_tiles: [[0; 16]; TILE_DATA_SIZE],
+      tile_data: [[0; 16]; TILE_DATA_SIZE],
       tile_map1: [0; TILE_MAP_SIZE],
       tile_map2: [0; TILE_MAP_SIZE],
       oam: [0; 160],
@@ -173,16 +173,16 @@ impl MemoryIo for Video {
     match addr {
       TILE_DATA_START...TILE_DATA_END => {
         if self.mode == LcdMode::AccessVram {
-          return Ok(0)
+          return Ok(0);
         }
 
         let offset = addr - TILE_DATA_START;
-        let tile = &self.character_tiles[offset as usize / 16];
+        let tile = &self.tile_data[offset as usize / 16];
         Ok(tile[offset as usize % 16])
       }
       TILE_MAP_1_START...TILE_MAP_1_END => {
         if self.mode == LcdMode::AccessVram {
-          return Ok(0)
+          return Ok(0);
         }
 
         let offset = addr - TILE_MAP_1_START;
@@ -190,7 +190,7 @@ impl MemoryIo for Video {
       }
       TILE_MAP_2_START...TILE_MAP_2_END => {
         if self.mode == LcdMode::AccessVram {
-          return Ok(0)
+          return Ok(0);
         }
 
         let offset = addr - TILE_MAP_2_START;
@@ -204,7 +204,7 @@ impl MemoryIo for Video {
       LCD_CONTROLLER_Y_COORDINATE => {
         // println!("read: {}", self.current_line);
         Ok(self.current_line)
-      },
+      }
       LY_COMPARE => Ok(self.ly_compare),
       BG_PALETTE_DATA => Ok(self.bg_palette.value),
       OBJECT_PALETTE0_DATA => Ok(self.obj_palette0.value),
@@ -223,12 +223,12 @@ impl MemoryIo for Video {
         }
 
         let offset = addr - TILE_DATA_START;
-        let tile = &mut self.character_tiles[offset as usize / 16];
+        let tile = &mut self.tile_data[offset as usize / 16];
         tile[offset as usize % 16] = value;
       }
       TILE_MAP_1_START...TILE_MAP_1_END => {
         if self.mode == LcdMode::AccessVram {
-          return Ok(())
+          return Ok(());
         }
 
         let offset = addr - TILE_MAP_1_START;
@@ -236,7 +236,7 @@ impl MemoryIo for Video {
       }
       TILE_MAP_2_START...TILE_MAP_2_END => {
         if self.mode == LcdMode::AccessVram {
-          return Ok(())
+          return Ok(());
         }
 
         let offset = addr - TILE_MAP_2_START;
