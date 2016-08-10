@@ -45,9 +45,8 @@ pub struct Cpu {
 
 impl PartialEq for Cpu {
   fn eq(&self, x: &Cpu) -> bool {
-    self.reg_af == x.reg_af && self.reg_bc == x.reg_bc && self.reg_de == x.reg_de &&
-    self.reg_hl == x.reg_hl && self.reg_sp == x.reg_sp && self.reg_pc == x.reg_pc &&
-    self.clock_t == x.clock_t
+    self.reg_af == x.reg_af && self.reg_bc == x.reg_bc && self.reg_de == x.reg_de && self.reg_hl == x.reg_hl &&
+    self.reg_sp == x.reg_sp && self.reg_pc == x.reg_pc && self.clock_t == x.clock_t
   }
 }
 
@@ -410,7 +409,7 @@ impl Cpu {
       Instruction::HALT => self.inst_HALT(),
       Instruction::INC_r(r) => self.inst_INC_r(r),
       Instruction::INC_rr(rr) => self.inst_INC_rr(rr),
-      Instruction::JP_·HL· => self.inst_JP_·HL·(),
+      Instruction::JP_HL => self.inst_JP_HL(),
       Instruction::JP_cc_nn(cc, nn) => self.inst_JP_cc_nn(cc, nn),
       Instruction::JP_nn(nn) => self.inst_JP_nn(nn),
       Instruction::JR_cc_e(cc, e) => self.inst_JR_cc_e(cc, e),
@@ -610,7 +609,7 @@ impl Cpu {
   // Page: 164
   #[allow(non_snake_case)]
   fn inst_ADC_A_·HL·(&mut self) -> u32 {
-    let hl = self.reg_hl;
+    let hl = self.read_reg_word(Reg::HL);
     let val = self.read_byte(hl);
     self.adc(val);
     8
@@ -749,7 +748,7 @@ impl Cpu {
   // Page: 176
   #[allow(non_snake_case)]
   fn inst_CP_·HL·(&mut self) -> u32 {
-    let hl = self.reg_hl;
+    let hl = self.read_reg_word(Reg::HL);
     let val = self.read_byte(hl);
     let a = self.read_reg_byte(Reg::A);
     let (result, carry) = a.overflowing_sub(val);
@@ -783,7 +782,7 @@ impl Cpu {
   // Page:
   #[allow(non_snake_case)]
   fn inst_DEC_·HL·(&mut self) -> u32 {
-    let hl = self.reg_hl;
+    let hl = self.read_reg_word(Reg::HL);
     let val = self.read_byte(hl);
     let new_val = val.wrapping_sub(1);
 
@@ -877,14 +876,13 @@ impl Cpu {
     4
   }
 
-  // JP (HL)
+  // JP HL
   // Opcode: 0xe9
   //
   #[allow(non_snake_case)]
-  fn inst_JP_·HL·(&mut self) -> u32 {
+  fn inst_JP_HL(&mut self) -> u32 {
     let hl = self.read_reg_word(Reg::HL);
-    let val = self.read_word(hl);
-    self.reg_pc = val;
+    self.reg_pc = hl;
     4
   }
 
@@ -978,7 +976,7 @@ impl Cpu {
   // Page: 107
   #[allow(non_snake_case)]
   fn inst_LD_·HL·_n(&mut self, n: u8) -> u32 {
-    let hl = self.reg_hl;
+    let hl = self.read_reg_word(Reg::HL);
     self.write_byte(hl, n);
     8
   }
@@ -988,7 +986,7 @@ impl Cpu {
   // Page: 104
   #[allow(non_snake_case)]
   fn inst_LD_·HL·_r(&mut self, r: Reg) -> u32 {
-    let hl = self.reg_hl;
+    let hl = self.read_reg_word(Reg::HL);
     let val = self.read_reg_byte(r);
     self.write_byte(hl, val);
     8
@@ -1117,10 +1115,10 @@ impl Cpu {
   // Moved: LD (nn),A -> LDD (HL),A
   #[allow(non_snake_case)]
   fn inst_LDD_·HL·_A(&mut self) -> u32 {
-    let hl = self.reg_hl;
+    let hl = self.read_reg_word(Reg::HL);
     let a = self.read_reg_byte(Reg::A);
     self.write_byte(hl, a);
-    self.reg_hl -= 1;
+    self.write_reg_word(Reg::HL, hl - 1);
 
     8
   }
@@ -1131,10 +1129,10 @@ impl Cpu {
   // Moved: LD (nn),HL -> LDI (HL),A
   #[allow(non_snake_case)]
   fn inst_LDI_·HL·_A(&mut self) -> u32 {
-    let hl = self.reg_hl;
+    let hl = self.read_reg_word(Reg::HL);
     let a = self.read_reg_byte(Reg::A);
     self.write_byte(hl, a);
-    self.reg_hl += 1;
+    self.write_reg_word(Reg::HL, hl + 1);
 
     8
   }
@@ -1151,7 +1149,7 @@ impl Cpu {
   // Page: 172
   #[allow(non_snake_case)]
   fn inst_OR_A_·HL·(&mut self) -> u32 {
-    let hl = self.reg_hl;
+    let hl = self.read_reg_word(Reg::HL);
     let val = self.read_byte(hl);
     let result = self.read_reg_byte(Reg::A) | val;
 
@@ -1300,7 +1298,7 @@ impl Cpu {
   // Page: 174
   #[allow(non_snake_case)]
   fn inst_XOR_·HL·(&mut self) -> u32 {
-    let hl = self.reg_hl;
+    let hl = self.read_reg_word(Reg::HL);
     let val = self.read_byte(hl);
     let mut a = self.read_reg_byte(Reg::A);
     a ^= val;
