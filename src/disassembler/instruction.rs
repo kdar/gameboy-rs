@@ -1,5 +1,6 @@
 use super::super::reg::Reg;
 use super::super::flag::Flag;
+use super::super::value::Value;
 use std::fmt;
 
 #[allow(non_camel_case_types)]
@@ -13,6 +14,7 @@ pub enum Instruction {
   RL_r(Reg),
   RR_r(Reg),
   SRL_r(Reg),
+  SWAP(Value),
 
   ADC_A_·HL·,
   ADC_A_n(u8),
@@ -86,6 +88,7 @@ impl fmt::Debug for Instruction {
       Instruction::RL_r(r) => write!(f, "RL {}", r),
       Instruction::RR_r(r) => write!(f, "RR {}", r),
       Instruction::SRL_r(r) => write!(f, "SRL {}", r),
+      Instruction::SWAP(v) => write!(f, "SWAP {}", v),
 
       Instruction::ADC_A_·HL· => write!(f, "ADC A,(HL)"),
       Instruction::ADC_A_n(n) => write!(f, "ADC A,${:02x}", n),

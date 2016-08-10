@@ -388,6 +388,7 @@ impl Cpu {
       Instruction::RR_r(r) => self.inst_RR_r(r),
       Instruction::RLA => self.inst_RLA(),
       Instruction::SRL_r(r) => self.inst_SRL_r(r),
+      Instruction::SWAP(v) => self.inst_SWAP(v),
 
       Instruction::ADC_A_·HL· => self.inst_ADC_A_·HL·(),
       Instruction::ADC_A_n(n) => self.inst_ADC_A_n(n),
@@ -602,6 +603,13 @@ impl Cpu {
     self.write_flag(Flag::C, carry);
 
     8
+  }
+
+  // SWAP r
+  // Opcode: 0xCB 0x37 | 0x30 | 0x31 | 0x32 | 0x33 | 0x34 | 0x35 | 0x36
+  #[allow(non_snake_case)]
+  fn inst_SWAP(&mut self, v: Value) -> u32 {
+    0
   }
 
   // ADC A,(HL)
