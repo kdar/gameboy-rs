@@ -1,18 +1,29 @@
-use super::cpu;
+use super::cpu::Cpu;
+use super::bootrom::Bootrom;
 
 pub struct GameBoy {
-  pub cpu: cpu::Cpu,
+  pub cpu: Cpu,
+  boot_rom: Bootrom,
+}
+
+impl Default for GameBoy {
+  fn default() -> GameBoy {
+    GameBoy {
+      cpu: Cpu::default(),
+      boot_rom: Bootrom::default(),
+    }
+  }
 }
 
 impl GameBoy {
-  pub fn new(cart_rom: &[u8]) -> GameBoy {
-    let mut cpu = cpu::Cpu::new();
+  pub fn new(boot_rom: Option<Box<[u8]>>, cart_rom: Box<[u8]>) -> GameBoy {
+    let mut cpu = Cpu::new();
     cpu.set_cart_rom(cart_rom);
-    GameBoy { cpu: cpu }
-  }
 
-  pub fn bootstrap(&mut self) {
-    self.cpu.bootstrap();
+    GameBoy {
+      cpu: cpu,
+      boot_rom: Bootrom::new(boot_rom),
+    }
   }
 
   pub fn set_boot_rom(&mut self, rom: Box<[u8]>) {

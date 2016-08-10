@@ -41,7 +41,7 @@ impl Debugger {
     self.cpu.bootstrap();
   }
 
-  pub fn set_cart_rom(&mut self, rom: &[u8]) {
+  pub fn set_cart_rom(&mut self, rom: Box<[u8]>) {
     self.cpu.set_cart_rom(rom);
   }
 

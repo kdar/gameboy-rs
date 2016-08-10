@@ -23,7 +23,7 @@ pub enum MbcType {
 
 pub struct Mbc {
   mbc_type: MbcType,
-  rom: Vec<u8>,
+  rom: Box<[u8]>,
   ram: Vec<u8>,
   ram_enabled: bool,
   rom_bank_lower: u8,
@@ -35,7 +35,7 @@ impl Default for Mbc {
   fn default() -> Mbc {
     Mbc {
       mbc_type: MbcType::None,
-      rom: vec![],
+      rom: Box::new([]),
       ram: vec![],
       ram_enabled: false,
       rom_bank_lower: 0x1,
@@ -125,8 +125,7 @@ impl MemoryIo for Mbc {
           }
           0xA000...0xBFFF => {
             if !self.ram_enabled {
-              return Err("mbc.write_byte: tried to write to Mbc1 ram when it wasn't enabled"
-                .to_owned());
+              return Err("mbc.write_byte: tried to write to Mbc1 ram when it wasn't enabled".to_owned());
             }
 
             let mut loc = addr as usize - 0xA000;
@@ -151,7 +150,7 @@ impl Mbc {
     Mbc::default()
   }
 
-  pub fn load(&mut self, mbc_type: MbcType, rom: &[u8]) -> Result<(), String> {
+  pub fn load(&mut self, mbc_type: MbcType, rom: Box<[u8]>) -> Result<(), String> {
     self.mbc_type = mbc_type;
 
     let rom_size: rom::RomSize = match num::FromPrimitive::from_u8(rom[0x148]) {

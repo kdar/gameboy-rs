@@ -30,6 +30,7 @@ pub mod cartridge;
 pub mod bit;
 pub mod linkport;
 pub mod value;
+pub mod bootrom;
 
 pub use gameboy::GameBoy;
 pub use reg::Reg;

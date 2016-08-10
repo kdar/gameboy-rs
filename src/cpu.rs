@@ -171,7 +171,7 @@ impl Cpu {
     self.mem.set_boot_rom(rom);
   }
 
-  pub fn set_cart_rom(&mut self, rom: &[u8]) {
+  pub fn set_cart_rom(&mut self, rom: Box<[u8]>) {
     let cart = self.cartridge.clone();
     match cart.borrow_mut().load_data(rom) {
       Ok(()) => (),

@@ -66,7 +66,7 @@ fn main() {
     d.print_all(&m);
   } else if matches.is_present("debug") {
     let mut gb = debugger::Debugger::new();
-    gb.set_cart_rom(&*cart_rom);
+    gb.set_cart_rom(cart_rom);
     if let Some(boot_rom_path) = matches.value_of("boot-rom") {
       gb.set_boot_rom(load_rom(boot_rom_path));
     } else {
@@ -75,12 +75,11 @@ fn main() {
 
     gb.run();
   } else {
-    let mut gb = gameboy::GameBoy::new(&*cart_rom);
-    if let Some(boot_rom_path) = matches.value_of("boot-rom") {
-      gb.set_boot_rom(load_rom(boot_rom_path));
+    let mut gb = if let Some(boot_rom_path) = matches.value_of("boot-rom") {
+      gameboy::GameBoy::new(Some(load_rom(boot_rom_path)), cart_rom)
     } else {
-      gb.bootstrap();
-    }
+      gameboy::GameBoy::new(None, cart_rom)
+    };
 
     gb.run();
   }

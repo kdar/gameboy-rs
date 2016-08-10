@@ -58,8 +58,15 @@ pub enum Addr {
 }
 
 pub trait MemoryIo {
-  fn read_byte(&self, addr: u16) -> Result<u8, String>;
-  fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String>;
+  #[allow(unused_variables)]
+  fn read_byte(&self, addr: u16) -> Result<u8, String> {
+    Ok(0)
+  }
+
+  #[allow(unused_variables)]
+  fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String> {
+    Ok(())
+  }
 
   fn read_vec(&self, addr: u16, len: u16) -> Result<Vec<u8>, String> {
     let mut v = vec![];
@@ -269,9 +276,7 @@ mod module {
           self.work_ram_1[offset as usize] = value;
           Ok(())
         }
-        Addr::SpriteTable(_, _) => {
-          Err(format!("write_byte Addr::SpriteTable not implemented: {:?}", mapped))
-        }
+        Addr::SpriteTable(_, _) => Err(format!("write_byte Addr::SpriteTable not implemented: {:?}", mapped)),
         Addr::IoPorts(_, _) => {
           // Err(format!("write_byte Addr::IOPorts not implemented: {:?}", mapped))
           Ok(())
