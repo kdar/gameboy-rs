@@ -407,9 +407,8 @@ impl Cpu {
       Instruction::ADC_A_·HL· => self.inst_ADC_A_·HL·(),
       Instruction::ADC_A_n(n) => self.inst_ADC_A_n(n),
       Instruction::ADC_A_r(r) => self.inst_ADC_A_r(r),
-      Instruction::ADD_A_·HL· => self.inst_ADD_A_·HL·(),
-      Instruction::ADD_A_n(n) => self.inst_ADD_A_n(n),
-      Instruction::ADD_HL_rr(rr) => self.inst_ADD_HL_rr(rr),
+      Instruction::ADD8(o1, o2) => self.inst_ADD8(o1, o2),
+      Instruction::ADD16(o1, o2) => self.inst_ADD16(o1, o2),
       Instruction::AND(o) => self.inst_AND(o),
       Instruction::CALL_cc_nn(cc, nn) => self.inst_CALL_cc_nn(cc, nn),
       Instruction::CALL_nn(nn) => self.inst_CALL_nn(nn),
@@ -465,14 +464,6 @@ impl Cpu {
     };
 
     // self.clock_t += t;
-  }
-
-  fn add_word(&mut self, a: u16, b: u16) -> u16 {
-    let (result, carry) = a.overflowing_add(b);
-    self.write_flag(Flag::N, false);
-    self.write_flag(Flag::H, (result ^ a ^ b) & 0x1000 != 0);
-    self.write_flag(Flag::C, carry);
-    result
   }
 
   fn push_word(&mut self, w: u16) {
@@ -650,53 +641,44 @@ impl Cpu {
   }
 
   // ADD A,n
-  // Opcode: 0xc6
-  // Page: 160
-  #[allow(non_snake_case)]
-  fn inst_ADD_A_n(&mut self, n: u8) {
-    let a = self.read_reg_u8(Reg::A);
-
-    let (result, carry) = a.overflowing_add(n);
-
-    self.write_reg_u8(Reg::A, result);
-    self.write_flag(Flag::Z, result == 0);
-    self.write_flag(Flag::N, false);
-    self.write_flag(Flag::H, ((result ^ a ^ n) & 0x10) > 0);
-    self.write_flag(Flag::C, carry);
-  }
-
+  //   Opcode: 0xc6
   // ADD A,(HL)
-  // Opcode: 0x86
-  // Page: 161
+  //   Opcode: 0x86
   #[allow(non_snake_case)]
-  fn inst_ADD_A_·HL·(&mut self) {
-    let a = self.read_reg_u8(Reg::A);
-    let hl = self.read_reg_u16(Reg::HL);
-    let val = self.read_u8(hl);
+  fn inst_ADD8(&mut self, o1: Operand, o2: Operand) {
+    let val1 = self.read_operand_u8(o1);
+    let val2 = self.read_operand_u8(o2);
 
-    let (result, carry) = a.overflowing_add(val);
+    let (result, carry) = val1.overflowing_add(val2);
 
     self.write_reg_u8(Reg::A, result);
     self.write_flag(Flag::Z, result == 0);
     self.write_flag(Flag::N, false);
-    self.write_flag(Flag::H, ((result ^ a ^ val) & 0x10) > 0);
+    self.write_flag(Flag::H, ((result ^ val1 ^ val2) & 0x10) > 0);
     self.write_flag(Flag::C, carry);
   }
 
   // ADD HL,rr
-  // Opcode: 00rr1001
+  //   Opcode: 0x09 | 0x19 | 0x29 | 0x39
   #[allow(non_snake_case)]
-  fn inst_ADD_HL_rr(&mut self, rr: Reg) {
-    let dd = self.read_reg_u16(rr);
-    let hl = self.read_reg_u16(Reg::HL);
-    let hl = self.add_word(dd, hl);
-    self.write_reg_u16(Reg::HL, hl);
+  fn inst_ADD16(&mut self, o1: Operand, o2: Operand) {
+    let val1 = self.read_operand_u16(o1);
+    let val2 = self.read_operand_u16(o2);
+
+    let (result, carry) = val1.overflowing_add(val2);
+
+    self.write_operand_u16(o1, result);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, (result ^ val1 ^ val2) & 0x1000 != 0);
+    self.write_flag(Flag::C, carry);
   }
 
   // AND n
-  //   Opcode: 0xE6
+  //   Opcode: 0xe6
+  // AND (HL)
+  //   Opcode: 0xa6
   // AND r
-  //   Opcode: 10100rrr
+  //   Opcode: 0xa7 | 0xa0 | 0xa1 | 0xa2 | 0xa3 | 0xa4 | 0xa5
   // Page: 170
   #[allow(non_snake_case)]
   fn inst_AND(&mut self, o: Operand) {

@@ -20,16 +20,22 @@ macro_rules! imm8 {
     let n = try!($m.read_u8($addr + $pc));
     $pc += 1;
     Ok(($inst(Operand::Imm8(n)), $pc))
-  })
+  });
+
+  ($inst:path[$operand1:path], $m:ident, $addr:ident, $pc:ident) => ({
+    let n = try!($m.read_u8($addr + $pc));
+    $pc += 1;
+    Ok(($inst($operand1, Operand::Imm8(n)), $pc))
+  });
 }
 
-macro_rules! imm16 {
-  ($inst:path, $m:ident, $addr:ident, $pc:ident) => ({
-    let n = try!($m.read_u16($addr + $pc));
-    $pc += 2;
-    Ok(($inst(Operand::Imm16(n)), $pc))
-  })
-}
+// macro_rules! imm16 {
+//  ($inst:path, $m:ident, $addr:ident, $pc:ident) => ({
+//    let n = try!($m.read_u16($addr + $pc));
+//    $pc += 2;
+//    Ok(($inst(Operand::Imm16(n)), $pc))
+//  })
+// }
 
 pub struct Disassembler;
 
@@ -100,18 +106,13 @@ impl Disassembler {
           Ok((Instruction::ADC_A_r(Reg::from(r)), pc))
         }
 
-        0x86 => Ok((Instruction::ADD_A_·HL·, pc)),
+        0x86 => Ok((Instruction::ADD8(Operand::A, Operand::_HL_), pc)),
+        0xc6 => imm8!(Instruction::ADD8[Operand::A], m, addr, pc),
 
-        0xc6 => {
-          let n = try!(m.read_u8(addr + pc));
-          pc += 1;
-          Ok((Instruction::ADD_A_n(n), pc))
-        }
-
-        0x09 | 0x19 | 0x29 | 0x39 => {
-          let rr = op >> 4 & 0b11;
-          Ok((Instruction::ADD_HL_rr(Reg::from_pair(rr, false)), pc))
-        }
+        0x09 => Ok((Instruction::ADD16(Operand::HL, Operand::BC), pc)),
+        0x19 => Ok((Instruction::ADD16(Operand::HL, Operand::DE), pc)),
+        0x29 => Ok((Instruction::ADD16(Operand::HL, Operand::HL), pc)),
+        0x39 => Ok((Instruction::ADD16(Operand::HL, Operand::SP), pc)),
 
         0xa7 => Ok((Instruction::AND(Operand::A), pc)),
         0xa0 => Ok((Instruction::AND(Operand::B), pc)),
