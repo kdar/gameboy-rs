@@ -1,7 +1,7 @@
 use std::fmt;
 
 #[derive(Copy, Clone)]
-pub enum Value {
+pub enum Operand {
   A,
   F,
   B,
@@ -22,27 +22,27 @@ pub enum Value {
   _SP_,
 }
 
-impl fmt::Display for Value {
+impl fmt::Display for Operand {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match *self {
-      Value::A => write!(f, "A"),
-      Value::F => write!(f, "F"),
-      Value::B => write!(f, "B"),
-      Value::C => write!(f, "C"),
-      Value::D => write!(f, "D"),
-      Value::E => write!(f, "E"),
-      Value::H => write!(f, "H"),
-      Value::L => write!(f, "L"),
-      Value::AF => write!(f, "AF"),
-      Value::BC => write!(f, "BC"),
-      Value::DE => write!(f, "DE"),
-      Value::HL => write!(f, "HL"),
-      Value::SP => write!(f, "SP"),
-      Value::PC => write!(f, "PC"),
-      Value::_BC_ => write!(f, "(BC)"),
-      Value::_DE_ => write!(f, "(DE)"),
-      Value::_HL_ => write!(f, "(HL)"),
-      Value::_SP_ => write!(f, "(SP)"),
+      Operand::A => write!(f, "A"),
+      Operand::F => write!(f, "F"),
+      Operand::B => write!(f, "B"),
+      Operand::C => write!(f, "C"),
+      Operand::D => write!(f, "D"),
+      Operand::E => write!(f, "E"),
+      Operand::H => write!(f, "H"),
+      Operand::L => write!(f, "L"),
+      Operand::AF => write!(f, "AF"),
+      Operand::BC => write!(f, "BC"),
+      Operand::DE => write!(f, "DE"),
+      Operand::HL => write!(f, "HL"),
+      Operand::SP => write!(f, "SP"),
+      Operand::PC => write!(f, "PC"),
+      Operand::_BC_ => write!(f, "(BC)"),
+      Operand::_DE_ => write!(f, "(DE)"),
+      Operand::_HL_ => write!(f, "(HL)"),
+      Operand::_SP_ => write!(f, "(SP)"),
     }
   }
 }

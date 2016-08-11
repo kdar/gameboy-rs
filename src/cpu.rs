@@ -4,7 +4,7 @@ use std::cmp::PartialEq;
 
 use super::reg::Reg;
 use super::flag::Flag;
-use super::value::Value;
+use super::operand::Operand;
 use super::disassembler::Instruction;
 use super::disassembler::Disassembler;
 use super::system::System;
@@ -544,7 +544,7 @@ impl Cpu {
   // SWAP r
   // Opcode: 0xCB 0x37 | 0x30 | 0x31 | 0x32 | 0x33 | 0x34 | 0x35 | 0x36
   #[allow(non_snake_case)]
-  fn inst_SWAP(&mut self, v: Value) {}
+  fn inst_SWAP(&mut self, o: Operand) {}
 
   // ADC A,(HL)
   // Opcode: 0x8e

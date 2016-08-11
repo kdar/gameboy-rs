@@ -28,13 +28,12 @@ pub mod audio;
 pub mod cartridge;
 pub mod bit;
 pub mod linkport;
-pub mod value;
+pub mod operand;
 pub mod bios;
 pub mod system;
 
 pub use reg::Reg;
 pub use flag::Flag;
-pub use value::Value;
 
 #[cfg(test)]
 mod test {

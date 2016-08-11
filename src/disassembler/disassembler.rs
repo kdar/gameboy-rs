@@ -2,7 +2,7 @@ use std::io::Write;
 
 use super::super::Reg;
 use super::super::Flag;
-use super::super::Value;
+use super::super::operand::Operand;
 use super::instruction::Instruction;
 use super::super::mem::MemoryIo;
 
@@ -55,14 +55,14 @@ impl Disassembler {
           Ok((Instruction::SRL_r(Reg::from(r)), pc))
         }
 
-        0x37 => Ok((Instruction::SWAP(Value::A), pc)),
-        0x30 => Ok((Instruction::SWAP(Value::B), pc)),
-        0x31 => Ok((Instruction::SWAP(Value::C), pc)),
-        0x32 => Ok((Instruction::SWAP(Value::D), pc)),
-        0x33 => Ok((Instruction::SWAP(Value::E), pc)),
-        0x34 => Ok((Instruction::SWAP(Value::H), pc)),
-        0x35 => Ok((Instruction::SWAP(Value::L), pc)),
-        0x36 => Ok((Instruction::SWAP(Value::_HL_), pc)),
+        0x37 => Ok((Instruction::SWAP(Operand::A), pc)),
+        0x30 => Ok((Instruction::SWAP(Operand::B), pc)),
+        0x31 => Ok((Instruction::SWAP(Operand::C), pc)),
+        0x32 => Ok((Instruction::SWAP(Operand::D), pc)),
+        0x33 => Ok((Instruction::SWAP(Operand::E), pc)),
+        0x34 => Ok((Instruction::SWAP(Operand::H), pc)),
+        0x35 => Ok((Instruction::SWAP(Operand::L), pc)),
+        0x36 => Ok((Instruction::SWAP(Operand::_HL_), pc)),
 
         _ => {
           panic!("instruction_at: 0xCB instruction not implemented: 0x{:02x}",
