@@ -176,7 +176,7 @@ impl MemoryIo for System {
         if self.booting && addr < 0xFF {
           Err("system.write_byte: shouldn't be writing to boot rom".to_owned())
         } else {
-          Err("system.write_byte: shouldn't be writing to cart rom".to_owned())
+          self.cartridge.write_byte(addr, value)
         }
       }
       // cart rom 01
