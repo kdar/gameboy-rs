@@ -8,7 +8,6 @@ use super::operand::Operand;
 use super::disassembler::Instruction;
 use super::disassembler::Disassembler;
 use super::system::{System, SystemCtrl};
-use super::mem::MemoryIo;
 
 fn high_byte(value: u16) -> u8 {
   (value >> 8) as u8
@@ -1288,7 +1287,9 @@ mod tests {
   use super::*;
   use super::super::reg::Reg;
   use super::super::flag::Flag;
+  use super::super::system::SystemCtrl;
   use super::super::disassembler::Instruction;
+  use super::super::mem::MemoryIo;
   use difference::{self, Difference};
   use std::io::Write;
   use std::io::Read;
@@ -1297,6 +1298,40 @@ mod tests {
 
   use yaml_rust::YamlLoader;
   use yaml_rust::yaml::Yaml;
+
+  struct TestSystem {
+    ram: [u8; 0xFFFF + 1],
+  }
+
+  impl MemoryIo for TestSystem {
+    fn read_u8(&self, addr: u16) -> Result<u8, String> {
+      self.ram
+        .get(addr as usize)
+        .ok_or(format!("could not get byte at test ram offset {}", addr))
+        .and_then(|&x| Ok(x))
+    }
+
+    fn write_u8(&mut self, addr: u16, value: u8) -> Result<(), String> {
+      self.ram[addr as usize] = value;
+      Ok(())
+    }
+  }
+
+  impl SystemCtrl for TestSystem {
+    fn as_memoryio(&self) -> &MemoryIo {
+      self as &MemoryIo
+    }
+  }
+
+  impl TestSystem {
+    fn new() -> TestSystem {
+      TestSystem { ram: [0; 0xFFFF + 1] }
+    }
+  }
+
+  fn testcpu() -> Cpu {
+    Cpu::new(Box::new(TestSystem::new()))
+  }
 
   struct HexVec(Vec<u8>);
   impl std::fmt::LowerHex for HexVec {
@@ -1322,13 +1357,13 @@ mod tests {
     let docs = YamlLoader::load_from_str(&s).unwrap();
     let doc = &docs[0];
 
-    for (k, v) in doc.as_hash().unwrap() {
+    for (k, _) in doc.as_hash().unwrap() {
       let test_name = k.as_str().unwrap();
       let unit = &doc[test_name];
       let setup = &unit["setup"];
       let test = &unit["test"];
 
-      let mut c = Cpu::default();
+      let mut c = testcpu();
       for (setup_k, setup_v) in setup.as_hash().unwrap() {
         match setup_k.as_str().unwrap() {
           "A" => c.write_reg_u8(Reg::A, setup_v.as_i64().unwrap() as u8),
@@ -1346,7 +1381,7 @@ mod tests {
               &Yaml::Array(ref a) => {
                 let mut count = 0;
                 for x in a {
-                  c.system.write_u8(count, x.as_i64().unwrap() as u8);
+                  c.system.write_u8(count, x.as_i64().unwrap() as u8).unwrap();
                   count += 1;
                 }
               }
@@ -1512,7 +1547,7 @@ mod tests {
 
   #[test]
   fn test_write_read_reg_u8() {
-    let mut c = Cpu::new();
+    let mut c = testcpu();
 
     c.write_reg_u8(Reg::A, 0b01011010);
     assert!(c.reg_af == 0b01011010_00000000);
@@ -1545,7 +1580,8 @@ mod tests {
 
   #[test]
   fn test_write_read_flag() {
-    let mut c = Cpu::new();
+    let mut c = testcpu();
+
     c.write_flag(Flag::Z, true);
     assert_eq!(c.reg_af, 0b00000000_10000000);
     c.write_flag(Flag::N, true);
@@ -1647,12 +1683,12 @@ mod tests {
         cpu_inline_test!({
           ins: Instruction::BIT_b_r(b, r),
           before: {
-            let mut c = Cpu::default();
+            let mut c = testcpu();
             c.write_reg_u8(r, 1 << b);
             c
           },
           after: {
-            let mut c = Cpu { ..Cpu::default() };
+            let mut c = testcpu();
             c.write_reg_u8(r, 1 << b);
             c.write_flag(Flag::Z, false);
             c.write_flag(Flag::H, true);
@@ -1672,9 +1708,9 @@ mod tests {
           let r = Reg::from(r);
           cpu_inline_test!({
             ins: Instruction::BIT_b_r(b, r),
-            before: Cpu::default(),
+            before: testcpu(),
             after: {
-              let mut c = Cpu { ..Cpu::default() };
+              let mut c = testcpu();
               c.write_flag(Flag::Z, true);
               c.write_flag(Flag::H, true);
               c
@@ -1688,13 +1724,13 @@ mod tests {
   cpu_test!(test_inst_CALL_nn {
     ins: Instruction::CALL_nn(0x0095),
     before: {
-      let mut c = Cpu::default();
+      let mut c = testcpu();
       c.reg_sp = 100;
       c.reg_pc = 200;
       c
     },
     after: {
-      let mut c = Cpu { ..Cpu::default() };
+      let mut c = testcpu();
       c.reg_sp = 98;
       c.system.write_u8(98, 200).unwrap();
       c.reg_pc = 0x0095;
@@ -1705,12 +1741,12 @@ mod tests {
   cpu_test!(test_inst_CP_n {
     ins: Instruction::CP_n(0x95),
     before: {
-      let mut c = Cpu::default();
+      let mut c = testcpu();
       c.write_reg_u8(Reg::A, 0x88);
       c
     },
     after: {
-      let mut c = Cpu { ..Cpu::default() };
+      let mut c = testcpu();
       c.write_flag(Flag::N, true);
       c.write_flag(Flag::C, true);
       c.write_reg_u8(Reg::A, 0x88);
@@ -1730,12 +1766,12 @@ mod tests {
       cpu_inline_test!({
         ins: Instruction::DEC_r(r),
         before: {
-          let mut c = Cpu::default();
+          let mut c = testcpu();
           c.write_reg_u8(r, 0x10);
           c
         },
         after: {
-          let mut c = Cpu { ..Cpu::default()};
+          let mut c = testcpu();
           c.write_flag(Flag::H, true);
           c.write_flag(Flag::N, true);
           c.write_reg_u8(r, 0x0F);
@@ -1757,12 +1793,12 @@ mod tests {
       cpu_inline_test!({
         ins: Instruction::INC_r(r),
         before: {
-          let mut c = Cpu::default();
+          let mut c = testcpu();
           c.write_reg_u8(r, 0x10);
           c
         },
         after: {
-          let mut c = Cpu { ..Cpu::default()};
+          let mut c = testcpu();
           c.write_reg_u8(r, 0x11);
           c
         },
@@ -1778,12 +1814,12 @@ mod tests {
       cpu_inline_test!({
         ins: Instruction::INC_rr(r),
         before: {
-          let mut c = Cpu::default();
+          let mut c = testcpu();
           c.write_reg_u16(r, 0x10);
           c
         },
         after: {
-          let mut c = Cpu { ..Cpu::default()};
+          let mut c = testcpu();
           c.write_reg_u16(r, 0x11);
           c
         },
@@ -1803,7 +1839,7 @@ mod tests {
                   (0x1000 as i16) + (0xE6 as u8 as i8 as i16)];
 
       for i in 0..addrs.len() {
-        let mut c = Cpu::default();
+        let mut c = testcpu();
         c.reg_pc = 0x1000;
         // c.system.write_u8(0x1000, addrs[i]);
         c.write_flag(*flag, true);
@@ -1814,7 +1850,7 @@ mod tests {
       }
 
       for i in 0..addrs.len() {
-        let mut c = Cpu::default();
+        let mut c = testcpu();
         c.reg_pc = 0x1000;
         // c.system.write_u8(0x1000, addrs[i]);
         c.write_flag(*flag, false);
@@ -1829,13 +1865,13 @@ mod tests {
   cpu_test!(test_inst_LD_·0xFF00C·_A {
     ins: Instruction::LD_·0xFF00C·_A,
     before: {
-      let mut c = Cpu::default();
+      let mut c = testcpu();
       c.write_reg_u8(Reg::C, 0x10);
       c.write_reg_u8(Reg::A, 0xFF);
       c
     },
     after: {
-      let mut c = Cpu { ..Cpu::default() };
+      let mut c = Cpu { ..testcpu() };
       c.write_reg_u8(Reg::C, 0x10);
       c.write_reg_u8(Reg::A, 0xFF);
       c.system.write_u8(0xFF10, 0xFF).unwrap();
@@ -1846,12 +1882,12 @@ mod tests {
   cpu_test!(test_inst_LD_·0xFF00n·_A {
     ins: Instruction::LD_·0xFF00n·_A(0x10),
     before: {
-      let mut c = Cpu::default();
+      let mut c = testcpu();
       c.write_reg_u8(Reg::A, 0xFF);
       c
     },
     after: {
-      let mut c = Cpu { reg_pc: 0, ..Cpu::default() };
+      let mut c = Cpu { reg_pc: 0, ..testcpu() };
       c.write_reg_u8(Reg::A, 0xFF);
       c
     },
@@ -1869,14 +1905,14 @@ mod tests {
       cpu_inline_test!({
         ins: Instruction::LD_·HL·_r(r),
         before: {
-          let mut c = Cpu::default();
+          let mut c = testcpu();
           c.write_reg_u8(r, 0x87);
           c.write_reg_u8(Reg::H, 0xC2);
           c.write_reg_u8(Reg::L, 0x21);
           c
         },
         after: {
-          let mut c = Cpu { ..Cpu::default() };
+          let mut c = Cpu { ..testcpu() };
           c.write_reg_u8(r, 0x87);
           c.write_reg_u8(Reg::H, 0xC2);
           c.write_reg_u8(Reg::L, 0x21);
@@ -1890,13 +1926,13 @@ mod tests {
   cpu_test!(test_inst_LD_A_·DE· {
     ins: Instruction::LD_A_·DE·,
     before: {
-      let mut c = Cpu::default();
+      let mut c = testcpu();
       c.write_reg_u16(Reg::DE, 0x0104);
       c.system.write_u8(0x0104, 0x10).unwrap();
       c
     },
     after: {
-      let mut c = Cpu { ..Cpu::default() };
+      let mut c = Cpu { ..testcpu() };
       c.write_reg_u16(Reg::DE, 0x0104);
       c.write_reg_u8(Reg::A, 0x10);
       c.system.write_u8(0x0104, 0x10).unwrap();
@@ -1909,19 +1945,19 @@ mod tests {
   fn test_inst_LD_dd_nn() {
     cpu_inline_test!({
       ins: Instruction::LD_dd_nn(Reg::HL, 0xD8FE),
-      before: Cpu::default(),
+      before: testcpu(),
       after: Cpu {
         reg_hl: 0xD8FE,
-        ..Cpu::default()
+        ..testcpu()
       },
     });
 
     cpu_inline_test!({
       ins: Instruction::LD_dd_nn(Reg::SP, 0xD8FE),
-      before: Cpu::default(),
+      before: testcpu(),
       after: Cpu {
         reg_sp: 0xD8FE,
-        ..Cpu::default()
+        ..testcpu()
       },
     });
   }
@@ -1938,10 +1974,10 @@ mod tests {
 
       cpu_inline_test!({
         ins: Instruction::LD_r_n(r, 0xFE),
-        before: Cpu::default(),
+        before: testcpu(),
         after: {
           let mut c = Cpu{
-            ..Cpu::default()
+            ..testcpu()
           };
           c.write_reg_u8(r, 0xFE);
           c
@@ -1969,13 +2005,13 @@ mod tests {
         cpu_inline_test!({
         ins: Instruction::LD_r_r(r1, r2),
         before: {
-          let mut c = Cpu::default();
+          let mut c = testcpu();
           c.write_reg_u8(r2, 0xFE);
           c
         },
         after: {
           let mut c = Cpu{
-            ..Cpu::default()
+            ..testcpu()
           };
           c.write_reg_u8(r1, 0xFE);
           c.write_reg_u8(r2, 0xFE);
@@ -1989,14 +2025,14 @@ mod tests {
   cpu_test!(test_inst_LDD_HL_A {
     ins: Instruction::LDD_·HL·_A,
     before: {
-      let mut c = Cpu::default();
+      let mut c = testcpu();
       c.write_reg_u8(Reg::A, 0x87);
       c.write_reg_u8(Reg::H, 0xC2);
       c.write_reg_u8(Reg::L, 0x21);
       c
     },
     after: {
-      let mut c = Cpu { ..Cpu::default() };
+      let mut c = Cpu { ..testcpu() };
       c.write_reg_u8(Reg::A, 0x87);
       c.write_reg_u8(Reg::H, 0xC2);
       c.write_reg_u8(Reg::L, 0x20);
@@ -2008,14 +2044,14 @@ mod tests {
   cpu_test!(test_inst_LDI_HL_A {
     ins: Instruction::LDI_·HL·_A,
     before: {
-      let mut c = Cpu::default();
+      let mut c = testcpu();
       c.write_reg_u8(Reg::A, 0x87);
       c.write_reg_u8(Reg::H, 0xC2);
       c.write_reg_u8(Reg::L, 0x21);
       c
     },
     after: {
-      let mut c = Cpu { ..Cpu::default() };
+      let mut c = Cpu { ..testcpu() };
       c.write_reg_u8(Reg::A, 0x87);
       c.write_reg_u8(Reg::H, 0xC2);
       c.write_reg_u8(Reg::L, 0x22);
@@ -2026,19 +2062,19 @@ mod tests {
 
   cpu_test!(test_inst_nop {
     ins: Instruction::NOP,
-    before: Cpu::default(),
-    after: Cpu { ..Cpu::default() },
+    before: testcpu(),
+    after: Cpu { ..testcpu() },
   });
 
   cpu_test!(inst_xor_a {
     ins: Instruction::XOR_r(Reg::A),
     before: {
-      let mut c = Cpu::default();
+      let mut c = testcpu();
       c.write_reg_u8(Reg::A, 200);
       c
     },
     after: {
-      let mut c = Cpu { ..Cpu::default() };
+      let mut c = Cpu { ..testcpu() };
       c.write_flag(Flag::Z, true);
       c
     },
@@ -2056,13 +2092,13 @@ mod tests {
       cpu_inline_test!({
         ins: Instruction::XOR_r(r),
         before: {
-          let mut c = Cpu::default();
+          let mut c = testcpu();
           c.write_reg_u8(r, 200);
           c.write_reg_u8(Reg::A, 200);
           c
         },
         after: {
-          let mut c = Cpu { ..Cpu::default() };
+          let mut c = Cpu { ..testcpu() };
           c.write_reg_u8(r, 200);
           c.write_flag(Flag::Z, true);
           c

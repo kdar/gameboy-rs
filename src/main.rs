@@ -15,7 +15,6 @@ use std::process::exit;
 
 use gameboy::debugger;
 use gameboy::disassembler;
-use gameboy::mem;
 use gameboy::cpu::Cpu;
 use gameboy::system;
 

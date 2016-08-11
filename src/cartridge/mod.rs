@@ -177,7 +177,7 @@ mod test {
 
     let mut cartridge = Cartridge::default();
 
-    let result = cartridge.load_data(test_cart);
+    let result = cartridge.load(test_cart);
     assert!(result.is_ok());
 
     assert_eq!(cartridge.cart_type, CartType::RomOnly);

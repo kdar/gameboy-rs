@@ -1,7 +1,6 @@
 #![feature(non_ascii_idents)]
 #![feature(custom_derive, plugin)]
 #![plugin(num_macros)]
-#![feature(step_by)]
 
 #[cfg(test)]
 extern crate difference;
@@ -38,17 +37,18 @@ pub use flag::Flag;
 #[cfg(test)]
 mod test {
   use super::mem;
+  use super::system::{SystemCtrl, System};
   use super::disassembler::Disassembler;
   use super::disassembler::Instruction;
 
   #[test]
   #[ignore]
   fn test_unimplemented() {
-    let mut m: Box<mem::Memory> = Box::new(mem::Mem::new());
+    let mut s: Box<SystemCtrl> = Box::new(System::new());
     let d = Disassembler::new();
     for i in 0..(0xFF as usize) + 1 {
-      m.write_u8(0, i as u8).unwrap();
-      match d.at(&m, 0) {
+      s.write_u8(0, i as u8).unwrap();
+      match d.at(s.as_memoryio(), 0) {
         Ok((Instruction::Invalid(opcode), _)) => {
           println!("{:#02x}", opcode);
         }
@@ -57,8 +57,8 @@ mod test {
     }
 
     for i in 0..(0xFF as usize) + 1 {
-      m.write_u8(0, i as u8).unwrap();
-      match d.at(&m, 0) {
+      s.write_u8(0, i as u8).unwrap();
+      match d.at(s.as_memoryio(), 0) {
         Ok((Instruction::Invalid(opcode), _)) => {
           println!("{:#02x}", opcode);
         }

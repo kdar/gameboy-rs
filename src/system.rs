@@ -54,7 +54,7 @@ impl Config {
 }
 
 pub trait SystemCtrl: MemoryIo {
-  fn step(&mut self);
+  fn step(&mut self) {}
   fn as_memoryio(&self) -> &MemoryIo;
 }
 
@@ -136,14 +136,20 @@ impl MemoryIo for System {
       0xc000...0xcfff => {
         self.work_ram_0
           .get((addr - 0xc000) as usize)
-          .ok_or_else(|| format!("could not get byte at work_ram_0 addr {}", addr))
+          .ok_or_else(|| {
+            format!("system.read_u8: could not get byte at work_ram_0 addr {}",
+                    addr)
+          })
           .and_then(|&x| Ok(x))
       }
       // work ram 1
       0xd000...0xdfff => {
         self.work_ram_1
           .get((addr - 0xd000) as usize)
-          .ok_or_else(|| format!("could not get byte at work_ram_1 addr {}", addr))
+          .ok_or_else(|| {
+            format!("system.read_u8: could not get byte at work_ram_1 addr {}",
+                    addr)
+          })
           .and_then(|&x| Ok(x))
       }
       // unusuable
@@ -155,7 +161,10 @@ impl MemoryIo for System {
       0xff80...0xfffe => {
         self.high_ram
           .get((addr - 0xff80) as usize)
-          .ok_or_else(|| format!("could not get byte at high_ram addr {}", addr))
+          .ok_or_else(|| {
+            format!("system.read_u8: could not get byte at high_ram addr {}",
+                    addr)
+          })
           .and_then(|&x| Ok(x))
       }
       // booting flag
@@ -171,7 +180,7 @@ impl MemoryIo for System {
       0xffff => Ok(self.interrupt_enable),
       // io ports
       0xff00...0xff7f => Ok((0)),
-      _ => Err(format!("Systemtem.read_u8: unknown mapped addr: {:#04x}", addr)),
+      _ => Err(format!("system.read_u8: unknown mapped addr: {:#04x}", addr)),
     }
   }
 
@@ -180,7 +189,7 @@ impl MemoryIo for System {
       // boot / cart rom
       0x0000...0x3fff => {
         if self.booting && addr < 0xFF {
-          Err("Systemtem.write_u8: shouldn't be writing to boot rom".to_owned())
+          Err("system.write_u8: shouldn't be writing to boot rom".to_owned())
         } else {
           self.cartridge.write_u8(addr, value)
         }
@@ -237,7 +246,7 @@ impl MemoryIo for System {
         // Err(format!("write_u8 Addr::IOPorts not implemented: {:?}", mapped))
         Ok(())
       }
-      _ => Err(format!("Systemtem.write_u8: unknown mapped addr: {:#04x}", addr)),
+      _ => Err(format!("system.write_u8: unknown mapped addr: {:#04x}", addr)),
     }
   }
 }
