@@ -20,6 +20,8 @@ pub enum Operand {
   _DE_,
   _HL_,
   _SP_,
+  Imm8(u8),
+  Imm16(u16),
 }
 
 impl fmt::Display for Operand {
@@ -43,6 +45,8 @@ impl fmt::Display for Operand {
       Operand::_DE_ => write!(f, "(DE)"),
       Operand::_HL_ => write!(f, "(HL)"),
       Operand::_SP_ => write!(f, "(SP)"),
+      Operand::Imm8(i) => write!(f, "${:02x}", i),
+      Operand::Imm16(i) => write!(f, "${:04x}", i),
     }
   }
 }

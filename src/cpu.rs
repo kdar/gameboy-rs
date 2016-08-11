@@ -151,6 +151,7 @@ impl Cpu {
         let sp = self.reg_sp;
         self.read_u8(sp)
       }
+      Operand::Imm8(i) => i,
       _ => panic!("cpu.read_operand_u8: unrecognized operand: {}", operand),
     }
   }
@@ -163,6 +164,7 @@ impl Cpu {
       Operand::HL => self.reg_hl,
       Operand::SP => self.reg_sp,
       Operand::PC => self.reg_pc,
+      Operand::Imm16(i) => i,
       _ => panic!("cpu.read_operand_u16: unrecognized operand: {}", operand),
     }
   }
@@ -193,6 +195,7 @@ impl Cpu {
         let sp = self.reg_sp;
         self.write_u8(sp, value)
       }
+      Operand::Imm16(i) => self.write_u8(i, value),
       _ => panic!("cpu.write_operand_u8: unrecognized operand: {}", operand),
     }
   }
@@ -205,6 +208,7 @@ impl Cpu {
       Operand::HL => self.reg_hl = value,
       Operand::SP => self.reg_sp = value,
       Operand::PC => self.reg_pc = value,
+      Operand::Imm16(i) => self.write_u16(i, value),
       _ => panic!("cpu.write_operand_u16: unrecognized operand: {}", operand),
     }
   }
@@ -406,8 +410,7 @@ impl Cpu {
       Instruction::ADD_A_·HL· => self.inst_ADD_A_·HL·(),
       Instruction::ADD_A_n(n) => self.inst_ADD_A_n(n),
       Instruction::ADD_HL_rr(rr) => self.inst_ADD_HL_rr(rr),
-      Instruction::AND_n(n) => self.inst_AND_n(n),
-      Instruction::AND_r(r) => self.inst_AND_r(r),
+      Instruction::AND(o) => self.inst_AND(o),
       Instruction::CALL_cc_nn(cc, nn) => self.inst_CALL_cc_nn(cc, nn),
       Instruction::CALL_nn(nn) => self.inst_CALL_nn(nn),
       Instruction::CP_·HL· => self.inst_CP_·HL·(),
@@ -691,25 +694,13 @@ impl Cpu {
   }
 
   // AND n
-  // Opcode: 0xE6
-  // Page: 170
-  #[allow(non_snake_case)]
-  fn inst_AND_n(&mut self, n: u8) {
-    let result = self.read_reg_u8(Reg::A) & n;
-    self.write_reg_u8(Reg::A, result);
-
-    self.write_flag(Flag::Z, result == 0);
-    self.write_flag(Flag::N, false);
-    self.write_flag(Flag::H, true);
-    self.write_flag(Flag::C, false);
-  }
-
+  //   Opcode: 0xE6
   // AND r
-  // Opcode: 10100rrr
+  //   Opcode: 10100rrr
   // Page: 170
   #[allow(non_snake_case)]
-  fn inst_AND_r(&mut self, r: Reg) {
-    let val = self.read_reg_u8(r);
+  fn inst_AND(&mut self, o: Operand) {
+    let val = self.read_operand_u8(o);
     let result = self.read_reg_u8(Reg::A) & val;
     self.write_reg_u8(Reg::A, result);
 

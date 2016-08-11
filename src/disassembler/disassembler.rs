@@ -15,6 +15,22 @@ macro_rules! try_o {
   })
 }
 
+macro_rules! imm8 {
+  ($inst:path, $m:ident, $addr:ident, $pc:ident) => ({
+    let n = try!($m.read_u8($addr + $pc));
+    $pc += 1;
+    Ok(($inst(Operand::Imm8(n)), $pc))
+  })
+}
+
+macro_rules! imm16 {
+  ($inst:path, $m:ident, $addr:ident, $pc:ident) => ({
+    let n = try!($m.read_u16($addr + $pc));
+    $pc += 2;
+    Ok(($inst(Operand::Imm16(n)), $pc))
+  })
+}
+
 pub struct Disassembler;
 
 impl Default for Disassembler {
@@ -97,16 +113,15 @@ impl Disassembler {
           Ok((Instruction::ADD_HL_rr(Reg::from_pair(rr, false)), pc))
         }
 
-        0xe6 => {
-          let n = try!(m.read_u8(addr + pc));
-          pc += 1;
-          Ok((Instruction::AND_n(n), pc))
-        }
-
-        0xa0 | 0xa1 | 0xa2 | 0xa3 | 0xa4 | 0xa5 | 0xa7 => {
-          let r = op & 0b111;
-          Ok((Instruction::AND_r(Reg::from(r)), pc))
-        }
+        0xa7 => Ok((Instruction::AND(Operand::A), pc)),
+        0xa0 => Ok((Instruction::AND(Operand::B), pc)),
+        0xa1 => Ok((Instruction::AND(Operand::C), pc)),
+        0xa2 => Ok((Instruction::AND(Operand::D), pc)),
+        0xa3 => Ok((Instruction::AND(Operand::E), pc)),
+        0xa4 => Ok((Instruction::AND(Operand::H), pc)),
+        0xa5 => Ok((Instruction::AND(Operand::L), pc)),
+        0xa6 => Ok((Instruction::AND(Operand::_HL_), pc)),
+        0xe6 => imm8!(Instruction::AND, m, addr, pc),
 
         0xc4 | 0xcc | 0xd4 | 0xdc => {
           // | 0xe4 | 0xec | 0xf4 | 0xfc => {
