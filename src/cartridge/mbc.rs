@@ -46,7 +46,7 @@ impl Default for Mbc {
 }
 
 impl MemoryIo for Mbc {
-  fn read_byte(&self, addr: u16) -> Result<u8, String> {
+  fn read_u8(&self, addr: u16) -> Result<u8, String> {
     match self.mbc_type {
       MbcType::None => {
         match addr {
@@ -91,11 +91,11 @@ impl MemoryIo for Mbc {
           _ => Ok(0),
         }
       }
-      _ => Err(format!("mbc.read_byte: unsupported mbc type: {:?}", self.mbc_type)),
+      _ => Err(format!("mbc.read_u8: unsupported mbc type: {:?}", self.mbc_type)),
     }
   }
 
-  fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String> {
+  fn write_u8(&mut self, addr: u16, value: u8) -> Result<(), String> {
     match self.mbc_type {
       MbcType::None => Ok(()),
       MbcType::Mbc1 => {
@@ -119,13 +119,13 @@ impl MemoryIo for Mbc {
           0x6000...0x7FFF => {
             self.mode = match num::FromPrimitive::from_u8(value & 0x01) {
               Some(v) => v,
-              None => return Err(format!("mbc.write_byte: unsupported mode: {}", value & 0x01)),
+              None => return Err(format!("mbc.write_u8: unsupported mode: {}", value & 0x01)),
             };
             Ok(())
           }
           0xA000...0xBFFF => {
             if !self.ram_enabled {
-              return Err("mbc.write_byte: tried to write to Mbc1 ram when it wasn't enabled".to_owned());
+              return Err("mbc.write_u8: tried to write to Mbc1 ram when it wasn't enabled".to_owned());
             }
 
             let mut loc = addr as usize - 0xA000;
@@ -136,11 +136,11 @@ impl MemoryIo for Mbc {
             Ok(())
           }
           _ => {
-            panic!("cartridge.write_byte: unhandled address: {:#04x}", addr);
+            panic!("cartridge.write_u8: unhandled address: {:#04x}", addr);
           }
         }
       }
-      _ => Err(format!("mbc.write_byte: unsupported mbc type: {:?}", self.mbc_type)),
+      _ => Err(format!("mbc.write_u8: unsupported mbc type: {:?}", self.mbc_type)),
     }
   }
 }

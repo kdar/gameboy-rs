@@ -86,12 +86,12 @@ pub struct Cartridge {
 }
 
 impl MemoryIo for Cartridge {
-  fn read_byte(&self, addr: u16) -> Result<u8, String> {
-    self.mbc.read_byte(addr)
+  fn read_u8(&self, addr: u16) -> Result<u8, String> {
+    self.mbc.read_u8(addr)
   }
 
-  fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String> {
-    self.mbc.write_byte(addr, value)
+  fn write_u8(&mut self, addr: u16, value: u8) -> Result<(), String> {
+    self.mbc.write_u8(addr, value)
   }
 }
 

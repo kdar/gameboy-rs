@@ -17,11 +17,11 @@ impl LinkPort {
 }
 
 impl MemoryIo for LinkPort {
-  fn read_byte(&self, addr: u16) -> Result<u8, String> {
+  fn read_u8(&self, addr: u16) -> Result<u8, String> {
     Ok(self.last_byte)
   }
 
-  fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String> {
+  fn write_u8(&mut self, addr: u16, value: u8) -> Result<(), String> {
     // println!("link write: {:#04x} {:x}", addr, value);
     match addr {
       0xff01 => {

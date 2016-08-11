@@ -96,7 +96,7 @@ impl Cpu {
   // Sets the system state as if the bootloader was run.
   pub fn bootstrap(&mut self) {
     // set booting flag to false
-    self.system.write_byte(0xff50, 1).unwrap();
+    self.system.write_u8(0xff50, 1).unwrap();
 
     self.reg_af = 0x01b0;
     self.reg_bc = 0x0013;
@@ -105,28 +105,28 @@ impl Cpu {
     self.reg_sp = 0xfffe;
     self.reg_pc = 0x100;
 
-    self.write_byte(0xff10, 0x80);
-    self.write_byte(0xff11, 0xbf);
-    self.write_byte(0xff12, 0xf3);
-    self.write_byte(0xff14, 0xbf);
-    self.write_byte(0xff16, 0x3f);
-    self.write_byte(0xff19, 0xbf);
-    self.write_byte(0xff1a, 0x7f);
-    self.write_byte(0xff1b, 0xff);
-    self.write_byte(0xff1c, 0x9f);
-    self.write_byte(0xff1e, 0xbf);
-    self.write_byte(0xff20, 0xff);
-    self.write_byte(0xff23, 0xbf);
-    self.write_byte(0xff24, 0x77);
-    self.write_byte(0xff25, 0xf3);
-    self.write_byte(0xff26, 0xf1);
-    self.write_byte(0xff40, 0x91);
-    self.write_byte(0xff47, 0xfc);
-    self.write_byte(0xff48, 0xff);
-    self.write_byte(0xff49, 0xff);
+    self.write_u8(0xff10, 0x80);
+    self.write_u8(0xff11, 0xbf);
+    self.write_u8(0xff12, 0xf3);
+    self.write_u8(0xff14, 0xbf);
+    self.write_u8(0xff16, 0x3f);
+    self.write_u8(0xff19, 0xbf);
+    self.write_u8(0xff1a, 0x7f);
+    self.write_u8(0xff1b, 0xff);
+    self.write_u8(0xff1c, 0x9f);
+    self.write_u8(0xff1e, 0xbf);
+    self.write_u8(0xff20, 0xff);
+    self.write_u8(0xff23, 0xbf);
+    self.write_u8(0xff24, 0x77);
+    self.write_u8(0xff25, 0xf3);
+    self.write_u8(0xff26, 0xf1);
+    self.write_u8(0xff40, 0x91);
+    self.write_u8(0xff47, 0xfc);
+    self.write_u8(0xff48, 0xff);
+    self.write_u8(0xff49, 0xff);
   }
 
-  pub fn read_reg_byte(&self, register: Reg) -> u8 {
+  pub fn read_reg_u8(&self, register: Reg) -> u8 {
     match register {
       Reg::B => high_byte(self.reg_bc),
       Reg::C => low_byte(self.reg_bc),
@@ -136,11 +136,11 @@ impl Cpu {
       Reg::L => low_byte(self.reg_hl),
       Reg::A => high_byte(self.reg_af),
       Reg::F => low_byte(self.reg_af),
-      _ => panic!("read_byte_register unknown register: {:?}", register),
+      _ => panic!("read_u8_register unknown register: {:?}", register),
     }
   }
 
-  fn read_reg_word(&mut self, register: Reg) -> u16 {
+  fn read_reg_u16(&mut self, register: Reg) -> u16 {
     match register {
       Reg::BC => self.reg_bc,
       Reg::DE => self.reg_de,
@@ -148,11 +148,11 @@ impl Cpu {
       Reg::AF => self.reg_af,
       Reg::SP => self.reg_sp,
       Reg::PC => self.reg_pc,
-      _ => panic!("read_reg_word unknown register: {:?}", register),
+      _ => panic!("read_reg_u16 unknown register: {:?}", register),
     }
   }
 
-  pub fn write_reg_word(&mut self, register: Reg, value: u16) {
+  pub fn write_reg_u16(&mut self, register: Reg, value: u16) {
     match register {
       Reg::BC => self.reg_bc = value,
       Reg::DE => self.reg_de = value,
@@ -160,11 +160,11 @@ impl Cpu {
       Reg::AF => self.reg_af = value,
       Reg::SP => self.reg_sp = value,
       Reg::PC => self.reg_pc = value,
-      _ => panic!("write_reg_word unknown register: {:?}", register),
+      _ => panic!("write_reg_u16 unknown register: {:?}", register),
     }
   }
 
-  pub fn write_reg_byte(&mut self, register: Reg, value: u8) {
+  pub fn write_reg_u8(&mut self, register: Reg, value: u8) {
     // self.reg_gpr[register as usize] = value;
     match register {
       Reg::B => self.reg_bc = (value as u16) << 8 | low_byte(self.reg_bc) as u16,
@@ -175,60 +175,42 @@ impl Cpu {
       Reg::L => self.reg_hl = (high_byte(self.reg_hl) as u16) << 8 | value as u16,
       Reg::A => self.reg_af = (value as u16) << 8 | low_byte(self.reg_af) as u16,
       Reg::F => self.reg_af = (high_byte(self.reg_af) as u16) << 8 | value as u16,
-      _ => panic!("write_reg_byte unknown register: {:?}", register),
+      _ => panic!("write_reg_u8 unknown register: {:?}", register),
     }
   }
 
-  // fn read_pc_byte(&mut self) -> u8 {
-  //   let d = self.mem.read_byte(self.reg_pc);
-  //   self.reg_pc += 1;
-  //   match d {
-  //     Ok(v) => v,
-  //     Err(e) => panic!("cpu.read_pc_byte: {}\n{:?}", e, self),
-  //   }
-  // }
-  //
-  // fn read_pc_word(&mut self) -> u16 {
-  //   let d = self.mem.read_word(self.reg_pc);
-  //   self.reg_pc += 2;
-  //   match d {
-  //     Ok(v) => v,
-  //     Err(e) => panic!("cpu.read_pc_word: {}\n{:?}", e, self),
-  //   }
-  // }
-
-  pub fn read_byte(&mut self, addr: u16) -> u8 {
-    let val = self.system.read_byte(addr);
+  pub fn read_u8(&mut self, addr: u16) -> u8 {
+    let val = self.system.read_u8(addr);
     match val {
       Ok(v) => v,
-      Err(e) => panic!("cpu.read_byte: {}\n{:?}", e, self),
+      Err(e) => panic!("cpu.read_u8: {}\n{:?}", e, self),
     }
   }
 
-  fn read_word(&mut self, addr: u16) -> u16 {
-    let val = self.system.read_word(addr);
+  fn read_u16(&mut self, addr: u16) -> u16 {
+    let val = self.system.read_u16(addr);
     match val {
       Ok(v) => v,
-      Err(e) => panic!("cpu.read_word: {}\n{:?}", e, self),
+      Err(e) => panic!("cpu.read_u16: {}\n{:?}", e, self),
     }
   }
 
-  fn write_byte(&mut self, addr: u16, value: u8) {
-    match self.system.write_byte(addr, value) {
+  fn write_u8(&mut self, addr: u16, value: u8) {
+    match self.system.write_u8(addr, value) {
       Ok(v) => v,
-      Err(e) => panic!("cpu.write_byte: {}\n{:?}", e, self),
+      Err(e) => panic!("cpu.write_u8: {}\n{:?}", e, self),
     }
   }
 
-  fn write_word(&mut self, addr: u16, value: u16) {
-    match self.system.write_word(addr, value) {
+  fn write_u16(&mut self, addr: u16, value: u16) {
+    match self.system.write_u16(addr, value) {
       Ok(v) => v,
-      Err(e) => panic!("cpu.write_word: {}\n{:?}", e, self),
+      Err(e) => panic!("cpu.write_u16: {}\n{:?}", e, self),
     }
   }
 
   fn write_flag(&mut self, flag: Flag, mut value: bool) {
-    let mut d = self.read_reg_byte(Reg::F);
+    let mut d = self.read_reg_u8(Reg::F);
 
     let pos = match flag {
       Flag::Z => 0b10000000,
@@ -251,11 +233,11 @@ impl Cpu {
       d &= !pos;
     }
 
-    self.write_reg_byte(Reg::F, d);
+    self.write_reg_u8(Reg::F, d);
   }
 
   fn read_flag(&self, flag: Flag) -> bool {
-    let val = self.read_reg_byte(Reg::F);
+    let val = self.read_reg_u8(Reg::F);
 
     match flag {
       Flag::Z => 0b10000000 & val != 0,
@@ -411,18 +393,18 @@ impl Cpu {
   fn push_word(&mut self, w: u16) {
     self.reg_sp -= 2;
     let sp = self.reg_sp;
-    self.write_word(sp, w);
+    self.write_u16(sp, w);
   }
 
   fn pop_word(&mut self) -> u16 {
     let sp = self.reg_sp;
-    let val = self.read_word(sp);
+    let val = self.read_u16(sp);
     self.reg_sp += 2;
     val
   }
 
   fn adc(&mut self, d: u8) {
-    let a = self.read_reg_byte(Reg::A);
+    let a = self.read_reg_u8(Reg::A);
     let c = if self.read_flag(Flag::C) {
       1
     } else {
@@ -432,7 +414,7 @@ impl Cpu {
     let (result, carry1) = a.overflowing_add(d);
     let (result, carry2) = result.overflowing_add(c);
 
-    self.write_reg_byte(Reg::A, result);
+    self.write_reg_u8(Reg::A, result);
     self.write_flag(Flag::Z, result == 0);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, (a & 0x0f) + (d & 0x0f) + c > 0x0f);
@@ -444,7 +426,7 @@ impl Cpu {
   // Page: 242
   #[allow(non_snake_case)]
   fn inst_BIT_b_r(&mut self, b: u8, r: Reg) {
-    let val = self.read_reg_byte(r);
+    let val = self.read_reg_u8(r);
 
     self.write_flag(Flag::Z, val & (1 << b) == 0);
     self.write_flag(Flag::N, false);
@@ -456,7 +438,7 @@ impl Cpu {
   // Page: 220
   #[allow(non_snake_case)]
   fn inst_RL_r(&mut self, r: Reg) {
-    let mut d = self.read_reg_byte(r);
+    let mut d = self.read_reg_u8(r);
 
     let carry = self.read_flag(Flag::C);
 
@@ -468,7 +450,7 @@ impl Cpu {
       d &= !1; // set bit 0 to 0
     }
 
-    self.write_reg_byte(r, d);
+    self.write_reg_u8(r, d);
     self.write_flag(Flag::Z, d == 0);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, false);
@@ -481,7 +463,7 @@ impl Cpu {
   // Opcode incorrect in z80undocumented manual
   #[allow(non_snake_case)]
   fn inst_RR_r(&mut self, r: Reg) {
-    let mut d = self.read_reg_byte(r);
+    let mut d = self.read_reg_u8(r);
     let prev_carry = self.read_flag(Flag::C);
     let carry = d & 1 != 0;
 
@@ -493,7 +475,7 @@ impl Cpu {
       d &= !0b10000000; // set bit 7 to 0
     }
 
-    self.write_reg_byte(r, d);
+    self.write_reg_u8(r, d);
     self.write_flag(Flag::Z, d == 0);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, false);
@@ -505,7 +487,7 @@ impl Cpu {
   // Page: 209
   #[allow(non_snake_case)]
   fn inst_RLA(&mut self) {
-    let mut d = self.read_reg_byte(Reg::A);
+    let mut d = self.read_reg_u8(Reg::A);
     let prev_carry = self.read_flag(Flag::C);
     let carry = d & (1 << 7) != 0;
 
@@ -517,7 +499,7 @@ impl Cpu {
       d &= !1; // set bit 0 to 0
     }
 
-    self.write_reg_byte(Reg::A, d);
+    self.write_reg_u8(Reg::A, d);
     self.write_flag(Flag::Z, false);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, false);
@@ -529,12 +511,12 @@ impl Cpu {
   // Page: 235
   #[allow(non_snake_case)]
   fn inst_SRL_r(&mut self, r: Reg) {
-    let val = self.read_reg_byte(r);
+    let val = self.read_reg_u8(r);
     let carry = val & 0x1 != 0;
 
     let val = val.wrapping_shr(1);
 
-    self.write_reg_byte(r, val);
+    self.write_reg_u8(r, val);
     self.write_flag(Flag::Z, val == 0);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, false);
@@ -551,8 +533,8 @@ impl Cpu {
   // Page: 164
   #[allow(non_snake_case)]
   fn inst_ADC_A_·HL·(&mut self) {
-    let hl = self.read_reg_word(Reg::HL);
-    let val = self.read_byte(hl);
+    let hl = self.read_reg_u16(Reg::HL);
+    let val = self.read_u8(hl);
     self.adc(val);
   }
 
@@ -569,7 +551,7 @@ impl Cpu {
   // Page: 164
   #[allow(non_snake_case)]
   fn inst_ADC_A_r(&mut self, r: Reg) {
-    let val = self.read_reg_byte(r);
+    let val = self.read_reg_u8(r);
     self.adc(val);
   }
 
@@ -578,11 +560,11 @@ impl Cpu {
   // Page: 160
   #[allow(non_snake_case)]
   fn inst_ADD_A_n(&mut self, n: u8) {
-    let a = self.read_reg_byte(Reg::A);
+    let a = self.read_reg_u8(Reg::A);
 
     let (result, carry) = a.overflowing_add(n);
 
-    self.write_reg_byte(Reg::A, result);
+    self.write_reg_u8(Reg::A, result);
     self.write_flag(Flag::Z, result == 0);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, ((result ^ a ^ n) & 0x10) > 0);
@@ -594,13 +576,13 @@ impl Cpu {
   // Page: 161
   #[allow(non_snake_case)]
   fn inst_ADD_A_·HL·(&mut self) {
-    let a = self.read_reg_byte(Reg::A);
-    let hl = self.read_reg_word(Reg::HL);
-    let val = self.read_byte(hl);
+    let a = self.read_reg_u8(Reg::A);
+    let hl = self.read_reg_u16(Reg::HL);
+    let val = self.read_u8(hl);
 
     let (result, carry) = a.overflowing_add(val);
 
-    self.write_reg_byte(Reg::A, result);
+    self.write_reg_u8(Reg::A, result);
     self.write_flag(Flag::Z, result == 0);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, ((result ^ a ^ val) & 0x10) > 0);
@@ -611,10 +593,10 @@ impl Cpu {
   // Opcode: 00rr1001
   #[allow(non_snake_case)]
   fn inst_ADD_HL_rr(&mut self, rr: Reg) {
-    let dd = self.read_reg_word(rr);
-    let hl = self.read_reg_word(Reg::HL);
+    let dd = self.read_reg_u16(rr);
+    let hl = self.read_reg_u16(Reg::HL);
     let hl = self.add_word(dd, hl);
-    self.write_reg_word(Reg::HL, hl);
+    self.write_reg_u16(Reg::HL, hl);
   }
 
   // AND n
@@ -622,8 +604,8 @@ impl Cpu {
   // Page: 170
   #[allow(non_snake_case)]
   fn inst_AND_n(&mut self, n: u8) {
-    let result = self.read_reg_byte(Reg::A) & n;
-    self.write_reg_byte(Reg::A, result);
+    let result = self.read_reg_u8(Reg::A) & n;
+    self.write_reg_u8(Reg::A, result);
 
     self.write_flag(Flag::Z, result == 0);
     self.write_flag(Flag::N, false);
@@ -636,9 +618,9 @@ impl Cpu {
   // Page: 170
   #[allow(non_snake_case)]
   fn inst_AND_r(&mut self, r: Reg) {
-    let val = self.read_reg_byte(r);
-    let result = self.read_reg_byte(Reg::A) & val;
-    self.write_reg_byte(Reg::A, result);
+    let val = self.read_reg_u8(r);
+    let result = self.read_reg_u8(Reg::A) & val;
+    self.write_reg_u8(Reg::A, result);
 
     self.write_flag(Flag::Z, result == 0);
     self.write_flag(Flag::N, false);
@@ -673,9 +655,9 @@ impl Cpu {
   // Page: 176
   #[allow(non_snake_case)]
   fn inst_CP_·HL·(&mut self) {
-    let hl = self.read_reg_word(Reg::HL);
-    let val = self.read_byte(hl);
-    let a = self.read_reg_byte(Reg::A);
+    let hl = self.read_reg_u16(Reg::HL);
+    let val = self.read_u8(hl);
+    let a = self.read_reg_u8(Reg::A);
     let (result, carry) = a.overflowing_sub(val);
 
     self.write_flag(Flag::Z, result == 0);
@@ -689,7 +671,7 @@ impl Cpu {
   // Page: 176
   #[allow(non_snake_case)]
   fn inst_CP_n(&mut self, n: u8) {
-    let a = self.read_reg_byte(Reg::A);
+    let a = self.read_reg_u8(Reg::A);
     let (result, carry) = a.overflowing_sub(n);
 
     self.write_flag(Flag::Z, result == 0);
@@ -703,11 +685,11 @@ impl Cpu {
   // Page:
   #[allow(non_snake_case)]
   fn inst_DEC_·HL·(&mut self) {
-    let hl = self.read_reg_word(Reg::HL);
-    let val = self.read_byte(hl);
+    let hl = self.read_reg_u16(Reg::HL);
+    let val = self.read_u8(hl);
     let new_val = val.wrapping_sub(1);
 
-    self.write_byte(hl, new_val);
+    self.write_u8(hl, new_val);
     self.write_flag(Flag::Z, new_val == 0);
     self.write_flag(Flag::N, true);
     self.write_flag(Flag::H, val & 0xf == 0);
@@ -718,10 +700,10 @@ impl Cpu {
   // Page: 182
   #[allow(non_snake_case)]
   fn inst_DEC_r(&mut self, r: Reg) {
-    let val = self.read_reg_byte(r);
+    let val = self.read_reg_u8(r);
     let new_val = val.wrapping_sub(1);
 
-    self.write_reg_byte(r, new_val);
+    self.write_reg_u8(r, new_val);
     self.write_flag(Flag::Z, new_val == 0);
     self.write_flag(Flag::N, true);
     self.write_flag(Flag::H, val & 0xf == 0);
@@ -732,9 +714,9 @@ impl Cpu {
   // Page: 205
   #[allow(non_snake_case)]
   fn inst_DEC_rr(&mut self, r: Reg) {
-    let val = self.read_reg_word(r);
+    let val = self.read_reg_u16(r);
     let val = val.wrapping_sub(1);
-    self.write_reg_word(r, val);
+    self.write_reg_u16(r, val);
   }
 
   // DI
@@ -765,10 +747,10 @@ impl Cpu {
   // Page: 178
   #[allow(non_snake_case)]
   fn inst_INC_r(&mut self, r: Reg) {
-    let val = self.read_reg_byte(r);
+    let val = self.read_reg_u8(r);
     let new_val = val.wrapping_add(1);
 
-    self.write_reg_byte(r, new_val);
+    self.write_reg_u8(r, new_val);
     self.write_flag(Flag::Z, new_val == 0);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, val & 0xf == 0xf);
@@ -780,9 +762,9 @@ impl Cpu {
   // Originally called INC ss
   #[allow(non_snake_case)]
   fn inst_INC_rr(&mut self, ss: Reg) {
-    let val = self.read_reg_word(ss);
+    let val = self.read_reg_u16(ss);
     let val = val.wrapping_add(1);
-    self.write_reg_word(ss, val);
+    self.write_reg_u16(ss, val);
   }
 
   // JP HL
@@ -790,7 +772,7 @@ impl Cpu {
   //
   #[allow(non_snake_case)]
   fn inst_JP_HL(&mut self) {
-    let hl = self.read_reg_word(Reg::HL);
+    let hl = self.read_reg_u16(Reg::HL);
     self.reg_pc = hl;
   }
 
@@ -844,9 +826,9 @@ impl Cpu {
   // Moved: RET PO -> LD (FF00+n),A
   #[allow(non_snake_case)]
   fn inst_LD_·0xFF00C·_A(&mut self) {
-    let a = self.read_reg_byte(Reg::A);
-    let c = self.read_reg_byte(Reg::C);
-    self.write_byte(0xFF00 + c as u16, a);
+    let a = self.read_reg_u8(Reg::A);
+    let c = self.read_reg_u8(Reg::C);
+    self.write_u8(0xFF00 + c as u16, a);
   }
 
   // LD (0xFF00+n),A
@@ -855,17 +837,17 @@ impl Cpu {
   // Moved: JP PO,nn -> LD (FF00+C),A
   #[allow(non_snake_case)]
   fn inst_LD_·0xFF00n·_A(&mut self, n: u8) {
-    let a = self.read_reg_byte(Reg::A);
-    self.write_byte(0xFF00 + n as u16, a);
+    let a = self.read_reg_u8(Reg::A);
+    self.write_u8(0xFF00 + n as u16, a);
   }
 
   // LD (DE),A
   // Opcode: 0x12
   #[allow(non_snake_case)]
   fn inst_LD_·DE·_A(&mut self) {
-    let de = self.read_reg_word(Reg::DE);
-    let a = self.read_reg_byte(Reg::A);
-    self.write_byte(de, a);
+    let de = self.read_reg_u16(Reg::DE);
+    let a = self.read_reg_u8(Reg::A);
+    self.write_u8(de, a);
   }
 
   // LD (HL),n
@@ -873,8 +855,8 @@ impl Cpu {
   // Page: 107
   #[allow(non_snake_case)]
   fn inst_LD_·HL·_n(&mut self, n: u8) {
-    let hl = self.read_reg_word(Reg::HL);
-    self.write_byte(hl, n);
+    let hl = self.read_reg_u16(Reg::HL);
+    self.write_u8(hl, n);
   }
 
   // LD (HL),r
@@ -882,9 +864,9 @@ impl Cpu {
   // Page: 104
   #[allow(non_snake_case)]
   fn inst_LD_·HL·_r(&mut self, r: Reg) {
-    let hl = self.read_reg_word(Reg::HL);
-    let val = self.read_reg_byte(r);
-    self.write_byte(hl, val);
+    let hl = self.read_reg_u16(Reg::HL);
+    let val = self.read_reg_u8(r);
+    self.write_u8(hl, val);
   }
 
   // LD (nn),A
@@ -893,8 +875,8 @@ impl Cpu {
   // Moved: JP PE,nn => LD (nn),A
   #[allow(non_snake_case)]
   fn inst_LD_·nn·_A(&mut self, nn: u16) {
-    let val = self.read_reg_byte(Reg::A);
-    self.write_byte(nn, val);
+    let val = self.read_reg_u8(Reg::A);
+    self.write_u8(nn, val);
   }
 
   // LD (nn),SP
@@ -903,7 +885,7 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_LD_·nn·_SP(&mut self, nn: u16) {
     let sp = self.reg_sp;
-    self.write_word(nn, sp);
+    self.write_u16(nn, sp);
   }
 
   // LD A,(BC)
@@ -912,8 +894,8 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_LD_A_·BC·(&mut self) {
     let bc = self.reg_bc;
-    let val = self.read_byte(bc);
-    self.write_reg_byte(Reg::A, val);
+    let val = self.read_u8(bc);
+    self.write_reg_u8(Reg::A, val);
   }
 
   // LD A,(DE)
@@ -922,8 +904,8 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_LD_A_·DE·(&mut self) {
     let de = self.reg_de;
-    let val = self.read_byte(de);
-    self.write_reg_byte(Reg::A, val);
+    let val = self.read_u8(de);
+    self.write_reg_u8(Reg::A, val);
   }
 
   // LD A,(nn)
@@ -931,8 +913,8 @@ impl Cpu {
   // Page:
   #[allow(non_snake_case)]
   fn inst_LD_A_·nn·(&mut self, nn: u16) {
-    let val = self.read_byte(nn);
-    self.write_reg_byte(Reg::A, val);
+    let val = self.read_u8(nn);
+    self.write_reg_u8(Reg::A, val);
   }
 
   // LD A,(0xFF00n)
@@ -940,8 +922,8 @@ impl Cpu {
   // Moved: RET P -> LD A,(FF00+n)
   #[allow(non_snake_case)]
   fn inst_LD_A_·0xFF00n·(&mut self, n: u8) {
-    let val = self.read_byte(0xFF00 + n as u16);
-    self.write_reg_byte(Reg::A, val);
+    let val = self.read_u8(0xFF00 + n as u16);
+    self.write_reg_u8(Reg::A, val);
   }
 
   // LD dd,nn
@@ -949,7 +931,7 @@ impl Cpu {
   // Page: 120
   #[allow(non_snake_case)]
   fn inst_LD_dd_nn(&mut self, dd: Reg, nn: u16) {
-    self.write_reg_word(dd, nn);
+    self.write_reg_u16(dd, nn);
   }
 
   // LD r,(HL)
@@ -957,9 +939,9 @@ impl Cpu {
   // Page: 101
   #[allow(non_snake_case)]
   fn inst_LD_r_·HL·(&mut self, r: Reg) {
-    let hl = self.read_reg_word(Reg::HL);
-    let val = self.read_byte(hl);
-    self.write_reg_byte(r, val);
+    let hl = self.read_reg_u16(Reg::HL);
+    let val = self.read_u8(hl);
+    self.write_reg_u8(r, val);
   }
 
   // LD r,r
@@ -967,8 +949,8 @@ impl Cpu {
   // Page: 120
   #[allow(non_snake_case)]
   fn inst_LD_r_r(&mut self, r1: Reg, r2: Reg) {
-    let val = self.read_reg_byte(r2);
-    self.write_reg_byte(r1, val);
+    let val = self.read_reg_u8(r2);
+    self.write_reg_u8(r1, val);
   }
 
   // LD r,n
@@ -976,7 +958,7 @@ impl Cpu {
   // Page: 100
   #[allow(non_snake_case)]
   fn inst_LD_r_n(&mut self, r: Reg, n: u8) {
-    self.write_reg_byte(r, n);
+    self.write_reg_u8(r, n);
   }
 
   // LDI (HL),A
@@ -985,11 +967,11 @@ impl Cpu {
   // Moved: LD HL,(nn) -> LDI A,(HL)
   #[allow(non_snake_case)]
   fn inst_LDI_A_·HL·(&mut self) {
-    let hl = self.read_reg_word(Reg::HL);
-    let val = self.read_byte(hl);
+    let hl = self.read_reg_u16(Reg::HL);
+    let val = self.read_u8(hl);
 
-    self.write_reg_byte(Reg::A, val);
-    self.write_reg_word(Reg::HL, hl + 1);
+    self.write_reg_u8(Reg::A, val);
+    self.write_reg_u16(Reg::HL, hl + 1);
   }
 
   // LDD (HL),A
@@ -998,10 +980,10 @@ impl Cpu {
   // Moved: LD (nn),A -> LDD (HL),A
   #[allow(non_snake_case)]
   fn inst_LDD_·HL·_A(&mut self) {
-    let hl = self.read_reg_word(Reg::HL);
-    let a = self.read_reg_byte(Reg::A);
-    self.write_byte(hl, a);
-    self.write_reg_word(Reg::HL, hl - 1);
+    let hl = self.read_reg_u16(Reg::HL);
+    let a = self.read_reg_u8(Reg::A);
+    self.write_u8(hl, a);
+    self.write_reg_u16(Reg::HL, hl - 1);
   }
 
   // LDI (HL),A
@@ -1010,10 +992,10 @@ impl Cpu {
   // Moved: LD (nn),HL -> LDI (HL),A
   #[allow(non_snake_case)]
   fn inst_LDI_·HL·_A(&mut self) {
-    let hl = self.read_reg_word(Reg::HL);
-    let a = self.read_reg_byte(Reg::A);
-    self.write_byte(hl, a);
-    self.write_reg_word(Reg::HL, hl + 1);
+    let hl = self.read_reg_u16(Reg::HL);
+    let a = self.read_reg_u8(Reg::A);
+    self.write_u8(hl, a);
+    self.write_reg_u16(Reg::HL, hl + 1);
   }
 
   // NOP
@@ -1026,11 +1008,11 @@ impl Cpu {
   // Page: 172
   #[allow(non_snake_case)]
   fn inst_OR_A_·HL·(&mut self) {
-    let hl = self.read_reg_word(Reg::HL);
-    let val = self.read_byte(hl);
-    let result = self.read_reg_byte(Reg::A) | val;
+    let hl = self.read_reg_u16(Reg::HL);
+    let val = self.read_u8(hl);
+    let result = self.read_reg_u8(Reg::A) | val;
 
-    self.write_reg_byte(Reg::A, result);
+    self.write_reg_u8(Reg::A, result);
     self.write_flag(Flag::Z, result == 0);
     self.write_flag(Flag::H, false);
     self.write_flag(Flag::N, false);
@@ -1042,10 +1024,10 @@ impl Cpu {
   // Page: 172
   #[allow(non_snake_case)]
   fn inst_OR_r(&mut self, r: Reg) {
-    let val = self.read_reg_byte(r);
-    let result = self.read_reg_byte(Reg::A) | val;
+    let val = self.read_reg_u8(r);
+    let result = self.read_reg_u8(Reg::A) | val;
 
-    self.write_reg_byte(Reg::A, result);
+    self.write_reg_u8(Reg::A, result);
     self.write_flag(Flag::Z, result == 0);
     self.write_flag(Flag::H, false);
     self.write_flag(Flag::N, false);
@@ -1058,7 +1040,7 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_POP_rr(&mut self, rr: Reg) {
     let val = self.pop_word();
-    self.write_reg_word(rr, val);
+    self.write_reg_u16(rr, val);
   }
 
   // PUSH rr
@@ -1066,7 +1048,7 @@ impl Cpu {
   // Page: 134
   #[allow(non_snake_case)]
   fn inst_PUSH_rr(&mut self, rr: Reg) {
-    let val = self.read_reg_word(rr);
+    let val = self.read_reg_u16(rr);
     self.push_word(val);
   }
 
@@ -1093,7 +1075,7 @@ impl Cpu {
   // Page: 211
   #[allow(non_snake_case)]
   fn inst_RRA(&mut self) {
-    let mut val = self.read_reg_byte(Reg::A);
+    let mut val = self.read_reg_u8(Reg::A);
     let prev_carry = self.read_flag(Flag::C);
     let carry = val & 1 != 0;
 
@@ -1105,7 +1087,7 @@ impl Cpu {
       val &= !0b10000000; // set bit 7 to 0
     }
 
-    self.write_reg_byte(Reg::A, val);
+    self.write_reg_u8(Reg::A, val);
     self.write_flag(Flag::Z, false);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, false);
@@ -1127,10 +1109,10 @@ impl Cpu {
   // Page: 166
   #[allow(non_snake_case)]
   fn inst_SUB_n(&mut self, n: u8) {
-    let a = self.read_reg_byte(Reg::A);
+    let a = self.read_reg_u8(Reg::A);
     let (result, carry) = a.overflowing_sub(n);
 
-    self.write_reg_byte(Reg::A, result);
+    self.write_reg_u8(Reg::A, result);
     self.write_flag(Flag::Z, result == 0);
     self.write_flag(Flag::N, true);
     self.write_flag(Flag::H, a & 0x0F < n & 0x0F);
@@ -1142,11 +1124,11 @@ impl Cpu {
   // Page: 166
   #[allow(non_snake_case)]
   fn inst_SUB_r(&mut self, r: Reg) {
-    let a = self.read_reg_byte(Reg::A);
-    let val = self.read_reg_byte(r);
+    let a = self.read_reg_u8(Reg::A);
+    let val = self.read_reg_u8(r);
     let (result, carry) = a.overflowing_sub(val);
 
-    self.write_reg_byte(Reg::A, result);
+    self.write_reg_u8(Reg::A, result);
     self.write_flag(Flag::Z, result == 0);
     self.write_flag(Flag::N, true);
     self.write_flag(Flag::H, a & 0x0F < val & 0x0F);
@@ -1158,11 +1140,11 @@ impl Cpu {
   // Page: 174
   #[allow(non_snake_case)]
   fn inst_XOR_·HL·(&mut self) {
-    let hl = self.read_reg_word(Reg::HL);
-    let val = self.read_byte(hl);
-    let mut a = self.read_reg_byte(Reg::A);
+    let hl = self.read_reg_u16(Reg::HL);
+    let val = self.read_u8(hl);
+    let mut a = self.read_reg_u8(Reg::A);
     a ^= val;
-    self.write_reg_byte(Reg::A, a);
+    self.write_reg_u8(Reg::A, a);
 
     self.write_flag(Flag::Z, a == 0);
     self.write_flag(Flag::N, false);
@@ -1178,9 +1160,9 @@ impl Cpu {
   // or (IY+d).
   #[allow(non_snake_case)]
   fn inst_XOR_n(&mut self, n: u8) {
-    let mut a = self.read_reg_byte(Reg::A);
+    let mut a = self.read_reg_u8(Reg::A);
     a ^= n;
-    self.write_reg_byte(Reg::A, a);
+    self.write_reg_u8(Reg::A, a);
 
     self.write_flag(Flag::Z, a == 0);
     self.write_flag(Flag::N, false);
@@ -1196,10 +1178,10 @@ impl Cpu {
   // or (IY+d).
   #[allow(non_snake_case)]
   fn inst_XOR_r(&mut self, r: Reg) {
-    let val = self.read_reg_byte(r);
-    let mut a = self.read_reg_byte(Reg::A);
+    let val = self.read_reg_u8(r);
+    let mut a = self.read_reg_u8(Reg::A);
     a ^= val;
-    self.write_reg_byte(Reg::A, a);
+    self.write_reg_u8(Reg::A, a);
 
     self.write_flag(Flag::Z, a == 0);
     self.write_flag(Flag::N, false);
@@ -1256,14 +1238,14 @@ mod tests {
       let mut c = Cpu::default();
       for (setup_k, setup_v) in setup.as_hash().unwrap() {
         match setup_k.as_str().unwrap() {
-          "A" => c.write_reg_byte(Reg::A, setup_v.as_i64().unwrap() as u8),
-          "F" => c.write_reg_byte(Reg::F, setup_v.as_i64().unwrap() as u8),
-          "B" => c.write_reg_byte(Reg::B, setup_v.as_i64().unwrap() as u8),
-          "C" => c.write_reg_byte(Reg::C, setup_v.as_i64().unwrap() as u8),
-          "D" => c.write_reg_byte(Reg::D, setup_v.as_i64().unwrap() as u8),
-          "E" => c.write_reg_byte(Reg::E, setup_v.as_i64().unwrap() as u8),
-          "H" => c.write_reg_byte(Reg::H, setup_v.as_i64().unwrap() as u8),
-          "L" => c.write_reg_byte(Reg::L, setup_v.as_i64().unwrap() as u8),
+          "A" => c.write_reg_u8(Reg::A, setup_v.as_i64().unwrap() as u8),
+          "F" => c.write_reg_u8(Reg::F, setup_v.as_i64().unwrap() as u8),
+          "B" => c.write_reg_u8(Reg::B, setup_v.as_i64().unwrap() as u8),
+          "C" => c.write_reg_u8(Reg::C, setup_v.as_i64().unwrap() as u8),
+          "D" => c.write_reg_u8(Reg::D, setup_v.as_i64().unwrap() as u8),
+          "E" => c.write_reg_u8(Reg::E, setup_v.as_i64().unwrap() as u8),
+          "H" => c.write_reg_u8(Reg::H, setup_v.as_i64().unwrap() as u8),
+          "L" => c.write_reg_u8(Reg::L, setup_v.as_i64().unwrap() as u8),
           "SP" => c.reg_sp = setup_v.as_i64().unwrap() as u16,
           "PC" => c.reg_pc = setup_v.as_i64().unwrap() as u16,
           "mem" => {
@@ -1271,7 +1253,7 @@ mod tests {
               &Yaml::Array(ref a) => {
                 let mut count = 0;
                 for x in a {
-                  c.mem.write_byte(count, x.as_i64().unwrap() as u8);
+                  c.mem.write_u8(count, x.as_i64().unwrap() as u8);
                   count += 1;
                 }
               }
@@ -1287,7 +1269,7 @@ mod tests {
       for (test_k, test_v) in test.as_hash().unwrap() {
         match test_k.as_str().unwrap() {
           "A" => {
-            let v1 = c.read_reg_byte(Reg::A);
+            let v1 = c.read_reg_u8(Reg::A);
             let v2 = test_v.as_i64().unwrap() as u8;
             assert!(v1 == v2,
                     "\n{0}:\n A:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
@@ -1296,7 +1278,7 @@ mod tests {
                     v2);
           }
           "F" => {
-            let v1 = c.read_reg_byte(Reg::F);
+            let v1 = c.read_reg_u8(Reg::F);
             let v2 = test_v.as_i64().unwrap() as u8;
             let mut flags1 = vec![];
             if v1 & 0b10000000 != 0 {
@@ -1333,7 +1315,7 @@ mod tests {
                     flags2.join(""));
           }
           "B" => {
-            let v1 = c.read_reg_byte(Reg::B);
+            let v1 = c.read_reg_u8(Reg::B);
             let v2 = test_v.as_i64().unwrap() as u8;
             assert!(v1 == v2,
                     "\n{0}:\n B:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
@@ -1342,7 +1324,7 @@ mod tests {
                     v2);
           }
           "C" => {
-            let v1 = c.read_reg_byte(Reg::C);
+            let v1 = c.read_reg_u8(Reg::C);
             let v2 = test_v.as_i64().unwrap() as u8;
             assert!(v1 == v2,
                     "\n{0}:\n C:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
@@ -1351,7 +1333,7 @@ mod tests {
                     v2);
           }
           "D" => {
-            let v1 = c.read_reg_byte(Reg::D);
+            let v1 = c.read_reg_u8(Reg::D);
             let v2 = test_v.as_i64().unwrap() as u8;
             assert!(v1 == v2,
                     "\n{0}:\n D:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
@@ -1360,7 +1342,7 @@ mod tests {
                     v2);
           }
           "E" => {
-            let v1 = c.read_reg_byte(Reg::E);
+            let v1 = c.read_reg_u8(Reg::E);
             let v2 = test_v.as_i64().unwrap() as u8;
             assert!(v1 == v2,
                     "\n{0}:\n E:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
@@ -1369,7 +1351,7 @@ mod tests {
                     v2);
           }
           "H" => {
-            let v1 = c.read_reg_byte(Reg::H);
+            let v1 = c.read_reg_u8(Reg::H);
             let v2 = test_v.as_i64().unwrap() as u8;
             assert!(v1 == v2,
                     "\n{0}:\n H:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
@@ -1378,7 +1360,7 @@ mod tests {
                     v2);
           }
           "L" => {
-            let v1 = c.read_reg_byte(Reg::L);
+            let v1 = c.read_reg_u8(Reg::L);
             let v2 = test_v.as_i64().unwrap() as u8;
             assert!(v1 == v2,
                     "\n{0}:\n L:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
@@ -1413,7 +1395,7 @@ mod tests {
                 let mut v1 = vec![];
                 let mut v2 = vec![];
                 for x in a {
-                  let m1 = c.read_byte(count);
+                  let m1 = c.read_u8(count);
                   let m2 = x.as_i64().unwrap() as u8;
                   v1.push(m1);
                   v2.push(m2);
@@ -1436,36 +1418,36 @@ mod tests {
   }
 
   #[test]
-  fn test_write_read_reg_byte() {
+  fn test_write_read_reg_u8() {
     let mut c = Cpu::new();
 
-    c.write_reg_byte(Reg::A, 0b01011010);
+    c.write_reg_u8(Reg::A, 0b01011010);
     assert!(c.reg_af == 0b01011010_00000000);
-    assert!(c.read_reg_byte(Reg::A) == 0b01011010);
-    c.write_reg_byte(Reg::F, 0b11011010);
+    assert!(c.read_reg_u8(Reg::A) == 0b01011010);
+    c.write_reg_u8(Reg::F, 0b11011010);
     assert!(c.reg_af == 0b01011010_11011010);
-    assert!(c.read_reg_byte(Reg::F) == 0b11011010);
+    assert!(c.read_reg_u8(Reg::F) == 0b11011010);
 
-    c.write_reg_byte(Reg::B, 0b01011010);
+    c.write_reg_u8(Reg::B, 0b01011010);
     assert!(c.reg_bc == 0b01011010_00000000);
-    assert!(c.read_reg_byte(Reg::B) == 0b01011010);
-    c.write_reg_byte(Reg::C, 0b11011010);
+    assert!(c.read_reg_u8(Reg::B) == 0b01011010);
+    c.write_reg_u8(Reg::C, 0b11011010);
     assert!(c.reg_bc == 0b01011010_11011010);
-    assert!(c.read_reg_byte(Reg::C) == 0b11011010);
+    assert!(c.read_reg_u8(Reg::C) == 0b11011010);
 
-    c.write_reg_byte(Reg::D, 0b01011010);
+    c.write_reg_u8(Reg::D, 0b01011010);
     assert!(c.reg_de == 0b01011010_00000000);
-    assert!(c.read_reg_byte(Reg::D) == 0b01011010);
-    c.write_reg_byte(Reg::E, 0b11011010);
+    assert!(c.read_reg_u8(Reg::D) == 0b01011010);
+    c.write_reg_u8(Reg::E, 0b11011010);
     assert!(c.reg_de == 0b01011010_11011010);
-    assert!(c.read_reg_byte(Reg::E) == 0b11011010);
+    assert!(c.read_reg_u8(Reg::E) == 0b11011010);
 
-    c.write_reg_byte(Reg::H, 0b01011010);
+    c.write_reg_u8(Reg::H, 0b01011010);
     assert!(c.reg_hl == 0b01011010_00000000);
-    assert!(c.read_reg_byte(Reg::H) == 0b01011010);
-    c.write_reg_byte(Reg::L, 0b11011010);
+    assert!(c.read_reg_u8(Reg::H) == 0b01011010);
+    c.write_reg_u8(Reg::L, 0b11011010);
     assert!(c.reg_hl == 0b01011010_11011010);
-    assert!(c.read_reg_byte(Reg::L) == 0b11011010);
+    assert!(c.read_reg_u8(Reg::L) == 0b11011010);
   }
 
   #[test]
@@ -1573,12 +1555,12 @@ mod tests {
           ins: Instruction::BIT_b_r(b, r),
           before: {
             let mut c = Cpu::default();
-            c.write_reg_byte(r, 1 << b);
+            c.write_reg_u8(r, 1 << b);
             c
           },
           after: {
             let mut c = Cpu { ..Cpu::default() };
-            c.write_reg_byte(r, 1 << b);
+            c.write_reg_u8(r, 1 << b);
             c.write_flag(Flag::Z, false);
             c.write_flag(Flag::H, true);
             c
@@ -1621,7 +1603,7 @@ mod tests {
     after: {
       let mut c = Cpu { ..Cpu::default() };
       c.reg_sp = 98;
-      c.mem.write_byte(98, 200).unwrap();
+      c.mem.write_u8(98, 200).unwrap();
       c.reg_pc = 0x0095;
       c
     },
@@ -1631,14 +1613,14 @@ mod tests {
     ins: Instruction::CP_n(0x95),
     before: {
       let mut c = Cpu::default();
-      c.write_reg_byte(Reg::A, 0x88);
+      c.write_reg_u8(Reg::A, 0x88);
       c
     },
     after: {
       let mut c = Cpu { ..Cpu::default() };
       c.write_flag(Flag::N, true);
       c.write_flag(Flag::C, true);
-      c.write_reg_byte(Reg::A, 0x88);
+      c.write_reg_u8(Reg::A, 0x88);
       c
     },
   });
@@ -1656,14 +1638,14 @@ mod tests {
         ins: Instruction::DEC_r(r),
         before: {
           let mut c = Cpu::default();
-          c.write_reg_byte(r, 0x10);
+          c.write_reg_u8(r, 0x10);
           c
         },
         after: {
           let mut c = Cpu { ..Cpu::default()};
           c.write_flag(Flag::H, true);
           c.write_flag(Flag::N, true);
-          c.write_reg_byte(r, 0x0F);
+          c.write_reg_u8(r, 0x0F);
           c
         },
       });
@@ -1683,12 +1665,12 @@ mod tests {
         ins: Instruction::INC_r(r),
         before: {
           let mut c = Cpu::default();
-          c.write_reg_byte(r, 0x10);
+          c.write_reg_u8(r, 0x10);
           c
         },
         after: {
           let mut c = Cpu { ..Cpu::default()};
-          c.write_reg_byte(r, 0x11);
+          c.write_reg_u8(r, 0x11);
           c
         },
       });
@@ -1704,12 +1686,12 @@ mod tests {
         ins: Instruction::INC_rr(r),
         before: {
           let mut c = Cpu::default();
-          c.write_reg_word(r, 0x10);
+          c.write_reg_u16(r, 0x10);
           c
         },
         after: {
           let mut c = Cpu { ..Cpu::default()};
-          c.write_reg_word(r, 0x11);
+          c.write_reg_u16(r, 0x11);
           c
         },
       });
@@ -1730,7 +1712,7 @@ mod tests {
       for i in 0..addrs.len() {
         let mut c = Cpu::default();
         c.reg_pc = 0x1000;
-        // c.mem.write_byte(0x1000, addrs[i]);
+        // c.mem.write_u8(0x1000, addrs[i]);
         c.write_flag(*flag, true);
 
         c.execute_instruction(Instruction::JR_cc_e(*flag, addrs[i]));
@@ -1741,7 +1723,7 @@ mod tests {
       for i in 0..addrs.len() {
         let mut c = Cpu::default();
         c.reg_pc = 0x1000;
-        // c.mem.write_byte(0x1000, addrs[i]);
+        // c.mem.write_u8(0x1000, addrs[i]);
         c.write_flag(*flag, false);
 
         c.execute_instruction(Instruction::JR_cc_e(*flag, addrs[i]));
@@ -1755,15 +1737,15 @@ mod tests {
     ins: Instruction::LD_·0xFF00C·_A,
     before: {
       let mut c = Cpu::default();
-      c.write_reg_byte(Reg::C, 0x10);
-      c.write_reg_byte(Reg::A, 0xFF);
+      c.write_reg_u8(Reg::C, 0x10);
+      c.write_reg_u8(Reg::A, 0xFF);
       c
     },
     after: {
       let mut c = Cpu { ..Cpu::default() };
-      c.write_reg_byte(Reg::C, 0x10);
-      c.write_reg_byte(Reg::A, 0xFF);
-      c.mem.write_byte(0xFF10, 0xFF).unwrap();
+      c.write_reg_u8(Reg::C, 0x10);
+      c.write_reg_u8(Reg::A, 0xFF);
+      c.mem.write_u8(0xFF10, 0xFF).unwrap();
       c
     },
   });
@@ -1772,12 +1754,12 @@ mod tests {
     ins: Instruction::LD_·0xFF00n·_A(0x10),
     before: {
       let mut c = Cpu::default();
-      c.write_reg_byte(Reg::A, 0xFF);
+      c.write_reg_u8(Reg::A, 0xFF);
       c
     },
     after: {
       let mut c = Cpu { reg_pc: 0, ..Cpu::default() };
-      c.write_reg_byte(Reg::A, 0xFF);
+      c.write_reg_u8(Reg::A, 0xFF);
       c
     },
   });
@@ -1795,17 +1777,17 @@ mod tests {
         ins: Instruction::LD_·HL·_r(r),
         before: {
           let mut c = Cpu::default();
-          c.write_reg_byte(r, 0x87);
-          c.write_reg_byte(Reg::H, 0xC2);
-          c.write_reg_byte(Reg::L, 0x21);
+          c.write_reg_u8(r, 0x87);
+          c.write_reg_u8(Reg::H, 0xC2);
+          c.write_reg_u8(Reg::L, 0x21);
           c
         },
         after: {
           let mut c = Cpu { ..Cpu::default() };
-          c.write_reg_byte(r, 0x87);
-          c.write_reg_byte(Reg::H, 0xC2);
-          c.write_reg_byte(Reg::L, 0x21);
-          c.mem.write_byte(0xC221, 0x87).unwrap();
+          c.write_reg_u8(r, 0x87);
+          c.write_reg_u8(Reg::H, 0xC2);
+          c.write_reg_u8(Reg::L, 0x21);
+          c.mem.write_u8(0xC221, 0x87).unwrap();
           c
         },
       });
@@ -1816,15 +1798,15 @@ mod tests {
     ins: Instruction::LD_A_·DE·,
     before: {
       let mut c = Cpu::default();
-      c.write_reg_word(Reg::DE, 0x0104);
-      c.mem.write_byte(0x0104, 0x10).unwrap();
+      c.write_reg_u16(Reg::DE, 0x0104);
+      c.mem.write_u8(0x0104, 0x10).unwrap();
       c
     },
     after: {
       let mut c = Cpu { ..Cpu::default() };
-      c.write_reg_word(Reg::DE, 0x0104);
-      c.write_reg_byte(Reg::A, 0x10);
-      c.mem.write_byte(0x0104, 0x10).unwrap();
+      c.write_reg_u16(Reg::DE, 0x0104);
+      c.write_reg_u8(Reg::A, 0x10);
+      c.mem.write_u8(0x0104, 0x10).unwrap();
       c
     },
   });
@@ -1868,7 +1850,7 @@ mod tests {
           let mut c = Cpu{
             ..Cpu::default()
           };
-          c.write_reg_byte(r, 0xFE);
+          c.write_reg_u8(r, 0xFE);
           c
         },
       });
@@ -1895,15 +1877,15 @@ mod tests {
         ins: Instruction::LD_r_r(r1, r2),
         before: {
           let mut c = Cpu::default();
-          c.write_reg_byte(r2, 0xFE);
+          c.write_reg_u8(r2, 0xFE);
           c
         },
         after: {
           let mut c = Cpu{
             ..Cpu::default()
           };
-          c.write_reg_byte(r1, 0xFE);
-          c.write_reg_byte(r2, 0xFE);
+          c.write_reg_u8(r1, 0xFE);
+          c.write_reg_u8(r2, 0xFE);
           c
         },
       });
@@ -1915,17 +1897,17 @@ mod tests {
     ins: Instruction::LDD_·HL·_A,
     before: {
       let mut c = Cpu::default();
-      c.write_reg_byte(Reg::A, 0x87);
-      c.write_reg_byte(Reg::H, 0xC2);
-      c.write_reg_byte(Reg::L, 0x21);
+      c.write_reg_u8(Reg::A, 0x87);
+      c.write_reg_u8(Reg::H, 0xC2);
+      c.write_reg_u8(Reg::L, 0x21);
       c
     },
     after: {
       let mut c = Cpu { ..Cpu::default() };
-      c.write_reg_byte(Reg::A, 0x87);
-      c.write_reg_byte(Reg::H, 0xC2);
-      c.write_reg_byte(Reg::L, 0x20);
-      c.mem.write_byte(0xC221, 0x87).unwrap();
+      c.write_reg_u8(Reg::A, 0x87);
+      c.write_reg_u8(Reg::H, 0xC2);
+      c.write_reg_u8(Reg::L, 0x20);
+      c.mem.write_u8(0xC221, 0x87).unwrap();
       c
     },
   });
@@ -1934,17 +1916,17 @@ mod tests {
     ins: Instruction::LDI_·HL·_A,
     before: {
       let mut c = Cpu::default();
-      c.write_reg_byte(Reg::A, 0x87);
-      c.write_reg_byte(Reg::H, 0xC2);
-      c.write_reg_byte(Reg::L, 0x21);
+      c.write_reg_u8(Reg::A, 0x87);
+      c.write_reg_u8(Reg::H, 0xC2);
+      c.write_reg_u8(Reg::L, 0x21);
       c
     },
     after: {
       let mut c = Cpu { ..Cpu::default() };
-      c.write_reg_byte(Reg::A, 0x87);
-      c.write_reg_byte(Reg::H, 0xC2);
-      c.write_reg_byte(Reg::L, 0x22);
-      c.mem.write_byte(0xC221, 0x87).unwrap();
+      c.write_reg_u8(Reg::A, 0x87);
+      c.write_reg_u8(Reg::H, 0xC2);
+      c.write_reg_u8(Reg::L, 0x22);
+      c.mem.write_u8(0xC221, 0x87).unwrap();
       c
     },
   });
@@ -1959,7 +1941,7 @@ mod tests {
     ins: Instruction::XOR_r(Reg::A),
     before: {
       let mut c = Cpu::default();
-      c.write_reg_byte(Reg::A, 200);
+      c.write_reg_u8(Reg::A, 200);
       c
     },
     after: {
@@ -1982,13 +1964,13 @@ mod tests {
         ins: Instruction::XOR_r(r),
         before: {
           let mut c = Cpu::default();
-          c.write_reg_byte(r, 200);
-          c.write_reg_byte(Reg::A, 200);
+          c.write_reg_u8(r, 200);
+          c.write_reg_u8(Reg::A, 200);
           c
         },
         after: {
           let mut c = Cpu { ..Cpu::default() };
-          c.write_reg_byte(r, 200);
+          c.write_reg_u8(r, 200);
           c.write_flag(Flag::Z, true);
           c
         },

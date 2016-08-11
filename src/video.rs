@@ -133,7 +133,7 @@ impl fmt::Debug for Video {
 }
 
 impl MemoryIo for Video {
-  fn read_byte(&self, addr: u16) -> Result<u8, String> {
+  fn read_u8(&self, addr: u16) -> Result<u8, String> {
     // println!("reading vid byte from: {:#04x}", addr);
     match addr {
       0x8000...0x97ff => {
@@ -180,7 +180,7 @@ impl MemoryIo for Video {
     }
   }
 
-  fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String> {
+  fn write_u8(&mut self, addr: u16, value: u8) -> Result<(), String> {
     match addr {
       0x8000...0x97ff => {
         if self.mode == LcdMode::AccessVram {

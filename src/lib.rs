@@ -47,7 +47,7 @@ mod test {
     let mut m: Box<mem::Memory> = Box::new(mem::Mem::new());
     let d = Disassembler::new();
     for i in 0..(0xFF as usize) + 1 {
-      m.write_byte(0, i as u8).unwrap();
+      m.write_u8(0, i as u8).unwrap();
       match d.at(&m, 0) {
         Ok((Instruction::Invalid(opcode), _)) => {
           println!("{:#02x}", opcode);
@@ -57,7 +57,7 @@ mod test {
     }
 
     for i in 0..(0xFF as usize) + 1 {
-      m.write_byte(0, i as u8).unwrap();
+      m.write_u8(0, i as u8).unwrap();
       match d.at(&m, 0) {
         Ok((Instruction::Invalid(opcode), _)) => {
           println!("{:#02x}", opcode);

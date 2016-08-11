@@ -142,18 +142,18 @@ impl Debugger {
             }
             Command::Set(s, v) => {
               match s.as_str() {
-                "a" => self.cpu.write_reg_byte(Reg::A, v as u8),
-                "f" => self.cpu.write_reg_byte(Reg::F, v as u8),
-                "b" => self.cpu.write_reg_byte(Reg::B, v as u8),
-                "c" => self.cpu.write_reg_byte(Reg::C, v as u8),
-                "d" => self.cpu.write_reg_byte(Reg::D, v as u8),
-                "e" => self.cpu.write_reg_byte(Reg::E, v as u8),
-                "h" => self.cpu.write_reg_byte(Reg::H, v as u8),
-                "l" => self.cpu.write_reg_byte(Reg::L, v as u8),
-                "af" => self.cpu.write_reg_word(Reg::AF, v as u16),
-                "bc" => self.cpu.write_reg_word(Reg::BC, v as u16),
-                "de" => self.cpu.write_reg_word(Reg::DE, v as u16),
-                "hl" => self.cpu.write_reg_word(Reg::HL, v as u16),
+                "a" => self.cpu.write_reg_u8(Reg::A, v as u8),
+                "f" => self.cpu.write_reg_u8(Reg::F, v as u8),
+                "b" => self.cpu.write_reg_u8(Reg::B, v as u8),
+                "c" => self.cpu.write_reg_u8(Reg::C, v as u8),
+                "d" => self.cpu.write_reg_u8(Reg::D, v as u8),
+                "e" => self.cpu.write_reg_u8(Reg::E, v as u8),
+                "h" => self.cpu.write_reg_u8(Reg::H, v as u8),
+                "l" => self.cpu.write_reg_u8(Reg::L, v as u8),
+                "af" => self.cpu.write_reg_u16(Reg::AF, v as u16),
+                "bc" => self.cpu.write_reg_u16(Reg::BC, v as u16),
+                "de" => self.cpu.write_reg_u16(Reg::DE, v as u16),
+                "hl" => self.cpu.write_reg_u16(Reg::HL, v as u16),
                 _ => {}
               }
             }
@@ -173,7 +173,7 @@ impl Debugger {
               }
             }
             Command::Print(addr) => {
-              let d = self.cpu.read_byte(addr as u16);
+              let d = self.cpu.read_u8(addr as u16);
               println!("{:#04x}", d);
             }
             Command::Breakpoint(Some(l)) => {

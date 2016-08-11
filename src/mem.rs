@@ -1,18 +1,18 @@
 pub trait MemoryIo {
   #[allow(unused_variables)]
-  fn read_byte(&self, addr: u16) -> Result<u8, String> {
+  fn read_u8(&self, addr: u16) -> Result<u8, String> {
     Ok(0)
   }
 
   #[allow(unused_variables)]
-  fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String> {
+  fn write_u8(&mut self, addr: u16, value: u8) -> Result<(), String> {
     Ok(())
   }
 
   fn read_vec(&self, addr: u16, len: u16) -> Result<Vec<u8>, String> {
     let mut v = vec![];
     for i in addr..addr + len {
-      match self.read_byte(i) {
+      match self.read_u8(i) {
         Ok(x) => v.push(x),
         Err(e) => return Err(e),
       }
@@ -26,24 +26,24 @@ pub trait MemoryIo {
   }
 
   // TODO: Maybe allow MemoryIO objects implement this directly,
-  // so it doesn't need to call read_byte twice and instead just
+  // so it doesn't need to call read_u8 twice and instead just
   // read the word directly. Also would need a read_u32 or something
   // similar for performance reasons.
-  fn read_word(&self, addr: u16) -> Result<u16, String> {
-    let mut val: u16 = match self.read_byte(addr + 1) {
+  fn read_u16(&self, addr: u16) -> Result<u16, String> {
+    let mut val: u16 = match self.read_u8(addr + 1) {
       Ok(x) => (x as u16) << 8,
       Err(e) => return Err(e),
     };
-    val |= match self.read_byte(addr) {
+    val |= match self.read_u8(addr) {
       Ok(x) => x as u16,
       Err(e) => return Err(e),
     };
     Ok(val)
   }
 
-  fn write_word(&mut self, addr: u16, value: u16) -> Result<(), String> {
-    try!(self.write_byte(addr + 1, (value >> 8) as u8 & 0b11111111));
-    try!(self.write_byte(addr, value as u8 & 0b11111111));
+  fn write_u16(&mut self, addr: u16, value: u16) -> Result<(), String> {
+    try!(self.write_u8(addr + 1, (value >> 8) as u8 & 0b11111111));
+    try!(self.write_u8(addr, value as u8 & 0b11111111));
     Ok(())
   }
 }
@@ -96,14 +96,14 @@ pub trait MemoryIo {
 //  }
 //
 //  impl MemoryIo for Mem {
-//    fn read_byte(&self, addr: u16) -> Result<u8, String> {
+//    fn read_u8(&self, addr: u16) -> Result<u8, String> {
 //      self.ram
 //        .get(addr as usize)
 //        .ok_or(format!("could not get byte at test ram offset {}", addr))
 //        .and_then(|&x| Ok(x))
 //    }
 //
-//    fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String> {
+//    fn write_u8(&mut self, addr: u16, value: u8) -> Result<(), String> {
 //      self.ram[addr as usize] = value;
 //      Ok(())
 //    }
@@ -113,7 +113,7 @@ pub trait MemoryIo {
 //    fn map(&mut self, _: u16, _: u16, _: Rc<RefCell<MemoryIo>>) {}
 //
 //    fn set_boot_rom(&mut self, _: Box<[u8]>) {
-//      panic!("set_boot_rom should not be used for testing. use write_byte to write the rom to \
+//      panic!("set_boot_rom should not be used for testing. use write_u8 to write the rom to \
 //              memory");
 //    }
 //  }

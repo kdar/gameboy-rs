@@ -21,7 +21,7 @@ struct Dump {
 }
 
 impl MemoryIo for Dump {
-  fn read_byte(&self, addr: u16) -> Result<u8, String> {
+  fn read_u8(&self, addr: u16) -> Result<u8, String> {
     if (addr as usize) < self.rom.len() {
       Ok(self.rom[addr as usize])
     } else {

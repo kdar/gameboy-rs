@@ -31,11 +31,11 @@ impl Disassembler {
   pub fn at(&self, m: &MemoryIo, addr: u16) -> Result<(Instruction, u16), String> {
     let mut pc = 0u16;
 
-    let op = try!(m.read_byte(addr + pc));
+    let op = try!(m.read_u8(addr + pc));
     pc += 1;
 
     if op == 0xCB {
-      let op = try!(m.read_byte(addr + pc));
+      let op = try!(m.read_u8(addr + pc));
       pc += 1;
       match op {
         0x7C => Ok((Instruction::BIT_b_r(7, Reg::H), pc)),
@@ -74,7 +74,7 @@ impl Disassembler {
         0x8e => Ok((Instruction::ADC_A_·HL·, pc)),
 
         0xce => {
-          let n = try!(m.read_byte(addr + pc));
+          let n = try!(m.read_u8(addr + pc));
           pc += 1;
           Ok((Instruction::ADC_A_n(n), pc))
         }
@@ -87,7 +87,7 @@ impl Disassembler {
         0x86 => Ok((Instruction::ADD_A_·HL·, pc)),
 
         0xc6 => {
-          let n = try!(m.read_byte(addr + pc));
+          let n = try!(m.read_u8(addr + pc));
           pc += 1;
           Ok((Instruction::ADD_A_n(n), pc))
         }
@@ -98,7 +98,7 @@ impl Disassembler {
         }
 
         0xe6 => {
-          let n = try!(m.read_byte(addr + pc));
+          let n = try!(m.read_u8(addr + pc));
           pc += 1;
           Ok((Instruction::AND_n(n), pc))
         }
@@ -111,13 +111,13 @@ impl Disassembler {
         0xc4 | 0xcc | 0xd4 | 0xdc => {
           // | 0xe4 | 0xec | 0xf4 | 0xfc => {
           let cc = op >> 3 & 0b111;
-          let nn = try!(m.read_word(addr + pc));
+          let nn = try!(m.read_u16(addr + pc));
           pc += 2;
           Ok((Instruction::CALL_cc_nn(Flag::from(cc), nn), pc))
         }
 
         0xcd => {
-          let nn = try!(m.read_word(addr + pc));
+          let nn = try!(m.read_u16(addr + pc));
           pc += 2;
           Ok((Instruction::CALL_nn(nn), pc))
         }
@@ -125,7 +125,7 @@ impl Disassembler {
         0xbe => Ok((Instruction::CP_·HL·, pc)),
 
         0xfe => {
-          let n = try!(m.read_byte(addr + pc));
+          let n = try!(m.read_u8(addr + pc));
           pc += 1;
           Ok((Instruction::CP_n(n), pc))
         }
@@ -162,47 +162,47 @@ impl Disassembler {
 
         0xc2 | 0xca | 0xd2 | 0xda => {
           let cc = op >> 3 & 0b111;
-          let nn = try!(m.read_word(addr + pc));
+          let nn = try!(m.read_u16(addr + pc));
           pc += 2;
           Ok((Instruction::JP_cc_nn(Flag::from(cc), nn), pc))
         }
 
         0xc3 => {
-          let nn = try!(m.read_word(addr + pc));
+          let nn = try!(m.read_u16(addr + pc));
           pc += 2;
           Ok((Instruction::JP_nn(nn), pc))
         }
 
         0x20 => {
-          let e = try!(m.read_byte(addr + pc));
+          let e = try!(m.read_u8(addr + pc));
           pc += 1;
           Ok((Instruction::JR_cc_e(Flag::NZ, e as i8), pc))
         }
         0x28 => {
-          let e = try!(m.read_byte(addr + pc));
+          let e = try!(m.read_u8(addr + pc));
           pc += 1;
           Ok((Instruction::JR_cc_e(Flag::Z, e as i8), pc))
         }
         0x30 => {
-          let e = try!(m.read_byte(addr + pc));
+          let e = try!(m.read_u8(addr + pc));
           pc += 1;
           Ok((Instruction::JR_cc_e(Flag::NC, e as i8), pc))
         }
         0x38 => {
-          let e = try!(m.read_byte(addr + pc));
+          let e = try!(m.read_u8(addr + pc));
           pc += 1;
           Ok((Instruction::JR_cc_e(Flag::C, e as i8), pc))
         }
 
         0x18 => {
-          let e = try!(m.read_byte(addr + pc));
+          let e = try!(m.read_u8(addr + pc));
           pc += 1;
           Ok((Instruction::JR_e(e as i8), pc))
         }
 
         0xe2 => Ok((Instruction::LD_·0xFF00C·_A, pc)),
         0xe0 => {
-          let n = try!(m.read_byte(addr + pc));
+          let n = try!(m.read_u8(addr + pc));
           pc += 1;
           Ok((Instruction::LD_·0xFF00n·_A(n), pc))
         }
@@ -211,7 +211,7 @@ impl Disassembler {
         0x12 => Ok((Instruction::LD_·DE·_A, pc)),
 
         0x36 => {
-          let n = try!(m.read_byte(addr + pc));
+          let n = try!(m.read_u8(addr + pc));
           pc += 1;
           Ok((Instruction::LD_·HL·_n(n), pc))
         }
@@ -222,13 +222,13 @@ impl Disassembler {
         }
 
         0xea => {
-          let nn = try!(m.read_word(addr + pc));
+          let nn = try!(m.read_u16(addr + pc));
           pc += 2;
           Ok((Instruction::LD_·nn·_A(nn), pc))
         }
 
         0x08 => {
-          let nn = try!(m.read_word(addr + pc));
+          let nn = try!(m.read_u16(addr + pc));
           pc += 2;
           Ok((Instruction::LD_·nn·_SP(nn), pc))
         }
@@ -238,20 +238,20 @@ impl Disassembler {
         0x1a => Ok((Instruction::LD_A_·DE·, pc)),
 
         0xfa => {
-          let nn = try!(m.read_word(addr + pc));
+          let nn = try!(m.read_u16(addr + pc));
           pc += 2;
           Ok((Instruction::LD_A_·nn·(nn), pc))
         }
 
         0xf0 => {
-          let n = try!(m.read_byte(addr + pc));
+          let n = try!(m.read_u8(addr + pc));
           pc += 1;
           Ok((Instruction::LD_A_·0xFF00n·(n), pc))
         }
 
         0x01 | 0x11 | 0x21 | 0x31 => {
           let r = op >> 4 & 0b11;
-          let nn = try!(m.read_word(addr + pc));
+          let nn = try!(m.read_u16(addr + pc));
           pc += 2;
           Ok((Instruction::LD_dd_nn(Reg::from_pair(r, false), nn), pc))
         }
@@ -263,7 +263,7 @@ impl Disassembler {
 
         0x06 | 0x0e | 0x16 | 0x1e | 0x26 | 0x2e | 0x3e => {
           let r = op >> 3 & 0b111;
-          let n = try!(m.read_byte(addr + pc));
+          let n = try!(m.read_u8(addr + pc));
           pc += 1;
           Ok((Instruction::LD_r_n(Reg::from(r), n), pc))
         }
@@ -315,7 +315,7 @@ impl Disassembler {
         }
 
         0xd6 => {
-          let n = try!(m.read_byte(addr + pc));
+          let n = try!(m.read_u8(addr + pc));
           pc += 1;
           Ok((Instruction::SUB_n(n), pc))
         }
@@ -328,7 +328,7 @@ impl Disassembler {
         0x00 => Ok((Instruction::NOP, pc)),
         0xae => Ok((Instruction::XOR_·HL·, pc)),
         0xee => {
-          let n = try!(m.read_byte(addr + pc));
+          let n = try!(m.read_u8(addr + pc));
           pc += 1;
           Ok((Instruction::XOR_n(n), pc))
         }

@@ -99,32 +99,32 @@ impl fmt::Debug for System {
 }
 
 impl MemoryIo for System {
-  fn read_byte(&self, addr: u16) -> Result<u8, String> {
+  fn read_u8(&self, addr: u16) -> Result<u8, String> {
     match addr {
       // boot / cart rom
       0x0000...0x3fff => {
         if self.booting && addr < 0xFF {
-          self.bios.read_byte(addr)
+          self.bios.read_u8(addr)
         } else {
-          self.cartridge.read_byte(addr)
+          self.cartridge.read_u8(addr)
         }
       }
       // cart rom 01
-      0x4000...0x7fff => self.cartridge.read_byte(addr),
+      0x4000...0x7fff => self.cartridge.read_u8(addr),
       // video ram
-      0x8000...0x9fff => self.video.read_byte(addr),
+      0x8000...0x9fff => self.video.read_u8(addr),
       // cart ram
-      0xa000...0xbfff => self.cartridge.read_byte(addr),
+      0xa000...0xbfff => self.cartridge.read_u8(addr),
       // sprite table
-      0xfe00...0xfe9f => self.video.read_byte(addr),
+      0xfe00...0xfe9f => self.video.read_u8(addr),
       // audio
-      0xff10...0xff3f => self.audio.read_byte(addr),
+      0xff10...0xff3f => self.audio.read_u8(addr),
       // video control
-      0xff40...0xff4c => self.video.read_byte(addr),
+      0xff40...0xff4c => self.video.read_u8(addr),
       // link port
-      0xff01...0xff02 => self.linkport.read_byte(addr),
+      0xff01...0xff02 => self.linkport.read_u8(addr),
       // echo
-      0xe000...0xfdff => self.read_byte(addr - 0xe000 + 0xc000),
+      0xe000...0xfdff => self.read_u8(addr - 0xe000 + 0xc000),
 
       // work ram 0
       0xc000...0xcfff => {
@@ -142,7 +142,7 @@ impl MemoryIo for System {
       }
       // unusuable
       0xfea0...0xfeff => {
-        // println!("read_byte occurred at unusable memory addr: {:#04x}", addr);
+        // println!("read_u8 occurred at unusable memory addr: {:#04x}", addr);
         Ok((0))
       }
       // high ram
@@ -165,36 +165,36 @@ impl MemoryIo for System {
       0xffff => Ok(self.interrupt_enable),
       // io ports
       0xff00...0xff7f => Ok((0)),
-      _ => Err(format!("system.read_byte: unknown mapped addr: {:#04x}", addr)),
+      _ => Err(format!("system.read_u8: unknown mapped addr: {:#04x}", addr)),
     }
   }
 
-  fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String> {
+  fn write_u8(&mut self, addr: u16, value: u8) -> Result<(), String> {
     match addr {
       // boot / cart rom
       0x0000...0x3fff => {
         if self.booting && addr < 0xFF {
-          Err("system.write_byte: shouldn't be writing to boot rom".to_owned())
+          Err("system.write_u8: shouldn't be writing to boot rom".to_owned())
         } else {
-          self.cartridge.write_byte(addr, value)
+          self.cartridge.write_u8(addr, value)
         }
       }
       // cart rom 01
-      0x4000...0x7fff => self.cartridge.write_byte(addr, value),
+      0x4000...0x7fff => self.cartridge.write_u8(addr, value),
       // video ram
-      0x8000...0x9fff => self.video.write_byte(addr, value),
+      0x8000...0x9fff => self.video.write_u8(addr, value),
       // cart ram
-      0xa000...0xbfff => self.cartridge.write_byte(addr, value),
+      0xa000...0xbfff => self.cartridge.write_u8(addr, value),
       // sprite table
-      0xfe00...0xfe9f => self.video.write_byte(addr, value),
+      0xfe00...0xfe9f => self.video.write_u8(addr, value),
       // audio
-      0xff10...0xff3f => self.audio.write_byte(addr, value),
+      0xff10...0xff3f => self.audio.write_u8(addr, value),
       // video control
-      0xff40...0xff4c => self.video.write_byte(addr, value),
+      0xff40...0xff4c => self.video.write_u8(addr, value),
       // link port
-      0xff01...0xff02 => self.linkport.write_byte(addr, value),
+      0xff01...0xff02 => self.linkport.write_u8(addr, value),
       // echo
-      0xe000...0xfdff => self.write_byte(addr - 0xe000 + 0xc000, value),
+      0xe000...0xfdff => self.write_u8(addr - 0xe000 + 0xc000, value),
 
       // work ram 0
       0xc000...0xcfff => {
@@ -208,7 +208,7 @@ impl MemoryIo for System {
       }
       // unusuable
       0xfea0...0xfeff => {
-        // println!("write_byte occurred at unusable memory addr: {:#04x}", addr);
+        // println!("write_u8 occurred at unusable memory addr: {:#04x}", addr);
         Ok(())
       }
       // high ram
@@ -228,10 +228,10 @@ impl MemoryIo for System {
       }
       // io ports
       0xff00...0xff7f => {
-        // Err(format!("write_byte Addr::IOPorts not implemented: {:?}", mapped))
+        // Err(format!("write_u8 Addr::IOPorts not implemented: {:?}", mapped))
         Ok(())
       }
-      _ => Err(format!("system.write_byte: unknown mapped addr: {:#04x}", addr)),
+      _ => Err(format!("system.write_u8: unknown mapped addr: {:#04x}", addr)),
     }
   }
 }
