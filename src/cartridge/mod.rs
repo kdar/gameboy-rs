@@ -110,7 +110,7 @@ impl Cartridge {
     Cartridge::default()
   }
 
-  pub fn load_data(&mut self, data: Box<[u8]>) -> Result<(), String> {
+  pub fn load(&mut self, data: Box<[u8]>) -> Result<(), String> {
     if data.len() < 0x014F {
       return Err("invalid cartridge: too small".to_owned());
     }
@@ -144,14 +144,6 @@ impl Cartridge {
     };
 
     Ok(())
-  }
-
-  pub fn load_path<P: AsRef<Path>>(&mut self, path: P) -> Result<(), String> {
-    let mut f = try!(File::open(path).map_err(|e| format!("{}", e)));
-    let mut v = vec![];
-    try!(f.read_to_end(&mut v).map_err(|e| format!("{}", e)));
-
-    self.load_data(v.into_boxed_slice())
   }
 }
 

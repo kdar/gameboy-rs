@@ -1,19 +1,14 @@
 use std::fmt;
 use std::default::Default;
 use std::cmp::PartialEq;
-use std::rc::Rc;
-use std::cell::RefCell;
 
-use super::mem;
-use super::video;
-use super::audio;
-use super::cartridge;
-use super::linkport;
 use super::reg::Reg;
 use super::flag::Flag;
 use super::value::Value;
 use super::disassembler::Instruction;
 use super::disassembler::Disassembler;
+use super::system::System;
+use super::mem::MemoryIo;
 
 fn high_byte(value: u16) -> u8 {
   (value >> 8) as u8
@@ -36,11 +31,7 @@ pub struct Cpu {
   interrupt_master_enable: bool,
   halt: bool,
 
-  mem: Box<mem::Memory>,
-  video: Rc<RefCell<video::Video>>,
-  audio: Rc<RefCell<audio::Audio>>,
-  cartridge: Rc<RefCell<cartridge::Cartridge>>,
-  linkport: Rc<RefCell<linkport::LinkPort>>,
+  system: System,
   disasm: Disassembler,
 }
 
@@ -63,11 +54,7 @@ impl Default for Cpu {
       clock_t: 0,
       interrupt_master_enable: false,
       halt: false,
-      mem: Box::new(mem::Mem::new()),
-      video: Rc::new(RefCell::new(video::Video::new())),
-      audio: Rc::new(RefCell::new(audio::Audio::new())),
-      cartridge: Rc::new(RefCell::new(cartridge::Cartridge::new())),
-      linkport: Rc::new(RefCell::new(linkport::LinkPort::new())),
+      system: System::default(),
       disasm: Disassembler::new(),
     }
   }
@@ -95,50 +82,22 @@ impl fmt::Debug for Cpu {
       try!(write!(f, "C"));
     }
     try!(write!(f, "\nClock T: {}", self.clock_t));
-    try!(write!(f, "\n{:?}", self.video));
     write!(f, "\n")
   }
 }
 
 impl Cpu {
-  pub fn new() -> Cpu {
+  pub fn new(system: System) -> Cpu {
     let mut c = Cpu::default();
-
-    // Video mapping
-    c.mem.map(video::VIDEO_RAM_START,
-              video::VIDEO_RAM_END,
-              c.video.clone());
-    c.mem.map(video::SPRITE_TABLE_START,
-              video::SPRITE_TABLE_END,
-              c.video.clone());
-    c.mem.map(video::VIDEO_CONTROL_START,
-              video::VIDEO_CONTROL_END,
-              c.video.clone());
-
-    // Audio mapping
-    c.mem.map(audio::AUDIO_START, audio::AUDIO_END, c.audio.clone());
-
-    // Cartridge mapping
-    c.mem.map(cartridge::ROM_00_START,
-              cartridge::ROM_00_END,
-              c.cartridge.clone());
-    c.mem.map(cartridge::ROM_01_START,
-              cartridge::ROM_01_END,
-              c.cartridge.clone());
-    c.mem.map(cartridge::CART_RAM_START,
-              cartridge::CART_RAM_END,
-              c.cartridge.clone());
-
-    // Link port mapping.
-    c.mem.map(linkport::SERIAL_DATA,
-              linkport::SERIAL_CONTROL,
-              c.linkport.clone());
-
+    c.system = system;
     c
   }
 
   // Sets the system state as if the bootloader was run.
   pub fn bootstrap(&mut self) {
+    // set booting flag to false
+    self.system.write_byte(0xff50, 1).unwrap();
+
     self.reg_af = 0x01b0;
     self.reg_bc = 0x0013;
     self.reg_de = 0x00d8;
@@ -165,18 +124,6 @@ impl Cpu {
     self.write_byte(0xff47, 0xfc);
     self.write_byte(0xff48, 0xff);
     self.write_byte(0xff49, 0xff);
-  }
-
-  pub fn set_boot_rom(&mut self, rom: Box<[u8]>) {
-    self.mem.set_boot_rom(rom);
-  }
-
-  pub fn set_cart_rom(&mut self, rom: Box<[u8]>) {
-    let cart = self.cartridge.clone();
-    match cart.borrow_mut().load_data(rom) {
-      Ok(()) => (),
-      Err(e) => panic!("cpu.set_cart_rom: {}", e),
-    };
   }
 
   pub fn read_reg_byte(&self, register: Reg) -> u8 {
@@ -251,7 +198,7 @@ impl Cpu {
   // }
 
   pub fn read_byte(&mut self, addr: u16) -> u8 {
-    let val = self.mem.read_byte(addr);
+    let val = self.system.read_byte(addr);
     match val {
       Ok(v) => v,
       Err(e) => panic!("cpu.read_byte: {}\n{:?}", e, self),
@@ -259,7 +206,7 @@ impl Cpu {
   }
 
   fn read_word(&mut self, addr: u16) -> u16 {
-    let val = self.mem.read_word(addr);
+    let val = self.system.read_word(addr);
     match val {
       Ok(v) => v,
       Err(e) => panic!("cpu.read_word: {}\n{:?}", e, self),
@@ -267,14 +214,14 @@ impl Cpu {
   }
 
   fn write_byte(&mut self, addr: u16, value: u8) {
-    match self.mem.write_byte(addr, value) {
+    match self.system.write_byte(addr, value) {
       Ok(v) => v,
       Err(e) => panic!("cpu.write_byte: {}\n{:?}", e, self),
     }
   }
 
   fn write_word(&mut self, addr: u16, value: u16) {
-    match self.mem.write_word(addr, value) {
+    match self.system.write_word(addr, value) {
       Ok(v) => v,
       Err(e) => panic!("cpu.write_word: {}\n{:?}", e, self),
     }
@@ -332,7 +279,7 @@ impl Cpu {
   }
 
   pub fn peek_at(&self, pc: u16) -> Instruction {
-    match self.disasm.at(&self.mem, pc) {
+    match self.disasm.at(&self.system, pc) {
       Ok((inst, _)) => inst,
       Err(e) => {
         panic!("cpu.peek: {}", e);
@@ -346,15 +293,13 @@ impl Cpu {
     //
     // }
 
-    match self.disasm.at(&self.mem, self.reg_pc) {
+    match self.disasm.at(&self.system, self.reg_pc) {
       Ok((inst, inc)) => {
         let pc_at_inst = self.reg_pc;
         self.reg_pc += inc;
         self.execute_instruction(inst);
 
-        let video = self.video.clone();
-        let mut video = video.borrow_mut();
-        video.step(self.clock_t);
+        self.system.step();
 
         (inst, pc_at_inst)
       }

@@ -1,8 +1,5 @@
 use super::mem::MemoryIo;
 
-pub const AUDIO_START: u16 = 0xFF10;
-pub const AUDIO_END: u16 = 0xFF3F;
-
 pub struct Audio;
 
 impl Default for Audio {
@@ -21,7 +18,7 @@ impl MemoryIo for Audio {
   fn read_byte(&self, addr: u16) -> Result<u8, String> {
     // println!("reading audio byte from: {:#04x}", addr);
     match addr {
-      0xFF44 => Ok(0x90), // Some(self.current_line),
+      0xff10...0xff3f => Ok(0),
       _ => Ok(0),
     }
   }

@@ -6,41 +6,6 @@ use num::FromPrimitive;
 use super::mem::MemoryIo;
 use super::bit::Bit;
 
-// Swichable bank 0-1 in CGB Mode
-pub const VIDEO_RAM_START: u16 = 0x8000;
-pub const VIDEO_RAM_END: u16 = 0x9FFF;
-
-pub const TILE_DATA_START: u16 = 0x8000;
-pub const TILE_DATA_END: u16 = 0x97FF;
-
-pub const TILE_MAP_1_START: u16 = 0x9800;
-pub const TILE_MAP_1_END: u16 = 0x9BFF;
-
-pub const TILE_MAP_2_START: u16 = 0x9C00;
-pub const TILE_MAP_2_END: u16 = 0x9FFF;
-
-// Sprite attribute table (OAM)
-pub const SPRITE_TABLE_START: u16 = 0xFE00;
-pub const SPRITE_TABLE_END: u16 = 0xFE9F;
-
-pub const VIDEO_CONTROL_START: u16 = 0xFF40;
-pub const VIDEO_CONTROL_END: u16 = 0xFF4C;
-
-const LCD_CONTROL: u16 = 0xFF40;
-const LCD_CONTROLLER_STATUS: u16 = 0xFF41;
-const SCROLL_Y: u16 = 0xFF42;
-const SCROLL_X: u16 = 0xFF43;
-const LCD_CONTROLLER_Y_COORDINATE: u16 = 0xFF44;
-const LY_COMPARE: u16 = 0xFF45;
-const DMA_TRANSFER_AND_START_ADDRESS: u16 = 0xFF46;
-const BG_PALETTE_DATA: u16 = 0xFF47;
-const OBJECT_PALETTE0_DATA: u16 = 0xFF48;
-const OBJECT_PALETTE1_DATA: u16 = 0xFF49;
-// WY - Window Y Position (R/W)
-const WINDOW_Y_POSITION: u16 = 0xFF4A;
-// WX - Window X Position minus 7 (R/W)
-const WINDOW_X_POSITION: u16 = 0xFF4B;
-
 const VBLANK_CYCLES: isize = 114;
 const HBLANK_CYCLES: isize = 50;
 const READING_OAM_CYCLES: isize = 21;
@@ -171,78 +136,78 @@ impl MemoryIo for Video {
   fn read_byte(&self, addr: u16) -> Result<u8, String> {
     // println!("reading vid byte from: {:#04x}", addr);
     match addr {
-      TILE_DATA_START...TILE_DATA_END => {
+      0x8000...0x97ff => {
         if self.mode == LcdMode::AccessVram {
           return Ok(0);
         }
 
-        let offset = addr - TILE_DATA_START;
+        let offset = addr - 0x8000;
         let tile = &self.tile_data[offset as usize / 16];
         Ok(tile[offset as usize % 16])
       }
-      TILE_MAP_1_START...TILE_MAP_1_END => {
+      0x9800...0x9bff => {
         if self.mode == LcdMode::AccessVram {
           return Ok(0);
         }
 
-        let offset = addr - TILE_MAP_1_START;
+        let offset = addr - 0x9800;
         Ok(self.tile_map1[offset as usize])
       }
-      TILE_MAP_2_START...TILE_MAP_2_END => {
+      0x9c00...0x9fff => {
         if self.mode == LcdMode::AccessVram {
           return Ok(0);
         }
 
-        let offset = addr - TILE_MAP_2_START;
+        let offset = addr - 0x9c00;
         Ok(self.tile_map2[offset as usize])
       }
-      SPRITE_TABLE_START...SPRITE_TABLE_END => Ok(self.oam[addr as usize - SPRITE_TABLE_START as usize]),
-      LCD_CONTROL => Ok(self.control),
-      LCD_CONTROLLER_STATUS => Ok(self.status),
-      SCROLL_Y => Ok(self.scroll_y),
-      SCROLL_X => Ok(self.scroll_x),
-      LCD_CONTROLLER_Y_COORDINATE => {
+      0xfe00...0xfe9f => Ok(self.oam[addr as usize - 0xfe00 as usize]),
+      0xff40 => Ok(self.control),
+      0xff41 => Ok(self.status),
+      0xff42 => Ok(self.scroll_y),
+      0xff43 => Ok(self.scroll_x),
+      0xff44 => {
         // println!("read: {}", self.current_line);
         Ok(self.current_line)
       }
-      LY_COMPARE => Ok(self.ly_compare),
-      BG_PALETTE_DATA => Ok(self.bg_palette.value),
-      OBJECT_PALETTE0_DATA => Ok(self.obj_palette0.value),
-      OBJECT_PALETTE1_DATA => Ok(self.obj_palette1.value),
-      WINDOW_Y_POSITION => Ok(self.window_y),
-      WINDOW_X_POSITION => Ok(self.window_x),
+      0xff45 => Ok(self.ly_compare),
+      0xff47 => Ok(self.bg_palette.value),
+      0xff48 => Ok(self.obj_palette0.value),
+      0xff49 => Ok(self.obj_palette1.value),
+      0xff4a => Ok(self.window_y),
+      0xff4B => Ok(self.window_x),
       _ => Ok(0),
     }
   }
 
   fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String> {
     match addr {
-      TILE_DATA_START...TILE_DATA_END => {
+      0x8000...0x97ff => {
         if self.mode == LcdMode::AccessVram {
           return Ok(());
         }
 
-        let offset = addr - TILE_DATA_START;
+        let offset = addr - 0x8000;
         let tile = &mut self.tile_data[offset as usize / 16];
         tile[offset as usize % 16] = value;
       }
-      TILE_MAP_1_START...TILE_MAP_1_END => {
+      0x9800...0x9bff => {
         if self.mode == LcdMode::AccessVram {
           return Ok(());
         }
 
-        let offset = addr - TILE_MAP_1_START;
+        let offset = addr - 0x9800;
         self.tile_map1[offset as usize] = value;
       }
-      TILE_MAP_2_START...TILE_MAP_2_END => {
+      0x9c00...0x9fff => {
         if self.mode == LcdMode::AccessVram {
           return Ok(());
         }
 
-        let offset = addr - TILE_MAP_2_START;
+        let offset = addr - 0x9c00;
         self.tile_map2[offset as usize] = value;
       }
-      LCD_CONTROL => {
+      0xff40 => {
         let old_lcd_on = self.control.has_bit(LcdControl::DisplayOn as usize);
         let new_lcd_on = value.has_bit(LcdControl::DisplayOn as usize);
 
@@ -268,39 +233,39 @@ impl MemoryIo for Video {
         self.control = value;
       }
 
-      LCD_CONTROLLER_STATUS => {
+      0xff41 => {
         // Bits 0-2 are read only.
         self.status = (value & 0b11111000) | (self.status & 0b00000111);
       }
 
-      SCROLL_Y => self.scroll_y = value,
-      SCROLL_X => self.scroll_x = value,
-      LCD_CONTROLLER_Y_COORDINATE => self.current_line = 0,
-      LY_COMPARE => self.ly_compare = value,
+      0xff42 => self.scroll_y = value,
+      0xff43 => self.scroll_x = value,
+      0xff44 => self.current_line = 0,
+      0xff45 => self.ly_compare = value,
 
-      VIDEO_RAM_START...VIDEO_RAM_END => {
-        // let offset = addr as usize - VIDEO_RAM_START as usize;
+      0x8000...0x9fff => {
+        // let offset = addr as usize - 0x8000 as usize;
         // self.vram[offset] = value;
       }
 
-      // LCD_CONTROLLER_Y_COORDINATE => self.current_line = value,
-      BG_PALETTE_DATA => {
+      // 0xff44 => self.current_line = value,
+      0xff47 => {
         // println!("video: bg palette: {:#04x}", addr);
         self.bg_palette = Palette::from_u8(value);
       }
-      OBJECT_PALETTE0_DATA => {
+      0xff48 => {
         // println!("video: obj 0 palette: {:#04x}", addr);
         self.obj_palette0 = Palette::from_u8(value);
       }
-      OBJECT_PALETTE1_DATA => {
+      0xff49 => {
         // println!("video: obj 1 palette: {:#04x}", addr);
         self.obj_palette1 = Palette::from_u8(value);
       }
 
-      WINDOW_Y_POSITION => self.window_y = value,
-      WINDOW_X_POSITION => self.window_x = value,
+      0xff4a => self.window_y = value,
+      0xff4B => self.window_x = value,
 
-      DMA_TRANSFER_AND_START_ADDRESS => {
+      0xff46 => {
         println!("DMA TRANSFER START");
       }
 
@@ -322,7 +287,7 @@ impl Video {
     }
   }
 
-  pub fn step(&mut self, clock_t: u32) {
+  pub fn step(&mut self) {
     if !self.control.has_bit(LcdControl::DisplayOn as usize) {
       return;
     }

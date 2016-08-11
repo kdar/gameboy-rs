@@ -37,7 +37,7 @@ impl Disassembler {
     Disassembler::default()
   }
 
-  pub fn at(&self, m: &Box<mem::Memory>, addr: u16) -> Result<(Instruction, u16), String> {
+  pub fn at(&self, m: &mem::MemoryIo, addr: u16) -> Result<(Instruction, u16), String> {
     let mut pc = 0u16;
 
     let op = try!(m.read_byte(addr + pc));
@@ -352,7 +352,7 @@ impl Disassembler {
     }
   }
 
-  pub fn print_all(&self, m: &Box<mem::Memory>) {
+  pub fn print_all(&self, m: &mem::MemoryIo) {
     let mut pc = 0u16;
 
     while let Ok((ins, inc)) = self.at(m, pc) {

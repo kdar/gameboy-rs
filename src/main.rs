@@ -16,6 +16,8 @@ use std::process::exit;
 use gameboy::debugger;
 use gameboy::disassembler;
 use gameboy::mem;
+use gameboy::cpu::Cpu;
+use gameboy::system;
 
 macro_rules! try_log {
   ($expr:expr) => (match $expr {
@@ -59,30 +61,41 @@ fn main() {
 
   let cart_rom = load_rom(matches.value_of("cart-rom").unwrap());
 
-  if matches.is_present("disassemble") {
-    let mut m: Box<mem::Memory> = Box::new(mem::Mem::new());
-    m.set_boot_rom(cart_rom);
-    let d = disassembler::Disassembler::new();
-    d.print_all(&m);
-  } else if matches.is_present("debug") {
-    let mut gb = debugger::Debugger::new();
-    gb.set_cart_rom(cart_rom);
-    if let Some(boot_rom_path) = matches.value_of("boot-rom") {
-      gb.set_boot_rom(load_rom(boot_rom_path));
-    } else {
-      gb.bootstrap();
-    }
-
-    gb.run();
+  // if matches.is_present("disassemble") {
+  //  let mut m: Box<mem::Memory> = Box::new(mem::Mem::new());
+  //  m.set_boot_rom(cart_rom);
+  //  let d = disassembler::Disassembler::new();
+  //  d.print_all(&m);
+  // } else if matches.is_present("debug") {
+  //  let mut gb = debugger::Debugger::new();
+  //  gb.set_cart_rom(cart_rom);
+  //  if let Some(boot_rom_path) = matches.value_of("boot-rom") {
+  //    gb.set_boot_rom(load_rom(boot_rom_path));
+  //  } else {
+  //    gb.bootstrap();
+  //  }
+  //
+  //  gb.run();
+  // } else {
+  let mut bootstrap = false;
+  let boot_rom = if let Some(boot_rom_path) = matches.value_of("boot-rom") {
+    Some(load_rom(boot_rom_path))
   } else {
-    let mut gb = if let Some(boot_rom_path) = matches.value_of("boot-rom") {
-      gameboy::GameBoy::new(Some(load_rom(boot_rom_path)), cart_rom)
-    } else {
-      gameboy::GameBoy::new(None, cart_rom)
-    };
+    bootstrap = true;
+    None
+  };
 
-    gb.run();
+  let system = try_log!(system::Config::new().boot_rom(boot_rom).cart_rom(cart_rom).create());
+  let mut cpu = Cpu::new(system);
+
+  if bootstrap {
+    cpu.bootstrap();
   }
+
+  loop {
+    cpu.step();
+  }
+  // }
 }
 
 fn load_rom<P: AsRef<Path>>(path: P) -> Box<[u8]> {

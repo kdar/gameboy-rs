@@ -1,10 +1,13 @@
 use super::mem::MemoryIo;
 
-pub const SERIAL_DATA: u16 = 0xFF01;
-pub const SERIAL_CONTROL: u16 = 0xFF02;
-
 pub struct LinkPort {
   last_byte: u8,
+}
+
+impl Default for LinkPort {
+  fn default() -> LinkPort {
+    LinkPort { last_byte: 0 }
+  }
 }
 
 impl LinkPort {
@@ -21,11 +24,11 @@ impl MemoryIo for LinkPort {
   fn write_byte(&mut self, addr: u16, value: u8) -> Result<(), String> {
     // println!("link write: {:#04x} {:x}", addr, value);
     match addr {
-      SERIAL_DATA => {
+      0xff01 => {
         self.last_byte = value;
         Ok(())
       }
-      SERIAL_CONTROL => {
+      0xff02 => {
         // if value == 0x81 {
         print!("{}", self.last_byte as char);
         // }

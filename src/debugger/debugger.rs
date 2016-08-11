@@ -8,6 +8,7 @@ use std::process::exit;
 use super::super::cpu;
 use super::command::Command;
 use super::super::reg::Reg;
+use super::super::system::System;
 
 extern "C" {
   pub static stdout: *mut libc::FILE;
@@ -32,21 +33,13 @@ impl Default for Debugger {
 }
 
 impl Debugger {
-  pub fn new() -> Debugger {
-    let cpu = cpu::Cpu::new();
+  pub fn new(system: System) -> Debugger {
+    let cpu = cpu::Cpu::new(system);
     Debugger { cpu: cpu, ..Debugger::default() }
   }
 
   pub fn bootstrap(&mut self) {
     self.cpu.bootstrap();
-  }
-
-  pub fn set_cart_rom(&mut self, rom: Box<[u8]>) {
-    self.cpu.set_cart_rom(rom);
-  }
-
-  pub fn set_boot_rom(&mut self, rom: Box<[u8]>) {
-    self.cpu.set_boot_rom(rom);
   }
 
   fn step(&mut self, display_instructions: bool) -> bool {

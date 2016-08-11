@@ -25,4 +25,4 @@ path = "src/lib.rs"
 
 [[bin]]
 name = "gameboy-emu"
-path = "src/cmd/main.rs"
+path = "src/main.rs"

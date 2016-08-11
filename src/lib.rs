@@ -17,7 +17,6 @@ extern crate time;
 extern crate num;
 extern crate libc;
 
-mod gameboy;
 pub mod mem;
 pub mod cpu;
 pub mod reg;
@@ -30,9 +29,9 @@ pub mod cartridge;
 pub mod bit;
 pub mod linkport;
 pub mod value;
-pub mod bootrom;
+pub mod bios;
+pub mod system;
 
-pub use gameboy::GameBoy;
 pub use reg::Reg;
 pub use flag::Flag;
 pub use value::Value;
