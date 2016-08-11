@@ -46,38 +46,3 @@ impl fmt::Display for Operand {
     }
   }
 }
-
-
-// impl Value {
-//  fn from_reg8(v: u8) -> Reg {
-//    match v {
-//      0b000 => Reg::B,
-//      0b001 => Reg::C,
-//      0b010 => Reg::D,
-//      0b011 => Reg::E,
-//      0b100 => Reg::H,
-//      0b101 => Reg::L,
-//      0b110 => Reg::F,
-//      0b111 => Reg::A,
-//      _ => panic!("value.from_reg8 unknown register: {}", v),
-//    }
-//  }
-//
-//  // Some instructions (PUSH rr and POP rr) map 0b11 to AF and others map to SP.
-//  // Setting use_af to true will map it to AF.
-//  pub fn from_reg16(v: u8, use_af: bool) -> Reg {
-//    match v {
-//      0b00 => Reg::BC,
-//      0b01 => Reg::DE,
-//      0b10 => Reg::HL,
-//      0b11 => {
-//        if use_af {
-//          Reg::AF
-//        } else {
-//          Reg::SP
-//        }
-//      }
-//      _ => panic!("value.from_reg16 unknown register: {}", v),
-//    }
-//  }
-// }

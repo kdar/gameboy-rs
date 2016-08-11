@@ -610,7 +610,16 @@ impl Cpu {
   // SWAP r
   // Opcode: 0xCB 0x37 | 0x30 | 0x31 | 0x32 | 0x33 | 0x34 | 0x35 | 0x36
   #[allow(non_snake_case)]
-  fn inst_SWAP(&mut self, o: Operand) {}
+  fn inst_SWAP(&mut self, o: Operand) {
+    let val = self.read_operand_u8(o);
+    let result = val << 4 | val >> 4;
+
+    self.write_operand_u8(o, result);
+    self.write_flag(Flag::Z, result == 0);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, false);
+    self.write_flag(Flag::C, false);
+  }
 
   // ADC A,(HL)
   // Opcode: 0x8e
