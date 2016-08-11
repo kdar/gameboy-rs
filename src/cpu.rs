@@ -126,6 +126,90 @@ impl Cpu {
     self.write_u8(0xff49, 0xff);
   }
 
+  pub fn read_operand_u8(&mut self, operand: Operand) -> u8 {
+    match operand {
+      Operand::A => high_byte(self.reg_af),
+      Operand::F => low_byte(self.reg_af),
+      Operand::B => high_byte(self.reg_bc),
+      Operand::C => low_byte(self.reg_bc),
+      Operand::D => high_byte(self.reg_de),
+      Operand::E => low_byte(self.reg_de),
+      Operand::H => high_byte(self.reg_hl),
+      Operand::L => low_byte(self.reg_hl),
+      Operand::_BC_ => {
+        let bc = self.reg_bc;
+        self.read_u8(bc)
+      }
+      Operand::_DE_ => {
+        let de = self.reg_de;
+        self.read_u8(de)
+      }
+      Operand::_HL_ => {
+        let hl = self.reg_hl;
+        self.read_u8(hl)
+      }
+      Operand::_SP_ => {
+        let sp = self.reg_sp;
+        self.read_u8(sp)
+      }
+      _ => panic!("cpu.read_operand_u8: unrecognized operand: {}", operand),
+    }
+  }
+
+  pub fn read_operand_u16(&self, operand: Operand) -> u16 {
+    match operand {
+      Operand::AF => self.reg_af,
+      Operand::BC => self.reg_bc,
+      Operand::DE => self.reg_de,
+      Operand::HL => self.reg_hl,
+      Operand::SP => self.reg_sp,
+      Operand::PC => self.reg_pc,
+      _ => panic!("cpu.read_operand_u16: unrecognized operand: {}", operand),
+    }
+  }
+
+  pub fn write_operand_u8(&mut self, operand: Operand, value: u8) {
+    match operand {
+      Operand::A => self.reg_af = (value as u16) << 8 | low_byte(self.reg_af) as u16,
+      Operand::F => self.reg_af = (high_byte(self.reg_af) as u16) << 8 | value as u16,
+      Operand::B => self.reg_bc = (value as u16) << 8 | low_byte(self.reg_bc) as u16,
+      Operand::C => self.reg_bc = (high_byte(self.reg_bc) as u16) << 8 | value as u16,
+      Operand::D => self.reg_de = (value as u16) << 8 | low_byte(self.reg_de) as u16,
+      Operand::E => self.reg_de = (high_byte(self.reg_de) as u16) << 8 | value as u16,
+      Operand::H => self.reg_hl = (value as u16) << 8 | low_byte(self.reg_hl) as u16,
+      Operand::L => self.reg_hl = (high_byte(self.reg_hl) as u16) << 8 | value as u16,
+      Operand::_BC_ => {
+        let bc = self.reg_bc;
+        self.write_u8(bc, value)
+      }
+      Operand::_DE_ => {
+        let de = self.reg_de;
+        self.write_u8(de, value)
+      }
+      Operand::_HL_ => {
+        let hl = self.reg_hl;
+        self.write_u8(hl, value)
+      }
+      Operand::_SP_ => {
+        let sp = self.reg_sp;
+        self.write_u8(sp, value)
+      }
+      _ => panic!("cpu.write_operand_u8: unrecognized operand: {}", operand),
+    }
+  }
+
+  pub fn write_operand_u16(&mut self, operand: Operand, value: u16) {
+    match operand {
+      Operand::AF => self.reg_af = value,
+      Operand::BC => self.reg_bc = value,
+      Operand::DE => self.reg_de = value,
+      Operand::HL => self.reg_hl = value,
+      Operand::SP => self.reg_sp = value,
+      Operand::PC => self.reg_pc = value,
+      _ => panic!("cpu.write_operand_u16: unrecognized operand: {}", operand),
+    }
+  }
+
   pub fn read_reg_u8(&self, register: Reg) -> u8 {
     match register {
       Reg::B => high_byte(self.reg_bc),
@@ -737,6 +821,7 @@ impl Cpu {
 
   // HALT
   // Opcode: 0x76
+  #[allow(non_snake_case)]
   fn inst_HALT(&mut self) {
     self.halt = true;
     println!("halted @ {:#06x}!", self.reg_pc);
