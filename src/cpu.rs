@@ -397,7 +397,7 @@ impl Cpu {
       }
 
       // 0xCB instructions
-      Instruction::BIT_b_r(b, r) => self.inst_BIT_b_r(b, r),
+      Instruction::BIT(o1, o2) => self.inst_BIT(o1, o2),
       Instruction::RL_r(r) => self.inst_RL_r(r),
       Instruction::RR_r(r) => self.inst_RR_r(r),
       Instruction::RLA => self.inst_RLA(),
@@ -498,13 +498,14 @@ impl Cpu {
   }
 
   // BIT b,r
-  // Opcode: 0xCB 01bbbrrr
+  //   Opcode: 0xCB 01bbbrrr
   // Page: 242
   #[allow(non_snake_case)]
-  fn inst_BIT_b_r(&mut self, b: u8, r: Reg) {
-    let val = self.read_reg_u8(r);
+  fn inst_BIT(&mut self, o1: Operand, o2: Operand) {
+    let val1 = self.read_operand_u8(o1);
+    let val2 = self.read_operand_u8(o2);
 
-    self.write_flag(Flag::Z, val & (1 << b) == 0);
+    self.write_flag(Flag::Z, val2 & (1 << val1) == 0);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, true);
   }
@@ -600,7 +601,9 @@ impl Cpu {
   }
 
   // SWAP r
-  // Opcode: 0xCB 0x37 | 0x30 | 0x31 | 0x32 | 0x33 | 0x34 | 0x35 | 0x36
+  //   Opcode: 0xCB 0x37 | 0x30 | 0x31 | 0x32 | 0x33 | 0x34 | 0x35
+  // SWAP (HL)
+  //   Opcode: 0xCB 0x36
   #[allow(non_snake_case)]
   fn inst_SWAP(&mut self, o: Operand) {
     let val = self.read_operand_u8(o);

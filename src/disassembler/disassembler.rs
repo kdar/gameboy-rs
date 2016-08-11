@@ -1,5 +1,3 @@
-use std::io::Write;
-
 use super::super::Reg;
 use super::super::Flag;
 use super::super::operand::Operand;
@@ -16,16 +14,22 @@ macro_rules! try_o {
 }
 
 macro_rules! imm8 {
-  ($inst:path, $m:ident, $addr:ident, $pc:ident) => ({
+  ($inst:path[imm], $m:ident, $addr:ident, $pc:ident) => ({
     let n = try!($m.read_u8($addr + $pc));
     $pc += 1;
     Ok(($inst(Operand::Imm8(n)), $pc))
   });
 
-  ($inst:path[$operand1:path], $m:ident, $addr:ident, $pc:ident) => ({
+  ($inst:path[$operand1:path, imm], $m:ident, $addr:ident, $pc:ident) => ({
     let n = try!($m.read_u8($addr + $pc));
     $pc += 1;
     Ok(($inst($operand1, Operand::Imm8(n)), $pc))
+  });
+
+  ($inst:path[imm, $operand2:path], $m:ident, $addr:ident, $pc:ident) => ({
+    let n = try!($m.read_u8($addr + $pc));
+    $pc += 1;
+    Ok(($inst(Operand::Imm8(n), $operand2), $pc))
   });
 }
 
@@ -60,8 +64,72 @@ impl Disassembler {
       let op = try!(m.read_u8(addr + pc));
       pc += 1;
       match op {
-        0x7C => Ok((Instruction::BIT_b_r(7, Reg::H), pc)),
+        0x47 => Ok((Instruction::BIT(Operand::Imm8(0), Operand::A), pc)),
+        0x4f => Ok((Instruction::BIT(Operand::Imm8(1), Operand::A), pc)),
+        0x57 => Ok((Instruction::BIT(Operand::Imm8(2), Operand::A), pc)),
+        0x5f => Ok((Instruction::BIT(Operand::Imm8(3), Operand::A), pc)),
+        0x67 => Ok((Instruction::BIT(Operand::Imm8(4), Operand::A), pc)),
+        0x6f => Ok((Instruction::BIT(Operand::Imm8(5), Operand::A), pc)),
+        0x77 => Ok((Instruction::BIT(Operand::Imm8(6), Operand::A), pc)),
+        0x7f => Ok((Instruction::BIT(Operand::Imm8(7), Operand::A), pc)),
+        0x40 => Ok((Instruction::BIT(Operand::Imm8(0), Operand::B), pc)),
+        0x48 => Ok((Instruction::BIT(Operand::Imm8(1), Operand::B), pc)),
+        0x50 => Ok((Instruction::BIT(Operand::Imm8(2), Operand::B), pc)),
+        0x58 => Ok((Instruction::BIT(Operand::Imm8(3), Operand::B), pc)),
+        0x60 => Ok((Instruction::BIT(Operand::Imm8(4), Operand::B), pc)),
+        0x68 => Ok((Instruction::BIT(Operand::Imm8(5), Operand::B), pc)),
+        0x70 => Ok((Instruction::BIT(Operand::Imm8(6), Operand::B), pc)),
+        0x78 => Ok((Instruction::BIT(Operand::Imm8(7), Operand::B), pc)),
+        0x41 => Ok((Instruction::BIT(Operand::Imm8(0), Operand::C), pc)),
+        0x49 => Ok((Instruction::BIT(Operand::Imm8(1), Operand::C), pc)),
+        0x51 => Ok((Instruction::BIT(Operand::Imm8(2), Operand::C), pc)),
+        0x59 => Ok((Instruction::BIT(Operand::Imm8(3), Operand::C), pc)),
+        0x61 => Ok((Instruction::BIT(Operand::Imm8(4), Operand::C), pc)),
+        0x69 => Ok((Instruction::BIT(Operand::Imm8(5), Operand::C), pc)),
+        0x71 => Ok((Instruction::BIT(Operand::Imm8(6), Operand::C), pc)),
+        0x79 => Ok((Instruction::BIT(Operand::Imm8(7), Operand::C), pc)),
+        0x42 => Ok((Instruction::BIT(Operand::Imm8(0), Operand::D), pc)),
+        0x4a => Ok((Instruction::BIT(Operand::Imm8(1), Operand::D), pc)),
+        0x52 => Ok((Instruction::BIT(Operand::Imm8(2), Operand::D), pc)),
+        0x5a => Ok((Instruction::BIT(Operand::Imm8(3), Operand::D), pc)),
+        0x62 => Ok((Instruction::BIT(Operand::Imm8(4), Operand::D), pc)),
+        0x6a => Ok((Instruction::BIT(Operand::Imm8(5), Operand::D), pc)),
+        0x72 => Ok((Instruction::BIT(Operand::Imm8(6), Operand::D), pc)),
+        0x7a => Ok((Instruction::BIT(Operand::Imm8(7), Operand::D), pc)),
+        0x43 => Ok((Instruction::BIT(Operand::Imm8(0), Operand::E), pc)),
+        0x4b => Ok((Instruction::BIT(Operand::Imm8(1), Operand::E), pc)),
+        0x53 => Ok((Instruction::BIT(Operand::Imm8(2), Operand::E), pc)),
+        0x5b => Ok((Instruction::BIT(Operand::Imm8(3), Operand::E), pc)),
+        0x63 => Ok((Instruction::BIT(Operand::Imm8(4), Operand::E), pc)),
+        0x6b => Ok((Instruction::BIT(Operand::Imm8(5), Operand::E), pc)),
+        0x73 => Ok((Instruction::BIT(Operand::Imm8(6), Operand::E), pc)),
+        0x7b => Ok((Instruction::BIT(Operand::Imm8(7), Operand::E), pc)),
+        0x44 => Ok((Instruction::BIT(Operand::Imm8(0), Operand::H), pc)),
+        0x4c => Ok((Instruction::BIT(Operand::Imm8(1), Operand::H), pc)),
+        0x54 => Ok((Instruction::BIT(Operand::Imm8(2), Operand::H), pc)),
+        0x5c => Ok((Instruction::BIT(Operand::Imm8(3), Operand::H), pc)),
+        0x64 => Ok((Instruction::BIT(Operand::Imm8(4), Operand::H), pc)),
+        0x6c => Ok((Instruction::BIT(Operand::Imm8(5), Operand::H), pc)),
+        0x74 => Ok((Instruction::BIT(Operand::Imm8(6), Operand::H), pc)),
+        0x7c => Ok((Instruction::BIT(Operand::Imm8(7), Operand::H), pc)),
+        0x45 => Ok((Instruction::BIT(Operand::Imm8(0), Operand::L), pc)),
+        0x4d => Ok((Instruction::BIT(Operand::Imm8(1), Operand::L), pc)),
+        0x55 => Ok((Instruction::BIT(Operand::Imm8(2), Operand::L), pc)),
+        0x5d => Ok((Instruction::BIT(Operand::Imm8(3), Operand::L), pc)),
+        0x65 => Ok((Instruction::BIT(Operand::Imm8(4), Operand::L), pc)),
+        0x6d => Ok((Instruction::BIT(Operand::Imm8(5), Operand::L), pc)),
+        0x75 => Ok((Instruction::BIT(Operand::Imm8(6), Operand::L), pc)),
+        0x7d => Ok((Instruction::BIT(Operand::Imm8(7), Operand::L), pc)),
+        0x46 => Ok((Instruction::BIT(Operand::Imm8(0), Operand::_HL_), pc)),
+        0x4e => Ok((Instruction::BIT(Operand::Imm8(1), Operand::_HL_), pc)),
+        0x56 => Ok((Instruction::BIT(Operand::Imm8(2), Operand::_HL_), pc)),
+        0x5e => Ok((Instruction::BIT(Operand::Imm8(3), Operand::_HL_), pc)),
+        0x66 => Ok((Instruction::BIT(Operand::Imm8(4), Operand::_HL_), pc)),
+        0x6e => Ok((Instruction::BIT(Operand::Imm8(5), Operand::_HL_), pc)),
+        0x76 => Ok((Instruction::BIT(Operand::Imm8(6), Operand::_HL_), pc)),
+        0x7e => Ok((Instruction::BIT(Operand::Imm8(7), Operand::_HL_), pc)),
 
+        // Ok((Instruction::BIT_b_r(7, Reg::H), pc)),
         0x10 | 0x11 | 0x12 | 0x13 | 0x14 | 0x15 | 0x16 | 0x17 => {
           let r = op & 0b111;
           Ok((Instruction::RL_r(Reg::from(r)), pc))
@@ -107,7 +175,7 @@ impl Disassembler {
         }
 
         0x86 => Ok((Instruction::ADD8(Operand::A, Operand::_HL_), pc)),
-        0xc6 => imm8!(Instruction::ADD8[Operand::A], m, addr, pc),
+        0xc6 => imm8!(Instruction::ADD8[Operand::A, imm], m, addr, pc),
 
         0x09 => Ok((Instruction::ADD16(Operand::HL, Operand::BC), pc)),
         0x19 => Ok((Instruction::ADD16(Operand::HL, Operand::DE), pc)),
@@ -122,7 +190,7 @@ impl Disassembler {
         0xa4 => Ok((Instruction::AND(Operand::H), pc)),
         0xa5 => Ok((Instruction::AND(Operand::L), pc)),
         0xa6 => Ok((Instruction::AND(Operand::_HL_), pc)),
-        0xe6 => imm8!(Instruction::AND, m, addr, pc),
+        0xe6 => imm8!(Instruction::AND[imm], m, addr, pc),
 
         0xc4 | 0xcc | 0xd4 | 0xdc => {
           // | 0xe4 | 0xec | 0xf4 | 0xfc => {

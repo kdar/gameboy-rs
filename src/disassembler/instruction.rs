@@ -10,7 +10,7 @@ pub enum Instruction {
   InvalidCB(u8),
 
   // 0xCB instructions
-  BIT_b_r(u8, Reg),
+  BIT(Operand, Operand),
   RL_r(Reg),
   RR_r(Reg),
   SRL_r(Reg),
@@ -82,7 +82,7 @@ impl fmt::Debug for Instruction {
       Instruction::Invalid(d) => write!(f, "DB ${:02x}", d),
       Instruction::InvalidCB(d) => write!(f, "DB ${:02x}", d),
 
-      Instruction::BIT_b_r(b, r) => write!(f, "BIT {},{}", b, r),
+      Instruction::BIT(o1, o2) => write!(f, "BIT {},{}", o1, o2),
       Instruction::RL_r(r) => write!(f, "RL {}", r),
       Instruction::RR_r(r) => write!(f, "RR {}", r),
       Instruction::SRL_r(r) => write!(f, "SRL {}", r),
