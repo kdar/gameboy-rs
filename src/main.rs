@@ -61,12 +61,10 @@ fn main() {
 
   let cart_rom = load_rom(matches.value_of("cart-rom").unwrap());
 
-  // if matches.is_present("disassemble") {
-  //  let mut m: Box<mem::Memory> = Box::new(mem::Mem::new());
-  //  m.set_boot_rom(cart_rom);
-  //  let d = disassembler::Disassembler::new();
-  //  d.print_all(&m);
-  // } else if matches.is_present("debug") {
+  if matches.is_present("disassemble") {
+    disassembler::dump_all(cart_rom);
+  }
+  // else if matches.is_present("debug") {
   //  let mut gb = debugger::Debugger::new();
   //  gb.set_cart_rom(cart_rom);
   //  if let Some(boot_rom_path) = matches.value_of("boot-rom") {
@@ -76,26 +74,26 @@ fn main() {
   //  }
   //
   //  gb.run();
-  // } else {
-  let mut bootstrap = false;
-  let boot_rom = if let Some(boot_rom_path) = matches.value_of("boot-rom") {
-    Some(load_rom(boot_rom_path))
-  } else {
-    bootstrap = true;
-    None
-  };
+  else {
+    let mut bootstrap = false;
+    let boot_rom = if let Some(boot_rom_path) = matches.value_of("boot-rom") {
+      Some(load_rom(boot_rom_path))
+    } else {
+      bootstrap = true;
+      None
+    };
 
-  let system = try_log!(system::Config::new().boot_rom(boot_rom).cart_rom(cart_rom).create());
-  let mut cpu = Cpu::new(system);
+    let system = try_log!(system::Config::new().boot_rom(boot_rom).cart_rom(cart_rom).create());
+    let mut cpu = Cpu::new(system);
 
-  if bootstrap {
-    cpu.bootstrap();
+    if bootstrap {
+      cpu.bootstrap();
+    }
+
+    loop {
+      cpu.step();
+    }
   }
-
-  loop {
-    cpu.step();
-  }
-  // }
 }
 
 fn load_rom<P: AsRef<Path>>(path: P) -> Box<[u8]> {

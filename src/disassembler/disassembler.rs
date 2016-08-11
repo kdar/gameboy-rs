@@ -1,10 +1,10 @@
 use std::io::Write;
+
 use super::super::Reg;
 use super::super::Flag;
 use super::super::Value;
-
 use super::instruction::Instruction;
-use super::super::mem;
+use super::super::mem::MemoryIo;
 
 macro_rules! try_o {
   ($expr:expr) => (match $expr {
@@ -13,15 +13,6 @@ macro_rules! try_o {
       return None;
     },
   })
-}
-
-fn to_hex(v: &[u8]) -> String {
-  let mut f = vec![];
-  for val in v {
-    write!(f, "{:x}", val).unwrap();
-  }
-
-  String::from_utf8(f).unwrap()
 }
 
 pub struct Disassembler;
@@ -37,7 +28,7 @@ impl Disassembler {
     Disassembler::default()
   }
 
-  pub fn at(&self, m: &mem::MemoryIo, addr: u16) -> Result<(Instruction, u16), String> {
+  pub fn at(&self, m: &MemoryIo, addr: u16) -> Result<(Instruction, u16), String> {
     let mut pc = 0u16;
 
     let op = try!(m.read_byte(addr + pc));
@@ -349,26 +340,6 @@ impl Disassembler {
         _ => Ok((Instruction::Invalid(op), pc)),
         // _ => panic!("instruction_at: instruction not implemented: 0x{:02x}", op),
       }
-    }
-  }
-
-  pub fn print_all(&self, m: &mem::MemoryIo) {
-    let mut pc = 0u16;
-
-    while let Ok((ins, inc)) = self.at(m, pc) {
-      // let hex = to_hex(&rom[(pc as usize)..(pc as usize) + inc as usize]);
-      let hex = to_hex(m.read_vec(pc, inc).unwrap().as_slice());
-      match ins {
-        Instruction::JR_cc_e(_, e) => {
-          println!("{:04x} {:12} {:20} ; Addr: {}",
-                   pc,
-                   hex,
-                   format!("{:?}", ins),
-                   (pc as i16) + (e as i16) + inc as i16)
-        }
-        _ => println!("{:04x} {:12} {:12?}", pc, hex, ins),
-      }
-      pc += inc;
     }
   }
 }
