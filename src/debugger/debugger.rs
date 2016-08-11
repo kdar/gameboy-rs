@@ -1,5 +1,4 @@
 use libc;
-use std::mem;
 
 use super::rustyline::error::ReadlineError;
 use super::rustyline::Editor;
@@ -8,7 +7,7 @@ use std::process::exit;
 use super::super::cpu;
 use super::command::Command;
 use super::super::reg::Reg;
-use super::super::system::System;
+use super::super::system::SystemCtrl;
 
 extern "C" {
   pub static stdout: *mut libc::FILE;
@@ -33,7 +32,7 @@ impl Default for Debugger {
 }
 
 impl Debugger {
-  pub fn new(system: System) -> Debugger {
+  pub fn new(system: Box<SystemCtrl>) -> Debugger {
     let cpu = cpu::Cpu::new(system);
     Debugger { cpu: cpu, ..Debugger::default() }
   }

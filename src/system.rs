@@ -1,5 +1,6 @@
 use std::fmt;
 use md5;
+use std::any::Any;
 
 use super::bios::Bios;
 use super::cartridge::Cartridge;
@@ -41,15 +42,20 @@ impl Config {
     self
   }
 
-  pub fn create(self) -> Result<System, String> {
-    let mut sys = System::new();
-    try!(sys.bios.load(self.cfg_boot_rom));
+  pub fn create(self) -> Result<Box<SystemCtrl>, String> {
+    let mut s = System::new();
+    try!(s.bios.load(self.cfg_boot_rom));
     // self.cfg_boot_rom = None;
-    try!(sys.cartridge.load(self.cfg_cart_rom));
+    try!(s.cartridge.load(self.cfg_cart_rom));
     // self.cfg_cart_rom = Box::new([]);
 
-    Ok(sys)
+    Ok(Box::new(s))
   }
+}
+
+pub trait SystemCtrl: MemoryIo {
+  fn step(&mut self);
+  fn as_memoryio(&self) -> &MemoryIo;
 }
 
 pub struct System {
@@ -165,7 +171,7 @@ impl MemoryIo for System {
       0xffff => Ok(self.interrupt_enable),
       // io ports
       0xff00...0xff7f => Ok((0)),
-      _ => Err(format!("system.read_u8: unknown mapped addr: {:#04x}", addr)),
+      _ => Err(format!("Systemtem.read_u8: unknown mapped addr: {:#04x}", addr)),
     }
   }
 
@@ -174,7 +180,7 @@ impl MemoryIo for System {
       // boot / cart rom
       0x0000...0x3fff => {
         if self.booting && addr < 0xFF {
-          Err("system.write_u8: shouldn't be writing to boot rom".to_owned())
+          Err("Systemtem.write_u8: shouldn't be writing to boot rom".to_owned())
         } else {
           self.cartridge.write_u8(addr, value)
         }
@@ -231,7 +237,7 @@ impl MemoryIo for System {
         // Err(format!("write_u8 Addr::IOPorts not implemented: {:?}", mapped))
         Ok(())
       }
-      _ => Err(format!("system.write_u8: unknown mapped addr: {:#04x}", addr)),
+      _ => Err(format!("Systemtem.write_u8: unknown mapped addr: {:#04x}", addr)),
     }
   }
 }
@@ -240,8 +246,14 @@ impl System {
   pub fn new() -> System {
     System::default()
   }
+}
 
-  pub fn step(&mut self) {
+impl SystemCtrl for System {
+  fn step(&mut self) {
     self.video.step();
+  }
+
+  fn as_memoryio(&self) -> &MemoryIo {
+    self as &MemoryIo
   }
 }

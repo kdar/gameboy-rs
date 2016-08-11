@@ -7,7 +7,7 @@ use super::flag::Flag;
 use super::operand::Operand;
 use super::disassembler::Instruction;
 use super::disassembler::Disassembler;
-use super::system::System;
+use super::system::{System, SystemCtrl};
 use super::mem::MemoryIo;
 
 fn high_byte(value: u16) -> u8 {
@@ -31,7 +31,7 @@ pub struct Cpu {
   interrupt_master_enable: bool,
   halt: bool,
 
-  system: System,
+  system: Box<SystemCtrl>,
   disasm: Disassembler,
 }
 
@@ -54,7 +54,7 @@ impl Default for Cpu {
       clock_t: 0,
       interrupt_master_enable: false,
       halt: false,
-      system: System::default(),
+      system: Box::new(System::default()),
       disasm: Disassembler::new(),
     }
   }
@@ -87,7 +87,7 @@ impl fmt::Debug for Cpu {
 }
 
 impl Cpu {
-  pub fn new(system: System) -> Cpu {
+  pub fn new(system: Box<SystemCtrl>) -> Cpu {
     let mut c = Cpu::default();
     c.system = system;
     c
@@ -345,7 +345,7 @@ impl Cpu {
   }
 
   pub fn peek_at(&self, pc: u16) -> Instruction {
-    match self.disasm.at(&self.system, pc) {
+    match self.disasm.at(self.system.as_memoryio(), pc) {
       Ok((inst, _)) => inst,
       Err(e) => {
         panic!("cpu.peek: {}", e);
@@ -358,8 +358,7 @@ impl Cpu {
     // if self.halt {
     //
     // }
-
-    match self.disasm.at(&self.system, self.reg_pc) {
+    match self.disasm.at(self.system.as_memoryio(), self.reg_pc) {
       Ok((inst, inc)) => {
         let pc_at_inst = self.reg_pc;
         self.reg_pc += inc;
@@ -1347,7 +1346,7 @@ mod tests {
               &Yaml::Array(ref a) => {
                 let mut count = 0;
                 for x in a {
-                  c.mem.write_u8(count, x.as_i64().unwrap() as u8);
+                  c.system.write_u8(count, x.as_i64().unwrap() as u8);
                   count += 1;
                 }
               }
@@ -1697,7 +1696,7 @@ mod tests {
     after: {
       let mut c = Cpu { ..Cpu::default() };
       c.reg_sp = 98;
-      c.mem.write_u8(98, 200).unwrap();
+      c.system.write_u8(98, 200).unwrap();
       c.reg_pc = 0x0095;
       c
     },
@@ -1806,7 +1805,7 @@ mod tests {
       for i in 0..addrs.len() {
         let mut c = Cpu::default();
         c.reg_pc = 0x1000;
-        // c.mem.write_u8(0x1000, addrs[i]);
+        // c.system.write_u8(0x1000, addrs[i]);
         c.write_flag(*flag, true);
 
         c.execute_instruction(Instruction::JR_cc_e(*flag, addrs[i]));
@@ -1817,7 +1816,7 @@ mod tests {
       for i in 0..addrs.len() {
         let mut c = Cpu::default();
         c.reg_pc = 0x1000;
-        // c.mem.write_u8(0x1000, addrs[i]);
+        // c.system.write_u8(0x1000, addrs[i]);
         c.write_flag(*flag, false);
 
         c.execute_instruction(Instruction::JR_cc_e(*flag, addrs[i]));
@@ -1839,7 +1838,7 @@ mod tests {
       let mut c = Cpu { ..Cpu::default() };
       c.write_reg_u8(Reg::C, 0x10);
       c.write_reg_u8(Reg::A, 0xFF);
-      c.mem.write_u8(0xFF10, 0xFF).unwrap();
+      c.system.write_u8(0xFF10, 0xFF).unwrap();
       c
     },
   });
@@ -1881,7 +1880,7 @@ mod tests {
           c.write_reg_u8(r, 0x87);
           c.write_reg_u8(Reg::H, 0xC2);
           c.write_reg_u8(Reg::L, 0x21);
-          c.mem.write_u8(0xC221, 0x87).unwrap();
+          c.system.write_u8(0xC221, 0x87).unwrap();
           c
         },
       });
@@ -1893,14 +1892,14 @@ mod tests {
     before: {
       let mut c = Cpu::default();
       c.write_reg_u16(Reg::DE, 0x0104);
-      c.mem.write_u8(0x0104, 0x10).unwrap();
+      c.system.write_u8(0x0104, 0x10).unwrap();
       c
     },
     after: {
       let mut c = Cpu { ..Cpu::default() };
       c.write_reg_u16(Reg::DE, 0x0104);
       c.write_reg_u8(Reg::A, 0x10);
-      c.mem.write_u8(0x0104, 0x10).unwrap();
+      c.system.write_u8(0x0104, 0x10).unwrap();
       c
     },
   });
@@ -2001,7 +2000,7 @@ mod tests {
       c.write_reg_u8(Reg::A, 0x87);
       c.write_reg_u8(Reg::H, 0xC2);
       c.write_reg_u8(Reg::L, 0x20);
-      c.mem.write_u8(0xC221, 0x87).unwrap();
+      c.system.write_u8(0xC221, 0x87).unwrap();
       c
     },
   });
@@ -2020,7 +2019,7 @@ mod tests {
       c.write_reg_u8(Reg::A, 0x87);
       c.write_reg_u8(Reg::H, 0xC2);
       c.write_reg_u8(Reg::L, 0x22);
-      c.mem.write_u8(0xC221, 0x87).unwrap();
+      c.system.write_u8(0xC221, 0x87).unwrap();
       c
     },
   });
