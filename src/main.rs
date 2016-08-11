@@ -63,18 +63,7 @@ fn main() {
 
   if matches.is_present("disassemble") {
     disassembler::dump_all(cart_rom);
-  }
-  // else if matches.is_present("debug") {
-  //  let mut gb = debugger::Debugger::new();
-  //  gb.set_cart_rom(cart_rom);
-  //  if let Some(boot_rom_path) = matches.value_of("boot-rom") {
-  //    gb.set_boot_rom(load_rom(boot_rom_path));
-  //  } else {
-  //    gb.bootstrap();
-  //  }
-  //
-  //  gb.run();
-  else {
+  } else {
     let mut bootstrap = false;
     let boot_rom = if let Some(boot_rom_path) = matches.value_of("boot-rom") {
       Some(load_rom(boot_rom_path))
@@ -84,14 +73,18 @@ fn main() {
     };
 
     let system = try_log!(system::Config::new().boot_rom(boot_rom).cart_rom(cart_rom).create());
-    let mut cpu = Cpu::new(system);
 
-    if bootstrap {
-      cpu.bootstrap();
-    }
-
-    loop {
-      cpu.step();
+    if matches.is_present("debug") {
+      let mut gb = debugger::Debugger::new(system);
+      gb.run();
+    } else {
+      let mut cpu = Cpu::new(system);
+      if bootstrap {
+        cpu.bootstrap();
+      }
+      loop {
+        cpu.step();
+      }
     }
   }
 }
