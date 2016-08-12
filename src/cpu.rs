@@ -398,7 +398,7 @@ impl Cpu {
 
       // 0xCB instructions
       Instruction::BIT(o1, o2) => self.inst_BIT(o1, o2),
-      Instruction::RL_r(r) => self.inst_RL_r(r),
+      Instruction::RL(o) => self.inst_RL(o),
       Instruction::RR_r(r) => self.inst_RR_r(r),
       Instruction::RLA => self.inst_RLA(),
       Instruction::SRL_r(r) => self.inst_SRL_r(r),
@@ -498,7 +498,15 @@ impl Cpu {
   }
 
   // BIT b,r
-  //   Opcode: 0xCB 01bbbrrr
+  //   Opcode: 0xcb 0x47 | 0x4f | 0x57 | 0x5f | 0x67 | 0x6f | 0x77 | 0x7f |
+  //                0x40 | 0x48 | 0x50 | 0x58 | 0x60 | 0x68 | 0x70 | 0x78 |
+  //                0x41 | 0x49 | 0x51 | 0x59 | 0x61 | 0x69 | 0x71 | 0x79 |
+  //                0x42 | 0x4a | 0x52 | 0x5a | 0x62 | 0x6a | 0x72 | 0x7a |
+  //                0x43 | 0x4b | 0x53 | 0x5b | 0x63 | 0x6b | 0x73 | 0x7b |
+  //                0x44 | 0x4c | 0x54 | 0x5c | 0x64 | 0x6c | 0x74 | 0x7c |
+  //                0x45 | 0x4d | 0x55 | 0x5d | 0x65 | 0x6d | 0x75 | 0x7d
+  // BIT b,(HL)
+  //   Opcode: 0xcb 0x46 | 0x4e | 0x56 | 0x5e | 0x66 | 0x6e | 0x76 | 0x7e
   // Page: 242
   #[allow(non_snake_case)]
   fn inst_BIT(&mut self, o1: Operand, o2: Operand) {
@@ -511,12 +519,13 @@ impl Cpu {
   }
 
   // RL r
-  // Opcode: 0xCB 000010xxx
+  //   Opcode: 0xcb 0x17 | 0x10 | 0x11 | 0x12 | 0x13 | 0x14 | 0x15
+  // RL (HL)
+  //   Opcode: 0xcb 0x16
   // Page: 220
   #[allow(non_snake_case)]
-  fn inst_RL_r(&mut self, r: Reg) {
-    let mut d = self.read_reg_u8(r);
-
+  fn inst_RL(&mut self, o: Operand) {
+    let mut d = self.read_operand_u8(o);
     let carry = self.read_flag(Flag::C);
 
     d <<= 1;
@@ -527,7 +536,7 @@ impl Cpu {
       d &= !1; // set bit 0 to 0
     }
 
-    self.write_reg_u8(r, d);
+    self.write_operand_u8(o, d);
     self.write_flag(Flag::Z, d == 0);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, false);
