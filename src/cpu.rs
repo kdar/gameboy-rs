@@ -4,7 +4,7 @@ use std::cmp::PartialEq;
 
 use super::reg::Reg;
 use super::flag::Flag;
-use super::operand::{Operand, Imm, Addr};
+use super::operand::Operand;
 use super::disassembler::Instruction;
 use super::disassembler::Disassembler;
 use super::system::{System, SystemCtrl};
@@ -127,75 +127,75 @@ impl Cpu {
 
   pub fn read_operand_u8(&mut self, operand: Operand) -> u8 {
     match operand {
-      Operand::Reg(Reg::A) => high_byte(self.reg_af),
-      Operand::Reg(Reg::F) => low_byte(self.reg_af),
-      Operand::Reg(Reg::B) => high_byte(self.reg_bc),
-      Operand::Reg(Reg::C) => low_byte(self.reg_bc),
-      Operand::Reg(Reg::D) => high_byte(self.reg_de),
-      Operand::Reg(Reg::E) => low_byte(self.reg_de),
-      Operand::Reg(Reg::H) => high_byte(self.reg_hl),
-      Operand::Reg(Reg::L) => low_byte(self.reg_hl),
-      Operand::Addr(Addr::BC) => {
+      Operand::RegA => high_byte(self.reg_af),
+      Operand::RegF => low_byte(self.reg_af),
+      Operand::RegB => high_byte(self.reg_bc),
+      Operand::RegC => low_byte(self.reg_bc),
+      Operand::RegD => high_byte(self.reg_de),
+      Operand::RegE => low_byte(self.reg_de),
+      Operand::RegH => high_byte(self.reg_hl),
+      Operand::RegL => low_byte(self.reg_hl),
+      Operand::AddrBC => {
         let bc = self.reg_bc;
         self.read_u8(bc)
       }
-      Operand::Addr(Addr::DE) => {
+      Operand::AddrDE => {
         let de = self.reg_de;
         self.read_u8(de)
       }
-      Operand::Addr(Addr::HL) => {
+      Operand::AddrHL => {
         let hl = self.reg_hl;
         self.read_u8(hl)
       }
-      Operand::Addr(Addr::SP) => {
+      Operand::AddrSP => {
         let sp = self.reg_sp;
         self.read_u8(sp)
       }
-      Operand::Flag(Flag::Z) => {
+      Operand::FlagZ => {
         if 0b10000000 & self.reg_af != 0 {
           1
         } else {
           0
         }
       }
-      Operand::Flag(Flag::N) => {
+      Operand::FlagN => {
         if 0b01000000 & self.reg_af != 0 {
           1
         } else {
           0
         }
       }
-      Operand::Flag(Flag::H) => {
+      Operand::FlagH => {
         if 0b00100000 & self.reg_af != 0 {
           1
         } else {
           0
         }
       }
-      Operand::Flag(Flag::C) => {
+      Operand::FlagC => {
         if 0b00010000 & self.reg_af != 0 {
           1
         } else {
           0
         }
       }
-      Operand::Flag(Flag::NZ) => {
+      Operand::FlagNZ => {
         if 0b10000000 & self.reg_af == 0 {
           1
         } else {
           0
         }
       }
-      Operand::Flag(Flag::NC) => {
+      Operand::FlagNC => {
         if 0b00010000 & self.reg_af == 0 {
           1
         } else {
           0
         }
       }
-      Operand::Imm(Imm::Imm8(i)) => i,
-      Operand::Addr(Addr::Imm16(i)) => self.read_u8(i),
-      Operand::Addr(Addr::IoPortC) => {
+      Operand::Imm8(i) => i,
+      Operand::AddrImm16(i) => self.read_u8(i),
+      Operand::AddrIoPortC => {
         let c = self.read_reg_u8(Reg::C);
         self.read_u8(0xff00 + c as u16)
       }
@@ -205,45 +205,45 @@ impl Cpu {
 
   pub fn read_operand_u16(&self, operand: Operand) -> u16 {
     match operand {
-      Operand::Reg(Reg::AF) => self.reg_af,
-      Operand::Reg(Reg::BC) => self.reg_bc,
-      Operand::Reg(Reg::DE) => self.reg_de,
-      Operand::Reg(Reg::HL) => self.reg_hl,
-      Operand::Reg(Reg::SP) => self.reg_sp,
-      Operand::Reg(Reg::PC) => self.reg_pc,
-      Operand::Imm(Imm::Imm16(i)) => i,
+      Operand::RegAF => self.reg_af,
+      Operand::RegBC => self.reg_bc,
+      Operand::RegDE => self.reg_de,
+      Operand::RegHL => self.reg_hl,
+      Operand::RegSP => self.reg_sp,
+      Operand::RegPC => self.reg_pc,
+      Operand::Imm16(i) => i,
       _ => panic!("cpu.read_operand_u16: unrecognized operand: {}", operand),
     }
   }
 
   pub fn write_operand_u8(&mut self, operand: Operand, value: u8) {
     match operand {
-      Operand::Reg(Reg::A) => self.reg_af = (value as u16) << 8 | low_byte(self.reg_af) as u16,
-      Operand::Reg(Reg::F) => self.reg_af = (high_byte(self.reg_af) as u16) << 8 | value as u16,
-      Operand::Reg(Reg::B) => self.reg_bc = (value as u16) << 8 | low_byte(self.reg_bc) as u16,
-      Operand::Reg(Reg::C) => self.reg_bc = (high_byte(self.reg_bc) as u16) << 8 | value as u16,
-      Operand::Reg(Reg::D) => self.reg_de = (value as u16) << 8 | low_byte(self.reg_de) as u16,
-      Operand::Reg(Reg::E) => self.reg_de = (high_byte(self.reg_de) as u16) << 8 | value as u16,
-      Operand::Reg(Reg::H) => self.reg_hl = (value as u16) << 8 | low_byte(self.reg_hl) as u16,
-      Operand::Reg(Reg::L) => self.reg_hl = (high_byte(self.reg_hl) as u16) << 8 | value as u16,
-      Operand::Addr(Addr::BC) => {
+      Operand::RegA => self.reg_af = (value as u16) << 8 | low_byte(self.reg_af) as u16,
+      Operand::RegF => self.reg_af = (high_byte(self.reg_af) as u16) << 8 | value as u16,
+      Operand::RegB => self.reg_bc = (value as u16) << 8 | low_byte(self.reg_bc) as u16,
+      Operand::RegC => self.reg_bc = (high_byte(self.reg_bc) as u16) << 8 | value as u16,
+      Operand::RegD => self.reg_de = (value as u16) << 8 | low_byte(self.reg_de) as u16,
+      Operand::RegE => self.reg_de = (high_byte(self.reg_de) as u16) << 8 | value as u16,
+      Operand::RegH => self.reg_hl = (value as u16) << 8 | low_byte(self.reg_hl) as u16,
+      Operand::RegL => self.reg_hl = (high_byte(self.reg_hl) as u16) << 8 | value as u16,
+      Operand::AddrBC => {
         let bc = self.reg_bc;
         self.write_u8(bc, value)
       }
-      Operand::Addr(Addr::DE) => {
+      Operand::AddrDE => {
         let de = self.reg_de;
         self.write_u8(de, value)
       }
-      Operand::Addr(Addr::HL) => {
+      Operand::AddrHL => {
         let hl = self.reg_hl;
         self.write_u8(hl, value)
       }
-      Operand::Addr(Addr::SP) => {
+      Operand::AddrSP => {
         let sp = self.reg_sp;
         self.write_u8(sp, value)
       }
-      Operand::Addr(Addr::Imm16(i)) => self.write_u8(i, value),
-      Operand::Addr(Addr::IoPortC) => {
+      Operand::AddrImm16(i) => self.write_u8(i, value),
+      Operand::AddrIoPortC => {
         let c = self.read_reg_u8(Reg::C);
         self.write_u8(0xff00 + c as u16, value);
       }
@@ -253,13 +253,13 @@ impl Cpu {
 
   pub fn write_operand_u16(&mut self, operand: Operand, value: u16) {
     match operand {
-      Operand::Reg(Reg::AF) => self.reg_af = value,
-      Operand::Reg(Reg::BC) => self.reg_bc = value,
-      Operand::Reg(Reg::DE) => self.reg_de = value,
-      Operand::Reg(Reg::HL) => self.reg_hl = value,
-      Operand::Reg(Reg::SP) => self.reg_sp = value,
-      Operand::Reg(Reg::PC) => self.reg_pc = value,
-      Operand::Addr(Addr::Imm16(i)) => self.write_u16(i, value),
+      Operand::RegAF => self.reg_af = value,
+      Operand::RegBC => self.reg_bc = value,
+      Operand::RegDE => self.reg_de = value,
+      Operand::RegHL => self.reg_hl = value,
+      Operand::RegSP => self.reg_sp = value,
+      Operand::RegPC => self.reg_pc = value,
+      Operand::AddrImm16(i) => self.write_u16(i, value),
       _ => panic!("cpu.write_operand_u16: unrecognized operand: {}", operand),
     }
   }
