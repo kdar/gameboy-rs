@@ -213,20 +213,13 @@ impl Disassembler {
         0x23 => Ok((Instruction::INC16(Operand::HL), pc)),
         0x33 => Ok((Instruction::INC16(Operand::SP), pc)),
 
-        0xe9 => Ok((Instruction::JP_HL, pc)),
+        0xc2 => imm!(Instruction::JP_cc[Operand::FlagNZ, imm16], m, addr, pc),
+        0xca => imm!(Instruction::JP_cc[Operand::FlagZ, imm16], m, addr, pc),
+        0xd2 => imm!(Instruction::JP_cc[Operand::FlagNC, imm16], m, addr, pc),
+        0xda => imm!(Instruction::JP_cc[Operand::FlagC, imm16], m, addr, pc),
 
-        0xc2 | 0xca | 0xd2 | 0xda => {
-          let cc = op >> 3 & 0b111;
-          let nn = try!(m.read_u16(addr + pc));
-          pc += 2;
-          Ok((Instruction::JP_cc_nn(Flag::from(cc), nn), pc))
-        }
-
-        0xc3 => {
-          let nn = try!(m.read_u16(addr + pc));
-          pc += 2;
-          Ok((Instruction::JP_nn(nn), pc))
-        }
+        0xe9 => Ok((Instruction::JP(Operand::HL), pc)),
+        0xc3 => imm!(Instruction::JP[imm16], m, addr, pc),
 
         0x20 => {
           let e = try!(m.read_u8(addr + pc));

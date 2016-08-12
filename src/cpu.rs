@@ -459,9 +459,8 @@ impl Cpu {
       Instruction::HALT => self.inst_HALT(),
       Instruction::INC8(o) => self.inst_INC8(o),
       Instruction::INC16(o) => self.inst_INC16(o),
-      Instruction::JP_HL => self.inst_JP_HL(),
-      Instruction::JP_cc_nn(cc, nn) => self.inst_JP_cc_nn(cc, nn),
-      Instruction::JP_nn(nn) => self.inst_JP_nn(nn),
+      Instruction::JP(o) => self.inst_JP(o),
+      Instruction::JP_cc(o1, o2) => self.inst_JP_cc(o1, o2),
       Instruction::JR_cc_e(cc, e) => self.inst_JR_cc_e(cc, e),
       Instruction::JR_e(e) => self.inst_JR_e(e),
       Instruction::LD_·0xFF00C·_A => self.inst_LD_·0xFF00C·_A(),
@@ -848,30 +847,24 @@ impl Cpu {
   }
 
   // JP HL
-  // Opcode: 0xe9
-  //
+  //   Opcode: 0xe9
+  // JP nn
+  //   Opcode: 0xc3
   #[allow(non_snake_case)]
-  fn inst_JP_HL(&mut self) {
-    let hl = self.read_reg_u16(Reg::HL);
-    self.reg_pc = hl;
+  fn inst_JP(&mut self, o: Operand) {
+    let val = self.read_operand_u16(o);
+    self.reg_pc = val;
   }
 
   // JP cc, nn
-  // Opcode: 11ccc010
+  // Opcode: 0xc2 | 0xca | 0xd2 | 0xda
   // Page: 257
   #[allow(non_snake_case)]
-  fn inst_JP_cc_nn(&mut self, cc: Flag, nn: u16) {
-    if self.read_flag(cc) {
-      self.reg_pc = nn;
+  fn inst_JP_cc(&mut self, o1: Operand, o2: Operand) {
+    if self.read_operand_u8(o1) != 0 {
+      let val = self.read_operand_u16(o2);
+      self.reg_pc = val;
     }
-  }
-
-  // JP nn
-  // Opcode: 0xC3
-  // Page: 256
-  #[allow(non_snake_case)]
-  fn inst_JP_nn(&mut self, nn: u16) {
-    self.reg_pc = nn;
   }
 
   // JR cc,e
