@@ -330,6 +330,7 @@ impl Disassembler {
         0x21 => I::LD16(O::RegHL, O::Imm16(try!(imm16(&mut pc)))),
         0x31 => I::LD16(O::RegSP, O::Imm16(try!(imm16(&mut pc)))),
         0xf8 => I::LDHL(O::RegSP, O::Imm8(try!(imm8(&mut pc)))),
+        0xf9 => I::LD16(O::RegSP, O::RegHL),
 
         0x22 => I::LDI(O::AddrHL, O::RegA),
         0x2a => I::LDI(O::RegA, O::AddrHL),
