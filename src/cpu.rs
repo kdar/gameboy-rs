@@ -194,7 +194,8 @@ impl Cpu {
         }
       }
       Operand::Imm(Imm::Imm8(i)) => i,
-      _ => panic!("cpu.read_operand_u8: unrecognized operand: {}", operand),
+      Operand::Addr(Addr::Imm16(i)) => self.read_u8(i),
+      _ => panic!("cpu.read_operand_u8: unrecognized operand: {:?}", operand),
     }
   }
 
@@ -308,7 +309,7 @@ impl Cpu {
     }
   }
 
-  pub fn read_u8(&mut self, addr: u16) -> u8 {
+  pub fn read_u8(&self, addr: u16) -> u8 {
     let val = self.system.read_u8(addr);
     match val {
       Ok(v) => v,
@@ -316,7 +317,7 @@ impl Cpu {
     }
   }
 
-  fn read_u16(&mut self, addr: u16) -> u16 {
+  fn read_u16(&self, addr: u16) -> u16 {
     let val = self.system.read_u16(addr);
     match val {
       Ok(v) => v,

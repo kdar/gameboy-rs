@@ -1,6 +1,7 @@
 #![feature(non_ascii_idents)]
 #![feature(custom_derive, plugin)]
 #![plugin(num_macros)]
+#![feature(concat_idents)]
 
 #[cfg(test)]
 extern crate difference;

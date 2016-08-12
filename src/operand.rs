@@ -3,15 +3,14 @@ use std::fmt;
 use super::flag::Flag;
 use super::reg::Reg;
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum Addr {
   BC,
   DE,
   HL,
   SP,
   Imm16(u16),
-  OffsetReg(Imm, Reg),
-  OffsetImm8(Imm, Imm),
+  OffsetReg(u16, Reg),
 }
 
 impl fmt::Display for Addr {
@@ -22,13 +21,12 @@ impl fmt::Display for Addr {
       Addr::HL => write!(f, "(HL)"),
       Addr::SP => write!(f, "(SP)"),
       Addr::Imm16(i) => write!(f, "(${:04x})", i),
-      Addr::OffsetReg(o, r) => write!(f, "({}+{})", o, r),
-      Addr::OffsetImm8(o, i) => write!(f, "({}+{})", o, i),
+      Addr::OffsetReg(o, r) => write!(f, "(${:04x}+{})", o, r),
     }
   }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum Imm {
   Imm8(u8),
   Imm16(u16),
@@ -43,7 +41,7 @@ impl fmt::Display for Imm {
   }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum Operand {
   Reg(Reg),
   Addr(Addr),
