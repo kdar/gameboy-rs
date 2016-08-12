@@ -162,6 +162,13 @@ impl Disassembler {
         0x8e => I::ADC(O::Reg(Reg::A), O::Addr(Addr::HL)),
         0xce => I::ADC(O::Reg(Reg::A), O::Imm(Imm::Imm8(try!(imm8(&mut pc))))),
 
+        0x87 => I::ADD8(O::Reg(Reg::A), O::Reg(Reg::A)),
+        0x80 => I::ADD8(O::Reg(Reg::A), O::Reg(Reg::B)),
+        0x81 => I::ADD8(O::Reg(Reg::A), O::Reg(Reg::C)),
+        0x82 => I::ADD8(O::Reg(Reg::A), O::Reg(Reg::D)),
+        0x83 => I::ADD8(O::Reg(Reg::A), O::Reg(Reg::E)),
+        0x84 => I::ADD8(O::Reg(Reg::A), O::Reg(Reg::H)),
+        0x85 => I::ADD8(O::Reg(Reg::A), O::Reg(Reg::L)),
         0x86 => I::ADD8(O::Reg(Reg::A), O::Addr(Addr::HL)),
         0xc6 => I::ADD8(O::Reg(Reg::A), O::Imm(Imm::Imm8(try!(imm8(&mut pc))))),
         0x09 => I::ADD16(O::Reg(Reg::HL), O::Reg(Reg::BC)),
