@@ -135,21 +135,18 @@ impl Disassembler {
       }
     } else {
       match op {
-        0x8e => Ok((Instruction::ADC_A_·HL·, pc)),
-
-        0xce => {
-          let n = try!(m.read_u8(addr + pc));
-          pc += 1;
-          Ok((Instruction::ADC_A_n(n), pc))
-        }
-
-        0x88 | 0x89 | 0x8a | 0x8b | 0x8c | 0x8d | 0x8f => {
-          let r = op & 0b111;
-          Ok((Instruction::ADC_A_r(Reg::from(r)), pc))
-        }
+        0x8f => Ok((Instruction::ADC(Operand::A, Operand::A), pc)),
+        0x88 => Ok((Instruction::ADC(Operand::A, Operand::B), pc)),
+        0x89 => Ok((Instruction::ADC(Operand::A, Operand::C), pc)),
+        0x8a => Ok((Instruction::ADC(Operand::A, Operand::D), pc)),
+        0x8b => Ok((Instruction::ADC(Operand::A, Operand::E), pc)),
+        0x8c => Ok((Instruction::ADC(Operand::A, Operand::H), pc)),
+        0x8d => Ok((Instruction::ADC(Operand::A, Operand::L), pc)),
+        0x8e => Ok((Instruction::ADC(Operand::A, Operand::_HL_), pc)),
+        0xce => imm!(Instruction::ADC[Operand::A, imm8], m, addr, pc),
 
         0x86 => Ok((Instruction::ADD8(Operand::A, Operand::_HL_), pc)),
-        0xc6 => imm8!(Instruction::ADD8[Operand::A, imm], m, addr, pc),
+        0xc6 => imm!(Instruction::ADD8[Operand::A, imm8], m, addr, pc),
 
         0x09 => Ok((Instruction::ADD16(Operand::HL, Operand::BC), pc)),
         0x19 => Ok((Instruction::ADD16(Operand::HL, Operand::DE), pc)),
@@ -164,7 +161,7 @@ impl Disassembler {
         0xa4 => Ok((Instruction::AND(Operand::H), pc)),
         0xa5 => Ok((Instruction::AND(Operand::L), pc)),
         0xa6 => Ok((Instruction::AND(Operand::_HL_), pc)),
-        0xe6 => imm8!(Instruction::AND[imm], m, addr, pc),
+        0xe6 => imm!(Instruction::AND[imm8], m, addr, pc),
 
         0xc4 | 0xcc | 0xd4 | 0xdc => {
           // | 0xe4 | 0xec | 0xf4 | 0xfc => {

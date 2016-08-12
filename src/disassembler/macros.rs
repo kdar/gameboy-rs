@@ -1,18 +1,18 @@
 #[macro_export]
-macro_rules! imm8 {
-  ($inst:path[imm], $m:ident, $addr:ident, $pc:ident) => ({
+macro_rules! imm {
+  ($inst:path[imm8], $m:ident, $addr:ident, $pc:ident) => ({
     let n = try!($m.read_u8($addr + $pc));
     $pc += 1;
     Ok(($inst(Operand::Imm8(n)), $pc))
   });
 
-  ($inst:path[$operand1:path, imm], $m:ident, $addr:ident, $pc:ident) => ({
+  ($inst:path[$operand1:path, imm8], $m:ident, $addr:ident, $pc:ident) => ({
     let n = try!($m.read_u8($addr + $pc));
     $pc += 1;
     Ok(($inst($operand1, Operand::Imm8(n)), $pc))
   });
 
-  ($inst:path[imm, $operand2:path], $m:ident, $addr:ident, $pc:ident) => ({
+  ($inst:path[imm8, $operand2:path], $m:ident, $addr:ident, $pc:ident) => ({
     let n = try!($m.read_u8($addr + $pc));
     $pc += 1;
     Ok(($inst(Operand::Imm8(n), $operand2), $pc))

@@ -16,9 +16,7 @@ pub enum Instruction {
   SRL(Operand),
   SWAP(Operand),
 
-  ADC_A_·HL·,
-  ADC_A_n(u8),
-  ADC_A_r(Reg),
+  ADC(Operand, Operand),
   ADD8(Operand, Operand),
   ADD16(Operand, Operand),
   AND(Operand),
@@ -88,9 +86,7 @@ impl fmt::Debug for Instruction {
       Instruction::SRL(o) => write!(f, "SRL {}", o),
       Instruction::SWAP(o) => write!(f, "SWAP {}", o),
 
-      Instruction::ADC_A_·HL· => write!(f, "ADC A,(HL)"),
-      Instruction::ADC_A_n(n) => write!(f, "ADC A,${:02x}", n),
-      Instruction::ADC_A_r(r) => write!(f, "ADC A,{}", r),
+      Instruction::ADC(o1, o2) => write!(f, "ADC {},{}", o1, o2),
       Instruction::ADD8(o1, o2) => write!(f, "ADD {},{}", o1, o2),
       Instruction::ADD16(o1, o2) => write!(f, "ADD {},{}", o1, o2),
       Instruction::AND(o) => write!(f, "AND {}", o),

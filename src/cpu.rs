@@ -403,9 +403,7 @@ impl Cpu {
       Instruction::SRL(o) => self.inst_SRL(o),
       Instruction::SWAP(v) => self.inst_SWAP(v),
 
-      Instruction::ADC_A_·HL· => self.inst_ADC_A_·HL·(),
-      Instruction::ADC_A_n(n) => self.inst_ADC_A_n(n),
-      Instruction::ADC_A_r(r) => self.inst_ADC_A_r(r),
+      Instruction::ADC(o1, o2) => self.inst_ADC(o1, o2),
       Instruction::ADD8(o1, o2) => self.inst_ADD8(o1, o2),
       Instruction::ADD16(o1, o2) => self.inst_ADD16(o1, o2),
       Instruction::AND(o) => self.inst_AND(o),
@@ -476,24 +474,6 @@ impl Cpu {
     let val = self.read_u16(sp);
     self.reg_sp += 2;
     val
-  }
-
-  fn adc(&mut self, d: u8) {
-    let a = self.read_reg_u8(Reg::A);
-    let c = if self.read_flag(Flag::C) {
-      1
-    } else {
-      0
-    };
-
-    let (result, carry1) = a.overflowing_add(d);
-    let (result, carry2) = result.overflowing_add(c);
-
-    self.write_reg_u8(Reg::A, result);
-    self.write_flag(Flag::Z, result == 0);
-    self.write_flag(Flag::N, false);
-    self.write_flag(Flag::H, (a & 0x0f) + (d & 0x0f) + c > 0x0f);
-    self.write_flag(Flag::C, carry1 || carry2);
   }
 
   // BIT b,r
@@ -629,30 +609,31 @@ impl Cpu {
   }
 
   // ADC A,(HL)
-  // Opcode: 0x8e
-  // Page: 164
-  #[allow(non_snake_case)]
-  fn inst_ADC_A_·HL·(&mut self) {
-    let hl = self.read_reg_u16(Reg::HL);
-    let val = self.read_u8(hl);
-    self.adc(val);
-  }
-
+  //   Opcode: 0x8e
   // ADC A,n
-  // Opcode: 0xce
-  // Page: 164
-  #[allow(non_snake_case)]
-  fn inst_ADC_A_n(&mut self, n: u8) {
-    self.adc(n);
-  }
-
+  //   Opcode: 0xce
   // ADC A,r
-  // Opcode: 10001rrr
+  //   Opcode: 0x88 | 0x89 | 0x8a | 0x8b | 0x8c | 0x8d | 0x8f
   // Page: 164
   #[allow(non_snake_case)]
-  fn inst_ADC_A_r(&mut self, r: Reg) {
-    let val = self.read_reg_u8(r);
-    self.adc(val);
+  fn inst_ADC(&mut self, o1: Operand, o2: Operand) {
+    let val1 = self.read_operand_u8(o1);
+    let val2 = self.read_operand_u8(o2);
+
+    let c = if self.read_flag(Flag::C) {
+      1
+    } else {
+      0
+    };
+
+    let (result, carry1) = val1.overflowing_add(val2);
+    let (result, carry2) = result.overflowing_add(c);
+
+    self.write_operand_u8(o1, result);
+    self.write_flag(Flag::Z, result == 0);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, (val1 & 0x0f) + (val2 & 0x0f) + c > 0x0f);
+    self.write_flag(Flag::C, carry1 || carry2);
   }
 
   // ADD A,n
