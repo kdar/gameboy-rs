@@ -400,7 +400,7 @@ impl Cpu {
       Instruction::RL(o) => self.inst_RL(o),
       Instruction::RR(o) => self.inst_RR(o),
       Instruction::RLA => self.inst_RLA(),
-      Instruction::SRL_r(r) => self.inst_SRL_r(r),
+      Instruction::SRL(o) => self.inst_SRL(o),
       Instruction::SWAP(v) => self.inst_SWAP(v),
 
       Instruction::ADC_A_·HL· => self.inst_ADC_A_·HL·(),
@@ -594,16 +594,18 @@ impl Cpu {
   }
 
   // SRL r
-  // Opcode: 0xCB 00111rrr
+  //   Opcode: 0xcb 0x3f | 0x38 | 0x39 | 0x3a | 0x3b | 0x3c | 0x3d
+  // SRL (HL)
+  //   Opcode: 0xcb 0x3e
   // Page: 235
   #[allow(non_snake_case)]
-  fn inst_SRL_r(&mut self, r: Reg) {
-    let val = self.read_reg_u8(r);
+  fn inst_SRL(&mut self, o: Operand) {
+    let val = self.read_operand_u8(o);
     let carry = val & 0x1 != 0;
 
     let val = val.wrapping_shr(1);
 
-    self.write_reg_u8(r, val);
+    self.write_operand_u8(o, val);
     self.write_flag(Flag::Z, val == 0);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, false);
