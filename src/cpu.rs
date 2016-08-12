@@ -451,8 +451,7 @@ impl Cpu {
       Instruction::AND(o) => self.inst_AND(o),
       Instruction::CALL_cc(o1, o2) => self.inst_CALL_cc(o1, o2),
       Instruction::CALL(o) => self.inst_CALL(o),
-      Instruction::CP_·HL· => self.inst_CP_·HL·(),
-      Instruction::CP_n(n) => self.inst_CP_n(n),
+      Instruction::CP(o) => self.inst_CP(o),
       Instruction::DEC_·HL· => self.inst_DEC_·HL·(),
       Instruction::DEC_r(r) => self.inst_DEC_r(r),
       Instruction::DEC_rr(r) => self.inst_DEC_rr(r),
@@ -756,33 +755,22 @@ impl Cpu {
     self.reg_pc = nn;
   }
 
+  // CP n
+  //   Opcode: 0xfe
+  // CP r
+  //   Opcode: 0xbf | 0xb8 | 0xb9 | 0xba | 0xbb | 0xbc | 0xbd
   // CP (HL)
-  // Opcode: 0xBE
+  //   Opcode: 0xbe
   // Page: 176
   #[allow(non_snake_case)]
-  fn inst_CP_·HL·(&mut self) {
-    let hl = self.read_reg_u16(Reg::HL);
-    let val = self.read_u8(hl);
+  fn inst_CP(&mut self, o: Operand) {
+    let val = self.read_operand_u8(o);
     let a = self.read_reg_u8(Reg::A);
     let (result, carry) = a.overflowing_sub(val);
 
     self.write_flag(Flag::Z, result == 0);
     self.write_flag(Flag::N, true);
     self.write_flag(Flag::H, a & 0x0F < val & 0x0F);
-    self.write_flag(Flag::C, carry);
-  }
-
-  // CP n
-  // Opcode: 0xFE
-  // Page: 176
-  #[allow(non_snake_case)]
-  fn inst_CP_n(&mut self, n: u8) {
-    let a = self.read_reg_u8(Reg::A);
-    let (result, carry) = a.overflowing_sub(n);
-
-    self.write_flag(Flag::Z, result == 0);
-    self.write_flag(Flag::N, true);
-    self.write_flag(Flag::H, a & 0x0F < n & 0x0F);
     self.write_flag(Flag::C, carry);
   }
 
