@@ -387,16 +387,15 @@ impl Disassembler {
 
         0x00 => I::NOP,
 
-        0xae => I::XOR_·HL·,
-        0xee => {
-          let n = try!(m.read_u8(addr + pc));
-          pc += 1;
-          I::XOR_n(n)
-        }
-        0xa8 | 0xa9 | 0xaa | 0xab | 0xac | 0xad | 0xaf => {
-          let r = op & 0b111;
-          I::XOR_r(Reg::from(r))
-        }
+        0xaf => I::XOR(O::Reg(Reg::A), O::Reg(Reg::A)),
+        0xa8 => I::XOR(O::Reg(Reg::A), O::Reg(Reg::B)),
+        0xa9 => I::XOR(O::Reg(Reg::A), O::Reg(Reg::C)),
+        0xaa => I::XOR(O::Reg(Reg::A), O::Reg(Reg::D)),
+        0xab => I::XOR(O::Reg(Reg::A), O::Reg(Reg::E)),
+        0xac => I::XOR(O::Reg(Reg::A), O::Reg(Reg::H)),
+        0xad => I::XOR(O::Reg(Reg::A), O::Reg(Reg::L)),
+        0xae => I::XOR(O::Reg(Reg::A), O::Addr(Addr::HL)),
+        0xee => I::XOR(O::Reg(Reg::A), O::Imm(Imm::Imm8(try!(imm8(&mut pc))))),
 
         _ => I::Invalid(op),
         // _ => panic!("instruction_at: instruction not implemented: 0x{:02x}", op),

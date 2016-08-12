@@ -477,9 +477,7 @@ impl Cpu {
       Instruction::RST(o) => self.inst_RST(o),
       Instruction::SUB(o1, o2) => self.inst_SUB(o1, o2),
       Instruction::NOP => self.inst_NOP(),
-      Instruction::XOR_·HL· => self.inst_XOR_·HL·(),
-      Instruction::XOR_n(n) => self.inst_XOR_n(n),
-      Instruction::XOR_r(r) => self.inst_XOR_r(r),
+      Instruction::XOR(o1, o2) => self.inst_XOR(o1, o2),
 
       _ => panic!("instruction not implemented: {:?}\n{:?}", ins, self),
     };
@@ -1035,54 +1033,22 @@ impl Cpu {
   }
 
   // XOR (HL)
-  // Opcode: 0xae
-  // Page: 174
-  #[allow(non_snake_case)]
-  fn inst_XOR_·HL·(&mut self) {
-    let hl = self.read_reg_u16(Reg::HL);
-    let val = self.read_u8(hl);
-    let mut a = self.read_reg_u8(Reg::A);
-    a ^= val;
-    self.write_reg_u8(Reg::A, a);
-
-    self.write_flag(Flag::Z, a == 0);
-    self.write_flag(Flag::N, false);
-    self.write_flag(Flag::H, false);
-    self.write_flag(Flag::C, false);
-  }
-
+  //   Opcode: 0xae
+  //   Page: 174
   // XOR n
-  // Opcode: 0xee
-  // Page: 174
-  // This instruction is a subset of the defined instruction in the pdf.
-  // The superset instruction is XOR s, where s can be r, n, (HL), (IX+d)
-  // or (IY+d).
-  #[allow(non_snake_case)]
-  fn inst_XOR_n(&mut self, n: u8) {
-    let mut a = self.read_reg_u8(Reg::A);
-    a ^= n;
-    self.write_reg_u8(Reg::A, a);
-
-    self.write_flag(Flag::Z, a == 0);
-    self.write_flag(Flag::N, false);
-    self.write_flag(Flag::H, false);
-    self.write_flag(Flag::C, false);
-  }
-
+  //   Opcode: 0xee
+  //   Page: 174
   // XOR r
-  // Opcode: 10110rrr
-  // Page: 174
-  // This instruction is a subset of the defined instruction in the pdf.
-  // The superset instruction is XOR s, where s can be r, n, (HL), (IX+d)
-  // or (IY+d).
+  //   Opcode: 10110rrr
+  //   Page: 174
   #[allow(non_snake_case)]
-  fn inst_XOR_r(&mut self, r: Reg) {
-    let val = self.read_reg_u8(r);
-    let mut a = self.read_reg_u8(Reg::A);
-    a ^= val;
-    self.write_reg_u8(Reg::A, a);
+  fn inst_XOR(&mut self, o1: Operand, o2: Operand) {
+    let val1 = self.read_operand_u8(o1);
+    let val2 = self.read_operand_u8(o2);
+    let result = val1 ^ val2;
 
-    self.write_flag(Flag::Z, a == 0);
+    self.write_operand_u8(o1, result);
+    self.write_flag(Flag::Z, result == 0);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, false);
     self.write_flag(Flag::C, false);

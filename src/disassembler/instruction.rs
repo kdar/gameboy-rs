@@ -49,9 +49,7 @@ pub enum Instruction {
   RRA,
   RST(Operand),
   SUB(Operand, Operand),
-  XOR_·HL·,
-  XOR_n(u8),
-  XOR_r(Reg),
+  XOR(Operand, Operand),
 }
 
 impl fmt::Debug for Instruction {
@@ -99,9 +97,7 @@ impl fmt::Debug for Instruction {
       Instruction::RRA => write!(f, "RRA"),
       Instruction::RST(o) => write!(f, "RST {}", o),
       Instruction::SUB(o1, o2) => write!(f, "SUB {},{}", o1, o2),
-      Instruction::XOR_·HL· => write!(f, "XOR (HL)"),
-      Instruction::XOR_n(n) => write!(f, "XOR ${:02x}", n),
-      Instruction::XOR_r(r) => write!(f, "XOR {}", r),
+      Instruction::XOR(o1, o2) => write!(f, "XOR {},{}", o1, o2),
     }
   }
 }
