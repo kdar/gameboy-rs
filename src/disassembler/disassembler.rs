@@ -375,16 +375,15 @@ impl Disassembler {
         0xf7 => I::RST(O::Imm(Imm::Imm8(0x30))),
         0xff => I::RST(O::Imm(Imm::Imm8(0x38))),
 
-        0xd6 => {
-          let n = try!(m.read_u8(addr + pc));
-          pc += 1;
-          I::SUB_n(n)
-        }
-
-        0x90 | 0x91 | 0x92 | 0x93 | 0x94 | 0x95 | 0x97 => {
-          let r = op & 0b111;
-          I::SUB_r(Reg::from(r))
-        }
+        0x97 => I::SUB8(O::Reg(Reg::A), O::Reg(Reg::A)),
+        0x90 => I::SUB8(O::Reg(Reg::A), O::Reg(Reg::B)),
+        0x91 => I::SUB8(O::Reg(Reg::A), O::Reg(Reg::C)),
+        0x92 => I::SUB8(O::Reg(Reg::A), O::Reg(Reg::D)),
+        0x93 => I::SUB8(O::Reg(Reg::A), O::Reg(Reg::E)),
+        0x94 => I::SUB8(O::Reg(Reg::A), O::Reg(Reg::H)),
+        0x95 => I::SUB8(O::Reg(Reg::A), O::Reg(Reg::L)),
+        0x96 => I::SUB8(O::Reg(Reg::A), O::Addr(Addr::HL)),
+        0xd6 => I::SUB8(O::Reg(Reg::A), O::Imm(Imm::Imm8(try!(imm8(&mut pc))))),
 
         0x00 => I::NOP,
         0xae => I::XOR_·HL·,

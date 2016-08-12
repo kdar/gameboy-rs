@@ -475,8 +475,7 @@ impl Cpu {
       Instruction::RET_cc(o) => self.inst_RET_cc(o),
       Instruction::RRA => self.inst_RRA(),
       Instruction::RST(o) => self.inst_RST(o),
-      Instruction::SUB_n(n) => self.inst_SUB_n(n),
-      Instruction::SUB_r(r) => self.inst_SUB_r(r),
+      Instruction::SUB8(o1, o2) => self.inst_SUB8(o1, o2),
       Instruction::NOP => self.inst_NOP(),
       Instruction::XOR_·HL· => self.inst_XOR_·HL·(),
       Instruction::XOR_n(n) => self.inst_XOR_n(n),
@@ -1017,33 +1016,21 @@ impl Cpu {
   }
 
   // SUB n
-  // Opcode: 0xd6
-  // Page: 166
-  #[allow(non_snake_case)]
-  fn inst_SUB_n(&mut self, n: u8) {
-    let a = self.read_reg_u8(Reg::A);
-    let (result, carry) = a.overflowing_sub(n);
-
-    self.write_reg_u8(Reg::A, result);
-    self.write_flag(Flag::Z, result == 0);
-    self.write_flag(Flag::N, true);
-    self.write_flag(Flag::H, a & 0x0F < n & 0x0F);
-    self.write_flag(Flag::C, carry);
-  }
-
+  //   Opcode: 0xd6
+  //   Page: 166
   // SUB r
-  // Opcode: 10010rrr
-  // Page: 166
+  //   Opcode: 0x90 | 0x91 | 0x92 | 0x93 | 0x94 | 0x95 | 0x97
+  //   Page: 166
   #[allow(non_snake_case)]
-  fn inst_SUB_r(&mut self, r: Reg) {
-    let a = self.read_reg_u8(Reg::A);
-    let val = self.read_reg_u8(r);
-    let (result, carry) = a.overflowing_sub(val);
+  fn inst_SUB8(&mut self, o1: Operand, o2: Operand) {
+    let val1 = self.read_operand_u8(o1);
+    let val2 = self.read_operand_u8(o2);
+    let (result, carry) = val1.overflowing_sub(val2);
 
-    self.write_reg_u8(Reg::A, result);
+    self.write_operand_u8(o1, result);
     self.write_flag(Flag::Z, result == 0);
     self.write_flag(Flag::N, true);
-    self.write_flag(Flag::H, a & 0x0F < val & 0x0F);
+    self.write_flag(Flag::H, val1 & 0x0F < val2 & 0x0F);
     self.write_flag(Flag::C, carry);
   }
 
