@@ -468,8 +468,7 @@ impl Cpu {
       Instruction::LD16(o1, o2) => self.inst_LD16(o1, o2),
       Instruction::LDD(o1, o2) => self.inst_LDD(o1, o2),
       Instruction::LDI(o1, o2) => self.inst_LDI(o1, o2),
-      Instruction::OR_A_·HL· => self.inst_OR_A_·HL·(),
-      Instruction::OR_r(r) => self.inst_OR_r(r),
+      Instruction::OR(o1, o2) => self.inst_OR(o1, o2),
       Instruction::POP_rr(rr) => self.inst_POP_rr(rr),
       Instruction::PUSH_rr(rr) => self.inst_PUSH_rr(rr),
       Instruction::RET => self.inst_RET(),
@@ -921,35 +920,25 @@ impl Cpu {
   }
 
   // NOP
-  // 0x00
+  //   Opcode: 0x00
   #[allow(non_snake_case)]
   fn inst_NOP(&self) {}
 
+  // OR A,(HL)
+  //   Opcode: 0xb6
+  //   Page: 172
   // OR r
-  // Opcode: 0xb6
-  // Page: 172
+  //   Opcode: 0xb0 | 0xb1 | 0xb2 | 0xb3 | 0xb4 | 0xb5 | 0xb7
+  //   Page: 172
+  // OR n
+  //   Opcode: 0xf6
   #[allow(non_snake_case)]
-  fn inst_OR_A_·HL·(&mut self) {
-    let hl = self.read_reg_u16(Reg::HL);
-    let val = self.read_u8(hl);
-    let result = self.read_reg_u8(Reg::A) | val;
+  fn inst_OR(&mut self, o1: Operand, o2: Operand) {
+    let val1 = self.read_operand_u8(o1);
+    let val2 = self.read_operand_u8(o2);
+    let result = val1 | val2;
 
-    self.write_reg_u8(Reg::A, result);
-    self.write_flag(Flag::Z, result == 0);
-    self.write_flag(Flag::H, false);
-    self.write_flag(Flag::N, false);
-    self.write_flag(Flag::C, false);
-  }
-
-  // OR r
-  // Opcode: 10110rrr
-  // Page: 172
-  #[allow(non_snake_case)]
-  fn inst_OR_r(&mut self, r: Reg) {
-    let val = self.read_reg_u8(r);
-    let result = self.read_reg_u8(Reg::A) | val;
-
-    self.write_reg_u8(Reg::A, result);
+    self.write_operand_u8(o1, result);
     self.write_flag(Flag::Z, result == 0);
     self.write_flag(Flag::H, false);
     self.write_flag(Flag::N, false);

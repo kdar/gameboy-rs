@@ -336,12 +336,15 @@ impl Disassembler {
         0x32 => I::LDD(O::Addr(Addr::HL), O::Reg(Reg::A)),
         0x3a => I::LDD(O::Reg(Reg::A), O::Addr(Addr::HL)),
 
-        0xb6 => I::OR_A_·HL·,
-
-        0xb0 | 0xb1 | 0xb2 | 0xb3 | 0xb4 | 0xb5 | 0xb7 => {
-          let r = op & 0b111;
-          I::OR_r(Reg::from(r))
-        }
+        0xb7 => I::OR(O::Reg(Reg::A), O::Reg(Reg::A)),
+        0xb0 => I::OR(O::Reg(Reg::A), O::Reg(Reg::B)),
+        0xb1 => I::OR(O::Reg(Reg::A), O::Reg(Reg::C)),
+        0xb2 => I::OR(O::Reg(Reg::A), O::Reg(Reg::D)),
+        0xb3 => I::OR(O::Reg(Reg::A), O::Reg(Reg::E)),
+        0xb4 => I::OR(O::Reg(Reg::A), O::Reg(Reg::H)),
+        0xb5 => I::OR(O::Reg(Reg::A), O::Reg(Reg::L)),
+        0xb6 => I::OR(O::Reg(Reg::A), O::Addr(Addr::HL)),
+        0xf6 => I::OR(O::Reg(Reg::A), O::Imm(Imm::Imm8(try!(imm8(&mut pc))))),
 
         0xc1 | 0xd1 | 0xe1 | 0xf1 => {
           let rr = op >> 4 & 0b11;
