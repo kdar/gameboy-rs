@@ -138,10 +138,14 @@ impl Disassembler {
         0x15 => Ok((Instruction::RL(Operand::L), pc)),
         0x16 => Ok((Instruction::RL(Operand::_HL_), pc)),
 
-        0x18 | 0x19 | 0x1a | 0x1b | 0x1c | 0x1d | 0x1e | 0x1f => {
-          let r = op & 0b111;
-          Ok((Instruction::RR_r(Reg::from(r)), pc))
-        }
+        0x1f => Ok((Instruction::RR(Operand::A), pc)),
+        0x18 => Ok((Instruction::RR(Operand::B), pc)),
+        0x19 => Ok((Instruction::RR(Operand::C), pc)),
+        0x1a => Ok((Instruction::RR(Operand::D), pc)),
+        0x1b => Ok((Instruction::RR(Operand::E), pc)),
+        0x1c => Ok((Instruction::RR(Operand::H), pc)),
+        0x1d => Ok((Instruction::RR(Operand::L), pc)),
+        0x1e => Ok((Instruction::RR(Operand::_HL_), pc)),
 
         0x38 | 0x39 | 0x3a | 0x3b | 0x3c | 0x3d | 0x3f => {
           let r = op & 0b111;

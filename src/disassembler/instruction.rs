@@ -12,7 +12,7 @@ pub enum Instruction {
   // 0xCB instructions
   BIT(Operand, Operand),
   RL(Operand),
-  RR_r(Reg),
+  RR(Operand),
   SRL_r(Reg),
   SWAP(Operand),
 
@@ -84,7 +84,7 @@ impl fmt::Debug for Instruction {
 
       Instruction::BIT(o1, o2) => write!(f, "BIT {},{}", o1, o2),
       Instruction::RL(o) => write!(f, "RL {}", o),
-      Instruction::RR_r(r) => write!(f, "RR {}", r),
+      Instruction::RR(o) => write!(f, "RR {}", o),
       Instruction::SRL_r(r) => write!(f, "SRL {}", r),
       Instruction::SWAP(o) => write!(f, "SWAP {}", o),
 

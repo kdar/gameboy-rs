@@ -382,8 +382,7 @@ impl Cpu {
       Instruction::Invalid(d) => {
         // Ignore instructions that the Gameboy doesn't support.
         match d {
-          0xFC => (),
-          _ => {
+          0xFC | _ => {
             panic!("execute_instruction: Invalid instruction encountered: {:#04x}\n{:?}",
                    d,
                    self)
@@ -399,7 +398,7 @@ impl Cpu {
       // 0xCB instructions
       Instruction::BIT(o1, o2) => self.inst_BIT(o1, o2),
       Instruction::RL(o) => self.inst_RL(o),
-      Instruction::RR_r(r) => self.inst_RR_r(r),
+      Instruction::RR(o) => self.inst_RR(o),
       Instruction::RLA => self.inst_RLA(),
       Instruction::SRL_r(r) => self.inst_SRL_r(r),
       Instruction::SWAP(v) => self.inst_SWAP(v),
@@ -525,44 +524,46 @@ impl Cpu {
   // Page: 220
   #[allow(non_snake_case)]
   fn inst_RL(&mut self, o: Operand) {
-    let mut d = self.read_operand_u8(o);
+    let mut val = self.read_operand_u8(o);
     let carry = self.read_flag(Flag::C);
 
-    d <<= 1;
+    val <<= 1;
 
     if carry {
-      d |= 1; // set bit 0 to 1
+      val |= 1; // set bit 0 to 1
     } else {
-      d &= !1; // set bit 0 to 0
+      val &= !1; // set bit 0 to 0
     }
 
-    self.write_operand_u8(o, d);
-    self.write_flag(Flag::Z, d == 0);
+    self.write_operand_u8(o, val);
+    self.write_flag(Flag::Z, val == 0);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, false);
-    self.write_flag(Flag::C, d & (1 << 7) != 0);
+    self.write_flag(Flag::C, val & (1 << 7) != 0);
   }
 
   // RR r
-  // Opcode: 0xCB 00011rrr
+  //   Opcode: 0xcb 0x1f | 0x18 | 0x19 | 0x1a | 0x1b | 0x1c | 0x1d
+  // RR (HL)
+  //   Opcode: 0xcb 0x1e
   // Page: 226
   // Opcode incorrect in z80undocumented manual
   #[allow(non_snake_case)]
-  fn inst_RR_r(&mut self, r: Reg) {
-    let mut d = self.read_reg_u8(r);
+  fn inst_RR(&mut self, o: Operand) {
+    let mut val = self.read_operand_u8(o);
     let prev_carry = self.read_flag(Flag::C);
-    let carry = d & 1 != 0;
+    let carry = val & 1 != 0;
 
-    d >>= 1;
+    val >>= 1;
 
     if prev_carry {
-      d |= 0b10000000; // set bit 7 to 1
+      val |= 0b10000000; // set bit 7 to 1
     } else {
-      d &= !0b10000000; // set bit 7 to 0
+      val &= !0b10000000; // set bit 7 to 0
     }
 
-    self.write_reg_u8(r, d);
-    self.write_flag(Flag::Z, d == 0);
+    self.write_operand_u8(o, val);
+    self.write_flag(Flag::Z, val == 0);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, false);
     self.write_flag(Flag::C, carry);
