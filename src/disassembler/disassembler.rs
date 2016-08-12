@@ -364,13 +364,16 @@ impl Disassembler {
 
         0x17 => I::RLA,
         0x07 => I::RLCA,
-
         0x1f => I::RRA,
 
-        0xc7 | 0xcf | 0xd7 | 0xdf | 0xe7 | 0xef | 0xf7 | 0xff => {
-          let t = op >> 3 & 0b111;
-          I::RST_t(t)
-        }
+        0xc7 => I::RST(O::Imm(Imm::Imm8(0x00))),
+        0xcf => I::RST(O::Imm(Imm::Imm8(0x08))),
+        0xd7 => I::RST(O::Imm(Imm::Imm8(0x10))),
+        0xdf => I::RST(O::Imm(Imm::Imm8(0x18))),
+        0xe7 => I::RST(O::Imm(Imm::Imm8(0x20))),
+        0xef => I::RST(O::Imm(Imm::Imm8(0x28))),
+        0xf7 => I::RST(O::Imm(Imm::Imm8(0x30))),
+        0xff => I::RST(O::Imm(Imm::Imm8(0x38))),
 
         0xd6 => {
           let n = try!(m.read_u8(addr + pc));

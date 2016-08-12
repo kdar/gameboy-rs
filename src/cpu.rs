@@ -474,7 +474,7 @@ impl Cpu {
       Instruction::RET => self.inst_RET(),
       Instruction::RET_cc(o) => self.inst_RET_cc(o),
       Instruction::RRA => self.inst_RRA(),
-      Instruction::RST_t(t) => self.inst_RST_t(t),
+      Instruction::RST(o) => self.inst_RST(o),
       Instruction::SUB_n(n) => self.inst_SUB_n(n),
       Instruction::SUB_r(r) => self.inst_SUB_r(r),
       Instruction::NOP => self.inst_NOP(),
@@ -1006,13 +1006,14 @@ impl Cpu {
   }
 
   // RST n
-  // Opcode: 11ttt111
-  // Page: 285
+  //   Opcode: 0xc7 | 0xcf | 0xd7 | 0xdf | 0xe7 | 0xef | 0xf7 | 0xff
+  //   Page: 285
   #[allow(non_snake_case)]
-  fn inst_RST_t(&mut self, t: u8) {
+  fn inst_RST(&mut self, o: Operand) {
     let pc = self.reg_pc;
     self.push_word(pc);
-    self.reg_pc = t as u16 * 0x08;
+    let val = self.read_operand_u8(o);
+    self.reg_pc = val as u16 * 0x08;
   }
 
   // SUB n
