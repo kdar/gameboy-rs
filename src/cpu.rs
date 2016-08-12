@@ -508,6 +508,7 @@ impl Cpu {
       Instruction::PUSH16(o) => self.inst_PUSH16(o),
       Instruction::RET => self.inst_RET(),
       Instruction::RET_cc(o) => self.inst_RET_cc(o),
+      Instruction::RLCA => self.inst_RLCA(),
       Instruction::RRA => self.inst_RRA(),
       Instruction::RST(o) => self.inst_RST(o),
       Instruction::SUB(o1, o2) => self.inst_SUB(o1, o2),
@@ -601,30 +602,6 @@ impl Cpu {
 
     self.write_operand_u8(o, val);
     self.write_flag(Flag::Z, val == 0);
-    self.write_flag(Flag::N, false);
-    self.write_flag(Flag::H, false);
-    self.write_flag(Flag::C, carry);
-  }
-
-  // RLA
-  // Opcode: 0xCB 0x17
-  // Page: 209
-  #[allow(non_snake_case)]
-  fn inst_RLA(&mut self) {
-    let mut d = self.read_reg_u8(Reg::A);
-    let prev_carry = self.read_flag(Flag::C);
-    let carry = d & (1 << 7) != 0;
-
-    d <<= 1;
-
-    if prev_carry {
-      d |= 1; // set bit 0 to 1
-    } else {
-      d &= !1; // set bit 0 to 0
-    }
-
-    self.write_reg_u8(Reg::A, d);
-    self.write_flag(Flag::Z, false);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, false);
     self.write_flag(Flag::C, carry);
@@ -1028,9 +1005,48 @@ impl Cpu {
     }
   }
 
+  // RLA
+  // Opcode: 0xCB 0x17
+  // Page: 209
+  #[allow(non_snake_case)]
+  fn inst_RLA(&mut self) {
+    let mut d = self.read_reg_u8(Reg::A);
+    let prev_carry = self.read_flag(Flag::C);
+    let carry = d & (1 << 7) != 0;
+
+    d <<= 1;
+
+    if prev_carry {
+      d |= 1; // set bit 0 to 1
+    } else {
+      d &= !1; // set bit 0 to 0
+    }
+
+    self.write_reg_u8(Reg::A, d);
+    self.write_flag(Flag::Z, false);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, false);
+    self.write_flag(Flag::C, carry);
+  }
+
+  // RLCA
+  //   Opcode: 0x07
+  #[allow(non_snake_case)]
+  fn inst_RLCA(&mut self) {
+    let val = self.read_reg_u8(Reg::A);
+    let carry = val & 0b10000000 != 0;
+    let result = val.rotate_left(1);
+
+    self.write_reg_u8(Reg::A, result);
+    self.write_flag(Flag::Z, false);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, false);
+    self.write_flag(Flag::C, carry);
+  }
+
   // RRA
-  // Opcode: 0x1f
-  // Page: 211
+  //   Opcode: 0x1f
+  //   Page: 211
   #[allow(non_snake_case)]
   fn inst_RRA(&mut self) {
     let mut val = self.read_reg_u8(Reg::A);

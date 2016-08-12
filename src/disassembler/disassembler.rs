@@ -366,6 +366,7 @@ impl Disassembler {
         0x17 => I::RLA,
         0x07 => I::RLCA,
         0x1f => I::RRA,
+        0x0f => I::RRCA,
 
         0xc7 => I::RST(O::Imm8(0x00)),
         0xcf => I::RST(O::Imm8(0x08)),
