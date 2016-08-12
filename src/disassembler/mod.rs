@@ -42,13 +42,20 @@ pub fn dump_all(rom: Box<[u8]>) {
     // let hex = to_hex(&rom[(pc as usize)..(pc as usize) + inc as usize]);
     let hex = to_hex(dump.read_vec(pc, inc).unwrap().as_slice());
     match ins {
-      Instruction::JR_cc_e(_, e) => {
-        println!("{:04x} {:12} {:20} ; Addr: {}",
-                 pc,
-                 hex,
-                 format!("{:?}", ins),
-                 (pc as i16) + (e as i16) + inc as i16)
-      }
+      // FIXME: just need to redesign how the disassembler works. I shouldn't
+      // make exceptions for instructions here.
+      // Instruction::JR_cc(_, o2) => {
+      //  let val = match o2 {
+      //    Operand::Imm8(v) => v as i16,
+      //    Operand::Imm16(v) => v as i16,
+      //    _ => panic!("disassembler.dump_all: unknown operand: {}", o2),
+      //  };
+      //  println!("{:04x} {:12} {:20} ; Addr: {}",
+      //           pc,
+      //           hex,
+      //           format!("{:?}", ins),
+      //           (pc as i16) + val + inc as i16)
+      // }
       _ => println!("{:04x} {:12} {:12?}", pc, hex, ins),
     }
     pc += inc;
