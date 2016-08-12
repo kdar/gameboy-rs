@@ -4,7 +4,7 @@ use std::cmp::PartialEq;
 
 use super::reg::Reg;
 use super::flag::Flag;
-use super::operand::Operand;
+use super::operand::{Operand, Imm, Addr};
 use super::disassembler::Instruction;
 use super::disassembler::Disassembler;
 use super::system::{System, SystemCtrl};
@@ -127,130 +127,130 @@ impl Cpu {
 
   pub fn read_operand_u8(&mut self, operand: Operand) -> u8 {
     match operand {
-      Operand::A => high_byte(self.reg_af),
-      Operand::F => low_byte(self.reg_af),
-      Operand::B => high_byte(self.reg_bc),
-      Operand::C => low_byte(self.reg_bc),
-      Operand::D => high_byte(self.reg_de),
-      Operand::E => low_byte(self.reg_de),
-      Operand::H => high_byte(self.reg_hl),
-      Operand::L => low_byte(self.reg_hl),
-      Operand::_BC_ => {
+      Operand::Reg(Reg::A) => high_byte(self.reg_af),
+      Operand::Reg(Reg::F) => low_byte(self.reg_af),
+      Operand::Reg(Reg::B) => high_byte(self.reg_bc),
+      Operand::Reg(Reg::C) => low_byte(self.reg_bc),
+      Operand::Reg(Reg::D) => high_byte(self.reg_de),
+      Operand::Reg(Reg::E) => low_byte(self.reg_de),
+      Operand::Reg(Reg::H) => high_byte(self.reg_hl),
+      Operand::Reg(Reg::L) => low_byte(self.reg_hl),
+      Operand::Addr(Addr::BC) => {
         let bc = self.reg_bc;
         self.read_u8(bc)
       }
-      Operand::_DE_ => {
+      Operand::Addr(Addr::DE) => {
         let de = self.reg_de;
         self.read_u8(de)
       }
-      Operand::_HL_ => {
+      Operand::Addr(Addr::HL) => {
         let hl = self.reg_hl;
         self.read_u8(hl)
       }
-      Operand::_SP_ => {
+      Operand::Addr(Addr::SP) => {
         let sp = self.reg_sp;
         self.read_u8(sp)
       }
-      Operand::FlagZ => {
+      Operand::Flag(Flag::Z) => {
         if 0b10000000 & self.reg_af != 0 {
           1
         } else {
           0
         }
       }
-      Operand::FlagN => {
+      Operand::Flag(Flag::N) => {
         if 0b01000000 & self.reg_af != 0 {
           1
         } else {
           0
         }
       }
-      Operand::FlagH => {
+      Operand::Flag(Flag::H) => {
         if 0b00100000 & self.reg_af != 0 {
           1
         } else {
           0
         }
       }
-      Operand::FlagC => {
+      Operand::Flag(Flag::C) => {
         if 0b00010000 & self.reg_af != 0 {
           1
         } else {
           0
         }
       }
-      Operand::FlagNZ => {
+      Operand::Flag(Flag::NZ) => {
         if 0b10000000 & self.reg_af == 0 {
           1
         } else {
           0
         }
       }
-      Operand::FlagNC => {
+      Operand::Flag(Flag::NC) => {
         if 0b00010000 & self.reg_af == 0 {
           1
         } else {
           0
         }
       }
-      Operand::Imm8(i) => i,
+      Operand::Imm(Imm::Imm8(i)) => i,
       _ => panic!("cpu.read_operand_u8: unrecognized operand: {}", operand),
     }
   }
 
   pub fn read_operand_u16(&self, operand: Operand) -> u16 {
     match operand {
-      Operand::AF => self.reg_af,
-      Operand::BC => self.reg_bc,
-      Operand::DE => self.reg_de,
-      Operand::HL => self.reg_hl,
-      Operand::SP => self.reg_sp,
-      Operand::PC => self.reg_pc,
-      Operand::Imm16(i) => i,
+      Operand::Reg(Reg::AF) => self.reg_af,
+      Operand::Reg(Reg::BC) => self.reg_bc,
+      Operand::Reg(Reg::DE) => self.reg_de,
+      Operand::Reg(Reg::HL) => self.reg_hl,
+      Operand::Reg(Reg::SP) => self.reg_sp,
+      Operand::Reg(Reg::PC) => self.reg_pc,
+      Operand::Imm(Imm::Imm16(i)) => i,
       _ => panic!("cpu.read_operand_u16: unrecognized operand: {}", operand),
     }
   }
 
   pub fn write_operand_u8(&mut self, operand: Operand, value: u8) {
     match operand {
-      Operand::A => self.reg_af = (value as u16) << 8 | low_byte(self.reg_af) as u16,
-      Operand::F => self.reg_af = (high_byte(self.reg_af) as u16) << 8 | value as u16,
-      Operand::B => self.reg_bc = (value as u16) << 8 | low_byte(self.reg_bc) as u16,
-      Operand::C => self.reg_bc = (high_byte(self.reg_bc) as u16) << 8 | value as u16,
-      Operand::D => self.reg_de = (value as u16) << 8 | low_byte(self.reg_de) as u16,
-      Operand::E => self.reg_de = (high_byte(self.reg_de) as u16) << 8 | value as u16,
-      Operand::H => self.reg_hl = (value as u16) << 8 | low_byte(self.reg_hl) as u16,
-      Operand::L => self.reg_hl = (high_byte(self.reg_hl) as u16) << 8 | value as u16,
-      Operand::_BC_ => {
+      Operand::Reg(Reg::A) => self.reg_af = (value as u16) << 8 | low_byte(self.reg_af) as u16,
+      Operand::Reg(Reg::F) => self.reg_af = (high_byte(self.reg_af) as u16) << 8 | value as u16,
+      Operand::Reg(Reg::B) => self.reg_bc = (value as u16) << 8 | low_byte(self.reg_bc) as u16,
+      Operand::Reg(Reg::C) => self.reg_bc = (high_byte(self.reg_bc) as u16) << 8 | value as u16,
+      Operand::Reg(Reg::D) => self.reg_de = (value as u16) << 8 | low_byte(self.reg_de) as u16,
+      Operand::Reg(Reg::E) => self.reg_de = (high_byte(self.reg_de) as u16) << 8 | value as u16,
+      Operand::Reg(Reg::H) => self.reg_hl = (value as u16) << 8 | low_byte(self.reg_hl) as u16,
+      Operand::Reg(Reg::L) => self.reg_hl = (high_byte(self.reg_hl) as u16) << 8 | value as u16,
+      Operand::Addr(Addr::BC) => {
         let bc = self.reg_bc;
         self.write_u8(bc, value)
       }
-      Operand::_DE_ => {
+      Operand::Addr(Addr::DE) => {
         let de = self.reg_de;
         self.write_u8(de, value)
       }
-      Operand::_HL_ => {
+      Operand::Addr(Addr::HL) => {
         let hl = self.reg_hl;
         self.write_u8(hl, value)
       }
-      Operand::_SP_ => {
+      Operand::Addr(Addr::SP) => {
         let sp = self.reg_sp;
         self.write_u8(sp, value)
       }
-      Operand::Imm16(i) => self.write_u8(i, value),
+      Operand::Addr(Addr::Imm16(i)) => self.write_u8(i, value),
       _ => panic!("cpu.write_operand_u8: unrecognized operand: {}", operand),
     }
   }
 
   pub fn write_operand_u16(&mut self, operand: Operand, value: u16) {
     match operand {
-      Operand::AF => self.reg_af = value,
-      Operand::BC => self.reg_bc = value,
-      Operand::DE => self.reg_de = value,
-      Operand::HL => self.reg_hl = value,
-      Operand::SP => self.reg_sp = value,
-      Operand::PC => self.reg_pc = value,
-      Operand::Imm16(i) => self.write_u16(i, value),
+      Operand::Reg(Reg::AF) => self.reg_af = value,
+      Operand::Reg(Reg::BC) => self.reg_bc = value,
+      Operand::Reg(Reg::DE) => self.reg_de = value,
+      Operand::Reg(Reg::HL) => self.reg_hl = value,
+      Operand::Reg(Reg::SP) => self.reg_sp = value,
+      Operand::Reg(Reg::PC) => self.reg_pc = value,
+      Operand::Addr(Addr::Imm16(i)) => self.write_u16(i, value),
       _ => panic!("cpu.write_operand_u16: unrecognized operand: {}", operand),
     }
   }
@@ -463,21 +463,23 @@ impl Cpu {
       Instruction::JP_cc(o1, o2) => self.inst_JP_cc(o1, o2),
       Instruction::JR(o) => self.inst_JR(o),
       Instruction::JR_cc(o1, o2) => self.inst_JR_cc(o1, o2),
-      Instruction::LD_·0xFF00C·_A => self.inst_LD_·0xFF00C·_A(),
-      Instruction::LD_·0xFF00n·_A(n) => self.inst_LD_·0xFF00n·_A(n),
-      Instruction::LD_·DE·_A => self.inst_LD_·DE·_A(),
-      Instruction::LD_·HL·_n(n) => self.inst_LD_·HL·_n(n),
-      Instruction::LD_·HL·_r(r) => self.inst_LD_·HL·_r(r),
-      Instruction::LD_·nn·_A(nn) => self.inst_LD_·nn·_A(nn),
-      Instruction::LD_·nn·_SP(nn) => self.inst_LD_·nn·_SP(nn),
-      Instruction::LD_A_·BC· => self.inst_LD_A_·BC·(),
-      Instruction::LD_A_·DE· => self.inst_LD_A_·DE·(),
-      Instruction::LD_A_·nn·(nn) => self.inst_LD_A_·nn·(nn),
-      Instruction::LD_A_·0xFF00n·(n) => self.inst_LD_A_·0xFF00n·(n),
-      Instruction::LD_dd_nn(dd, nn) => self.inst_LD_dd_nn(dd, nn),
-      Instruction::LD_r_·HL·(r) => self.inst_LD_r_·HL·(r),
-      Instruction::LD_r_n(r, n) => self.inst_LD_r_n(r, n),
-      Instruction::LD_r_r(r1, r2) => self.inst_LD_r_r(r1, r2),
+      Instruction::LD8(o1, o2) => self.inst_LD8(o1, o2),
+      Instruction::LD16(o1, o2) => self.inst_LD16(o1, o2),
+      // Instruction::LD_·0xFF00C·_A => self.inst_LD_·0xFF00C·_A(),
+      // Instruction::LD_·0xFF00n·_A(n) => self.inst_LD_·0xFF00n·_A(n),
+      // Instruction::LD_·DE·_A => self.inst_LD_·DE·_A(),
+      // Instruction::LD_·HL·_n(n) => self.inst_LD_·HL·_n(n),
+      // Instruction::LD_·HL·_r(r) => self.inst_LD_·HL·_r(r),
+      // Instruction::LD_·nn·_A(nn) => self.inst_LD_·nn·_A(nn),
+      // Instruction::LD_·nn·_SP(nn) => self.inst_LD_·nn·_SP(nn),
+      // Instruction::LD_A_·BC· => self.inst_LD_A_·BC·(),
+      // Instruction::LD_A_·DE· => self.inst_LD_A_·DE·(),
+      // Instruction::LD_A_·nn·(nn) => self.inst_LD_A_·nn·(nn),
+      // Instruction::LD_A_·0xFF00n·(n) => self.inst_LD_A_·0xFF00n·(n),
+      // Instruction::LD_dd_nn(dd, nn) => self.inst_LD_dd_nn(dd, nn),
+      // Instruction::LD_r_·HL·(r) => self.inst_LD_r_·HL·(r),
+      // Instruction::LD_r_n(r, n) => self.inst_LD_r_n(r, n),
+      // Instruction::LD_r_r(r1, r2) => self.inst_LD_r_r(r1, r2),
       Instruction::LDI_A_·HL· => self.inst_LDI_A_·HL·(),
       Instruction::LDD_·HL·_A => self.inst_LDD_·HL·_A(),
       Instruction::LDI_·HL·_A => self.inst_LDI_·HL·_A(),
@@ -890,147 +892,160 @@ impl Cpu {
     }
   }
 
-  // LD (0xFF00+C),A
-  // Opcode: 0xE2
-  // Moved instruction.
-  // Moved: RET PO -> LD (FF00+n),A
+  // LD
   #[allow(non_snake_case)]
-  fn inst_LD_·0xFF00C·_A(&mut self) {
-    let a = self.read_reg_u8(Reg::A);
-    let c = self.read_reg_u8(Reg::C);
-    self.write_u8(0xFF00 + c as u16, a);
+  fn inst_LD8(&mut self, o1: Operand, o2: Operand) {
+    let val = self.read_operand_u8(o2);
+    self.write_operand_u8(o1, val);
   }
 
-  // LD (0xFF00+n),A
-  // Opcode: 0xE0 nn
-  // Moved instruction.
-  // Moved: JP PO,nn -> LD (FF00+C),A
+  // LD
   #[allow(non_snake_case)]
-  fn inst_LD_·0xFF00n·_A(&mut self, n: u8) {
-    let a = self.read_reg_u8(Reg::A);
-    self.write_u8(0xFF00 + n as u16, a);
+  fn inst_LD16(&mut self, o1: Operand, o2: Operand) {
+    let val = self.read_operand_u16(o2);
+    self.write_operand_u16(o1, val);
   }
 
-  // LD (DE),A
-  // Opcode: 0x12
-  #[allow(non_snake_case)]
-  fn inst_LD_·DE·_A(&mut self) {
-    let de = self.read_reg_u16(Reg::DE);
-    let a = self.read_reg_u8(Reg::A);
-    self.write_u8(de, a);
-  }
-
-  // LD (HL),n
-  // Opcode: 0x36
-  // Page: 107
-  #[allow(non_snake_case)]
-  fn inst_LD_·HL·_n(&mut self, n: u8) {
-    let hl = self.read_reg_u16(Reg::HL);
-    self.write_u8(hl, n);
-  }
-
-  // LD (HL),r
-  // Opcode: 01110rrr
-  // Page: 104
-  #[allow(non_snake_case)]
-  fn inst_LD_·HL·_r(&mut self, r: Reg) {
-    let hl = self.read_reg_u16(Reg::HL);
-    let val = self.read_reg_u8(r);
-    self.write_u8(hl, val);
-  }
-
-  // LD (nn),A
-  // Opcode: 0xEA
-  // Page: 115
-  // Moved: JP PE,nn => LD (nn),A
-  #[allow(non_snake_case)]
-  fn inst_LD_·nn·_A(&mut self, nn: u16) {
-    let val = self.read_reg_u8(Reg::A);
-    self.write_u8(nn, val);
-  }
-
-  // LD (nn),SP
-  // Opcode: 0x08
-  // Page:
-  #[allow(non_snake_case)]
-  fn inst_LD_·nn·_SP(&mut self, nn: u16) {
-    let sp = self.reg_sp;
-    self.write_u16(nn, sp);
-  }
-
-  // LD A,(BC)
-  // Opcode: 0x0A
-  // Page: 110
-  #[allow(non_snake_case)]
-  fn inst_LD_A_·BC·(&mut self) {
-    let bc = self.reg_bc;
-    let val = self.read_u8(bc);
-    self.write_reg_u8(Reg::A, val);
-  }
-
-  // LD A,(DE)
-  // Opcode: 0x1A
-  // Page: 111
-  #[allow(non_snake_case)]
-  fn inst_LD_A_·DE·(&mut self) {
-    let de = self.reg_de;
-    let val = self.read_u8(de);
-    self.write_reg_u8(Reg::A, val);
-  }
-
-  // LD A,(nn)
-  // Opcode: 0xFA
-  // Page:
-  #[allow(non_snake_case)]
-  fn inst_LD_A_·nn·(&mut self, nn: u16) {
-    let val = self.read_u8(nn);
-    self.write_reg_u8(Reg::A, val);
-  }
-
-  // LD A,(0xFF00n)
-  // Opcode: 0xF0
-  // Moved: RET P -> LD A,(FF00+n)
-  #[allow(non_snake_case)]
-  fn inst_LD_A_·0xFF00n·(&mut self, n: u8) {
-    let val = self.read_u8(0xFF00 + n as u16);
-    self.write_reg_u8(Reg::A, val);
-  }
-
-  // LD dd,nn
-  // Opcode: 00dd0001
-  // Page: 120
-  #[allow(non_snake_case)]
-  fn inst_LD_dd_nn(&mut self, dd: Reg, nn: u16) {
-    self.write_reg_u16(dd, nn);
-  }
-
-  // LD r,(HL)
-  // Opcode: 01rrr110
-  // Page: 101
-  #[allow(non_snake_case)]
-  fn inst_LD_r_·HL·(&mut self, r: Reg) {
-    let hl = self.read_reg_u16(Reg::HL);
-    let val = self.read_u8(hl);
-    self.write_reg_u8(r, val);
-  }
-
-  // LD r,r
-  // Opcode: 01_rrr_rrr
-  // Page: 120
-  #[allow(non_snake_case)]
-  fn inst_LD_r_r(&mut self, r1: Reg, r2: Reg) {
-    let val = self.read_reg_u8(r2);
-    self.write_reg_u8(r1, val);
-  }
-
-  // LD r,n
-  // Opcode: 00rrr110
-  // Page: 100
-  #[allow(non_snake_case)]
-  fn inst_LD_r_n(&mut self, r: Reg, n: u8) {
-    self.write_reg_u8(r, n);
-  }
-
+  /// / LD (0xFF00+C),A
+  /// / Opcode: 0xE2
+  /// / Moved instruction.
+  /// / Moved: RET PO -> LD (FF00+n),A
+  /// #[allow(non_snake_case)]
+  /// fn inst_LD_·0xFF00C·_A(&mut self) {
+  ///  let a = self.read_reg_u8(Reg::A);
+  ///  let c = self.read_reg_u8(Reg::C);
+  ///  self.write_u8(0xFF00 + c as u16, a);
+  /// }
+  ///
+  /// / LD (0xFF00+n),A
+  /// / Opcode: 0xE0 nn
+  /// / Moved instruction.
+  /// / Moved: JP PO,nn -> LD (FF00+C),A
+  /// #[allow(non_snake_case)]
+  /// fn inst_LD_·0xFF00n·_A(&mut self, n: u8) {
+  ///  let a = self.read_reg_u8(Reg::A);
+  ///  self.write_u8(0xFF00 + n as u16, a);
+  /// }
+  ///
+  /// / LD (DE),A
+  /// / Opcode: 0x12
+  /// #[allow(non_snake_case)]
+  /// fn inst_LD_·DE·_A(&mut self) {
+  ///  let de = self.read_reg_u16(Reg::DE);
+  ///  let a = self.read_reg_u8(Reg::A);
+  ///  self.write_u8(de, a);
+  /// }
+  ///
+  /// / LD (HL),n
+  /// / Opcode: 0x36
+  /// / Page: 107
+  /// #[allow(non_snake_case)]
+  /// fn inst_LD_·HL·_n(&mut self, n: u8) {
+  ///  let hl = self.read_reg_u16(Reg::HL);
+  ///  self.write_u8(hl, n);
+  /// }
+  ///
+  /// / LD (HL),r
+  /// / Opcode: 01110rrr
+  /// / Page: 104
+  /// #[allow(non_snake_case)]
+  /// fn inst_LD_·HL·_r(&mut self, r: Reg) {
+  ///  let hl = self.read_reg_u16(Reg::HL);
+  ///  let val = self.read_reg_u8(r);
+  ///  self.write_u8(hl, val);
+  /// }
+  ///
+  /// / LD (nn),A
+  /// / Opcode: 0xEA
+  /// / Page: 115
+  /// / Moved: JP PE,nn => LD (nn),A
+  /// #[allow(non_snake_case)]
+  /// fn inst_LD_·nn·_A(&mut self, nn: u16) {
+  ///  let val = self.read_reg_u8(Reg::A);
+  ///  self.write_u8(nn, val);
+  /// }
+  ///
+  /// / LD (nn),SP
+  /// / Opcode: 0x08
+  /// / Page:
+  /// #[allow(non_snake_case)]
+  /// fn inst_LD_·nn·_SP(&mut self, nn: u16) {
+  ///  let sp = self.reg_sp;
+  ///  self.write_u16(nn, sp);
+  /// }
+  ///
+  /// / LD A,(BC)
+  /// / Opcode: 0x0A
+  /// / Page: 110
+  /// #[allow(non_snake_case)]
+  /// fn inst_LD_A_·BC·(&mut self) {
+  ///  let bc = self.reg_bc;
+  ///  let val = self.read_u8(bc);
+  ///  self.write_reg_u8(Reg::A, val);
+  /// }
+  ///
+  /// / LD A,(DE)
+  /// / Opcode: 0x1A
+  /// / Page: 111
+  /// #[allow(non_snake_case)]
+  /// fn inst_LD_A_·DE·(&mut self) {
+  ///  let de = self.reg_de;
+  ///  let val = self.read_u8(de);
+  ///  self.write_reg_u8(Reg::A, val);
+  /// }
+  ///
+  /// / LD A,(nn)
+  /// / Opcode: 0xFA
+  /// / Page:
+  /// #[allow(non_snake_case)]
+  /// fn inst_LD_A_·nn·(&mut self, nn: u16) {
+  ///  let val = self.read_u8(nn);
+  ///  self.write_reg_u8(Reg::A, val);
+  /// }
+  ///
+  /// / LD A,(0xFF00n)
+  /// / Opcode: 0xF0
+  /// / Moved: RET P -> LD A,(FF00+n)
+  /// #[allow(non_snake_case)]
+  /// fn inst_LD_A_·0xFF00n·(&mut self, n: u8) {
+  ///  let val = self.read_u8(0xFF00 + n as u16);
+  ///  self.write_reg_u8(Reg::A, val);
+  /// }
+  ///
+  /// / LD dd,nn
+  /// / Opcode: 00dd0001
+  /// / Page: 120
+  /// #[allow(non_snake_case)]
+  /// fn inst_LD_dd_nn(&mut self, dd: Reg, nn: u16) {
+  ///  self.write_reg_u16(dd, nn);
+  /// }
+  ///
+  /// / LD r,(HL)
+  /// / Opcode: 01rrr110
+  /// / Page: 101
+  /// #[allow(non_snake_case)]
+  /// fn inst_LD_r_·HL·(&mut self, r: Reg) {
+  ///  let hl = self.read_reg_u16(Reg::HL);
+  ///  let val = self.read_u8(hl);
+  ///  self.write_reg_u8(r, val);
+  /// }
+  ///
+  /// / LD r,r
+  /// / Opcode: 01_rrr_rrr
+  /// / Page: 120
+  /// #[allow(non_snake_case)]
+  /// fn inst_LD_r_r(&mut self, r1: Reg, r2: Reg) {
+  ///  let val = self.read_reg_u8(r2);
+  ///  self.write_reg_u8(r1, val);
+  /// }
+  ///
+  /// / LD r,n
+  /// / Opcode: 00rrr110
+  /// / Page: 100
+  /// #[allow(non_snake_case)]
+  /// fn inst_LD_r_n(&mut self, r: Reg, n: u8) {
+  ///  self.write_reg_u8(r, n);
+  /// }
   // LDI (HL),A
   // Opcode: 0x32
   // Page: 149

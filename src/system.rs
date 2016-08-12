@@ -1,6 +1,5 @@
 use std::fmt;
 use md5;
-use std::any::Any;
 
 use super::bios::Bios;
 use super::cartridge::Cartridge;

@@ -34,22 +34,26 @@ pub enum Instruction {
   JP_cc(Operand, Operand),
   JR(Operand),
   JR_cc(Operand, Operand),
-  LD_·0xFF00C·_A, // Moved: RET PO -> LD (FF00+n),A
-  LD_·0xFF00n·_A(u8), // Moved: JP PO,nn -> LD (FF00+C),A
-  LD_·BC·_A,
-  LD_·DE·_A,
-  LD_·HL·_n(u8),
-  LD_·HL·_r(Reg),
-  LD_·nn·_A(u16), // Moved: JP PE,nn -> LD (nn),A
-  LD_·nn·_SP(u16), // Moved: EX AF,AF -> LD (nn),SP
-  LD_A_·BC·,
-  LD_A_·DE·,
-  LD_A_·nn·(u16), // Moved: JP M,nn -> LD A,(nn)
-  LD_A_·0xFF00n·(u8), // Moved: RET P -> LD A,(FF00+n)
-  LD_dd_nn(Reg, u16),
-  LD_r_·HL·(Reg),
-  LD_r_n(Reg, u8),
-  LD_r_r(Reg, Reg),
+
+  // LD_·0xFF00C·_A, // Moved: RET PO -> LD (FF00+n),A
+  // LD_·0xFF00n·_A(u8), // Moved: JP PO,nn -> LD (FF00+C),A
+  // LD_·BC·_A,
+  // LD_·DE·_A,
+  // LD_·HL·_n(u8),
+  // LD_·HL·_r(Reg),
+  // LD_·nn·_A(u16), // Moved: JP PE,nn -> LD (nn),A
+  // LD_·nn·_SP(u16), // Moved: EX AF,AF -> LD (nn),SP
+  // LD_A_·BC·,
+  // LD_A_·DE·,
+  // LD_A_·nn·(u16), // Moved: JP M,nn -> LD A,(nn)
+  // LD_A_·0xFF00n·(u8), // Moved: RET P -> LD A,(FF00+n)
+  // LD_dd_nn(Reg, u16),
+  // LD_r_·HL·(Reg),
+  // LD_r_n(Reg, u8),
+  // LD_r_r(Reg, Reg),
+  LD8(Operand, Operand),
+  LD16(Operand, Operand),
+
   LDI_A_·HL·, // Moved: LD HL,(nn) -> LDI A,(HL)
   LDD_·HL·_A, // Moved: LD (nn),A -> LDD (HL),A
   LDI_·HL·_A, // Moved: LD (nn),HL -> LDI (HL),A
@@ -101,22 +105,24 @@ impl fmt::Debug for Instruction {
       Instruction::JP_cc(o1, o2) => write!(f, "JP {},{}", o1, o2),
       Instruction::JR(o) => write!(f, "JR {}", o),
       Instruction::JR_cc(o1, o2) => write!(f, "JR {},{}", o1, o2),
-      Instruction::LD_·0xFF00C·_A => write!(f, "LD (0xFF00+C),A"),
-      Instruction::LD_·0xFF00n·_A(n) => write!(f, "LD (0xFF00+${:02x}),A", n),
-      Instruction::LD_·BC·_A => write!(f, "LD (BC),A"),
-      Instruction::LD_·DE·_A => write!(f, "LD (DE),A"),
-      Instruction::LD_·HL·_n(n) => write!(f, "LD (HL),${:02x}", n),
-      Instruction::LD_·HL·_r(r) => write!(f, "LD (HL),{}", r),
-      Instruction::LD_·nn·_A(nn) => write!(f, "LD (${:04x}),A", nn),
-      Instruction::LD_·nn·_SP(nn) => write!(f, "LD (${:04x}),SP", nn),
-      Instruction::LD_A_·BC· => write!(f, "LD A,(BC)"),
-      Instruction::LD_A_·DE· => write!(f, "LD A,(DE)"),
-      Instruction::LD_A_·nn·(nn) => write!(f, "LD A,${:04x}", nn),
-      Instruction::LD_A_·0xFF00n·(n) => write!(f, "LD A,(0xFF00+${:02x})", n),
-      Instruction::LD_dd_nn(dd, nn) => write!(f, "LD {},${:04x}", dd, nn),
-      Instruction::LD_r_·HL·(r) => write!(f, "LD {},(HL)", r),
-      Instruction::LD_r_n(r, n) => write!(f, "LD {},${:02x}", r, n),
-      Instruction::LD_r_r(r1, r2) => write!(f, "LD {},{}", r1, r2),
+      Instruction::LD8(o1, o2) => write!(f, "LD {},{}", o1, o2),
+      Instruction::LD16(o1, o2) => write!(f, "LD {},{}", o1, o2),
+      // Instruction::LD_·0xFF00C·_A => write!(f, "LD (0xFF00+C),A"),
+      // Instruction::LD_·0xFF00n·_A(n) => write!(f, "LD (0xFF00+${:02x}),A", n),
+      // Instruction::LD_·BC·_A => write!(f, "LD (BC),A"),
+      // Instruction::LD_·DE·_A => write!(f, "LD (DE),A"),
+      // Instruction::LD_·HL·_n(n) => write!(f, "LD (HL),${:02x}", n),
+      // Instruction::LD_·HL·_r(r) => write!(f, "LD (HL),{}", r),
+      // Instruction::LD_·nn·_A(nn) => write!(f, "LD (${:04x}),A", nn),
+      // Instruction::LD_·nn·_SP(nn) => write!(f, "LD (${:04x}),SP", nn),
+      // Instruction::LD_A_·BC· => write!(f, "LD A,(BC)"),
+      // Instruction::LD_A_·DE· => write!(f, "LD A,(DE)"),
+      // Instruction::LD_A_·nn·(nn) => write!(f, "LD A,${:04x}", nn),
+      // Instruction::LD_A_·0xFF00n·(n) => write!(f, "LD A,(0xFF00+${:02x})", n),
+      // Instruction::LD_dd_nn(dd, nn) => write!(f, "LD {},${:04x}", dd, nn),
+      // Instruction::LD_r_·HL·(r) => write!(f, "LD {},(HL)", r),
+      // Instruction::LD_r_n(r, n) => write!(f, "LD {},${:02x}", r, n),
+      // Instruction::LD_r_r(r1, r2) => write!(f, "LD {},{}", r1, r2),
       Instruction::LDI_A_·HL· => write!(f, "LDI A,(HL)"),
       Instruction::LDD_·HL·_A => write!(f, "LDD (HL),A"),
       Instruction::LDI_·HL·_A => write!(f, "LDI (HL),A"),
