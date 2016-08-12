@@ -1049,19 +1049,18 @@ impl Cpu {
   //   Page: 211
   #[allow(non_snake_case)]
   fn inst_RRA(&mut self) {
-    let mut val = self.read_reg_u8(Reg::A);
+    let val = self.read_reg_u8(Reg::A);
     let prev_carry = self.read_flag(Flag::C);
     let carry = val & 1 != 0;
-
-    val >>= 1;
+    let mut result = val >> 1;
 
     if prev_carry {
-      val |= 0b10000000; // set bit 7 to 1
+      result |= 0b10000000; // set bit 7 to 1
     } else {
-      val &= !0b10000000; // set bit 7 to 0
+      result &= !0b10000000; // set bit 7 to 0
     }
 
-    self.write_reg_u8(Reg::A, val);
+    self.write_reg_u8(Reg::A, result);
     self.write_flag(Flag::Z, false);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, false);
