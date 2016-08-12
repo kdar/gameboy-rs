@@ -501,6 +501,7 @@ impl Cpu {
       Instruction::LD8(o1, o2) => self.inst_LD8(o1, o2),
       Instruction::LD16(o1, o2) => self.inst_LD16(o1, o2),
       Instruction::LDD(o1, o2) => self.inst_LDD(o1, o2),
+      Instruction::LDHL(o1, o2) => self.inst_LDHL(o1, o2),
       Instruction::LDI(o1, o2) => self.inst_LDI(o1, o2),
       Instruction::OR(o1, o2) => self.inst_OR(o1, o2),
       Instruction::POP16(o) => self.inst_POP16(o),
@@ -933,6 +934,21 @@ impl Cpu {
     let val = self.read_operand_u8(o2);
     self.write_operand_u8(o1, val);
     self.reg_hl -= 1;
+  }
+
+  // LD HL,SP+n
+  //    Opcode: 0xf8
+  #[allow(non_snake_case)]
+  fn inst_LDHL(&mut self, o1: Operand, o2: Operand) {
+    let val1 = self.read_operand_u16(o1);
+    let val2 = self.read_operand_u8(o2) as i8 as u16;
+    let (result, carry) = val1.overflowing_add(val2);
+
+    self.write_reg_u16(Reg::HL, result);
+    self.write_flag(Flag::Z, false);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, (((val1 & 0xF) + (val2 & 0xF)) & 0x10) > 0);
+    self.write_flag(Flag::C, carry);
   }
 
   // LDI (HL),A
