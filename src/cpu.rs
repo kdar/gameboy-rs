@@ -475,7 +475,7 @@ impl Cpu {
       Instruction::RET_cc(o) => self.inst_RET_cc(o),
       Instruction::RRA => self.inst_RRA(),
       Instruction::RST(o) => self.inst_RST(o),
-      Instruction::SUB8(o1, o2) => self.inst_SUB8(o1, o2),
+      Instruction::SUB(o1, o2) => self.inst_SUB(o1, o2),
       Instruction::NOP => self.inst_NOP(),
       Instruction::XOR_·HL· => self.inst_XOR_·HL·(),
       Instruction::XOR_n(n) => self.inst_XOR_n(n),
@@ -1022,7 +1022,7 @@ impl Cpu {
   //   Opcode: 0x90 | 0x91 | 0x92 | 0x93 | 0x94 | 0x95 | 0x97
   //   Page: 166
   #[allow(non_snake_case)]
-  fn inst_SUB8(&mut self, o1: Operand, o2: Operand) {
+  fn inst_SUB(&mut self, o1: Operand, o2: Operand) {
     let val1 = self.read_operand_u8(o1);
     let val2 = self.read_operand_u8(o2);
     let (result, carry) = val1.overflowing_sub(val2);
