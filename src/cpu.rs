@@ -466,24 +466,8 @@ impl Cpu {
       Instruction::JR_cc(o1, o2) => self.inst_JR_cc(o1, o2),
       Instruction::LD8(o1, o2) => self.inst_LD8(o1, o2),
       Instruction::LD16(o1, o2) => self.inst_LD16(o1, o2),
-      // Instruction::LD_·0xFF00C·_A => self.inst_LD_·0xFF00C·_A(),
-      // Instruction::LD_·0xFF00n·_A(n) => self.inst_LD_·0xFF00n·_A(n),
-      // Instruction::LD_·DE·_A => self.inst_LD_·DE·_A(),
-      // Instruction::LD_·HL·_n(n) => self.inst_LD_·HL·_n(n),
-      // Instruction::LD_·HL·_r(r) => self.inst_LD_·HL·_r(r),
-      // Instruction::LD_·nn·_A(nn) => self.inst_LD_·nn·_A(nn),
-      // Instruction::LD_·nn·_SP(nn) => self.inst_LD_·nn·_SP(nn),
-      // Instruction::LD_A_·BC· => self.inst_LD_A_·BC·(),
-      // Instruction::LD_A_·DE· => self.inst_LD_A_·DE·(),
-      // Instruction::LD_A_·nn·(nn) => self.inst_LD_A_·nn·(nn),
-      // Instruction::LD_A_·0xFF00n·(n) => self.inst_LD_A_·0xFF00n·(n),
-      // Instruction::LD_dd_nn(dd, nn) => self.inst_LD_dd_nn(dd, nn),
-      // Instruction::LD_r_·HL·(r) => self.inst_LD_r_·HL·(r),
-      // Instruction::LD_r_n(r, n) => self.inst_LD_r_n(r, n),
-      // Instruction::LD_r_r(r1, r2) => self.inst_LD_r_r(r1, r2),
-      Instruction::LDI_A_·HL· => self.inst_LDI_A_·HL·(),
-      Instruction::LDD_·HL·_A => self.inst_LDD_·HL·_A(),
-      Instruction::LDI_·HL·_A => self.inst_LDI_·HL·_A(),
+      Instruction::LDD(o1, o2) => self.inst_LDD(o1, o2),
+      Instruction::LDI(o1, o2) => self.inst_LDI(o1, o2),
       Instruction::OR_A_·HL· => self.inst_OR_A_·HL·(),
       Instruction::OR_r(r) => self.inst_OR_r(r),
       Instruction::POP_rr(rr) => self.inst_POP_rr(rr),
@@ -907,181 +891,33 @@ impl Cpu {
     self.write_operand_u16(o1, val);
   }
 
-  /// / LD (0xFF00+C),A
-  /// / Opcode: 0xE2
-  /// / Moved instruction.
-  /// / Moved: RET PO -> LD (FF00+n),A
-  /// #[allow(non_snake_case)]
-  /// fn inst_LD_·0xFF00C·_A(&mut self) {
-  ///  let a = self.read_reg_u8(Reg::A);
-  ///  let c = self.read_reg_u8(Reg::C);
-  ///  self.write_u8(0xFF00 + c as u16, a);
-  /// }
-  ///
-  /// / LD (0xFF00+n),A
-  /// / Opcode: 0xE0 nn
-  /// / Moved instruction.
-  /// / Moved: JP PO,nn -> LD (FF00+C),A
-  /// #[allow(non_snake_case)]
-  /// fn inst_LD_·0xFF00n·_A(&mut self, n: u8) {
-  ///  let a = self.read_reg_u8(Reg::A);
-  ///  self.write_u8(0xFF00 + n as u16, a);
-  /// }
-  ///
-  /// / LD (DE),A
-  /// / Opcode: 0x12
-  /// #[allow(non_snake_case)]
-  /// fn inst_LD_·DE·_A(&mut self) {
-  ///  let de = self.read_reg_u16(Reg::DE);
-  ///  let a = self.read_reg_u8(Reg::A);
-  ///  self.write_u8(de, a);
-  /// }
-  ///
-  /// / LD (HL),n
-  /// / Opcode: 0x36
-  /// / Page: 107
-  /// #[allow(non_snake_case)]
-  /// fn inst_LD_·HL·_n(&mut self, n: u8) {
-  ///  let hl = self.read_reg_u16(Reg::HL);
-  ///  self.write_u8(hl, n);
-  /// }
-  ///
-  /// / LD (HL),r
-  /// / Opcode: 01110rrr
-  /// / Page: 104
-  /// #[allow(non_snake_case)]
-  /// fn inst_LD_·HL·_r(&mut self, r: Reg) {
-  ///  let hl = self.read_reg_u16(Reg::HL);
-  ///  let val = self.read_reg_u8(r);
-  ///  self.write_u8(hl, val);
-  /// }
-  ///
-  /// / LD (nn),A
-  /// / Opcode: 0xEA
-  /// / Page: 115
-  /// / Moved: JP PE,nn => LD (nn),A
-  /// #[allow(non_snake_case)]
-  /// fn inst_LD_·nn·_A(&mut self, nn: u16) {
-  ///  let val = self.read_reg_u8(Reg::A);
-  ///  self.write_u8(nn, val);
-  /// }
-  ///
-  /// / LD (nn),SP
-  /// / Opcode: 0x08
-  /// / Page:
-  /// #[allow(non_snake_case)]
-  /// fn inst_LD_·nn·_SP(&mut self, nn: u16) {
-  ///  let sp = self.reg_sp;
-  ///  self.write_u16(nn, sp);
-  /// }
-  ///
-  /// / LD A,(BC)
-  /// / Opcode: 0x0A
-  /// / Page: 110
-  /// #[allow(non_snake_case)]
-  /// fn inst_LD_A_·BC·(&mut self) {
-  ///  let bc = self.reg_bc;
-  ///  let val = self.read_u8(bc);
-  ///  self.write_reg_u8(Reg::A, val);
-  /// }
-  ///
-  /// / LD A,(DE)
-  /// / Opcode: 0x1A
-  /// / Page: 111
-  /// #[allow(non_snake_case)]
-  /// fn inst_LD_A_·DE·(&mut self) {
-  ///  let de = self.reg_de;
-  ///  let val = self.read_u8(de);
-  ///  self.write_reg_u8(Reg::A, val);
-  /// }
-  ///
-  /// / LD A,(nn)
-  /// / Opcode: 0xFA
-  /// / Page:
-  /// #[allow(non_snake_case)]
-  /// fn inst_LD_A_·nn·(&mut self, nn: u16) {
-  ///  let val = self.read_u8(nn);
-  ///  self.write_reg_u8(Reg::A, val);
-  /// }
-  ///
-  /// / LD A,(0xFF00n)
-  /// / Opcode: 0xF0
-  /// / Moved: RET P -> LD A,(FF00+n)
-  /// #[allow(non_snake_case)]
-  /// fn inst_LD_A_·0xFF00n·(&mut self, n: u8) {
-  ///  let val = self.read_u8(0xFF00 + n as u16);
-  ///  self.write_reg_u8(Reg::A, val);
-  /// }
-  ///
-  /// / LD dd,nn
-  /// / Opcode: 00dd0001
-  /// / Page: 120
-  /// #[allow(non_snake_case)]
-  /// fn inst_LD_dd_nn(&mut self, dd: Reg, nn: u16) {
-  ///  self.write_reg_u16(dd, nn);
-  /// }
-  ///
-  /// / LD r,(HL)
-  /// / Opcode: 01rrr110
-  /// / Page: 101
-  /// #[allow(non_snake_case)]
-  /// fn inst_LD_r_·HL·(&mut self, r: Reg) {
-  ///  let hl = self.read_reg_u16(Reg::HL);
-  ///  let val = self.read_u8(hl);
-  ///  self.write_reg_u8(r, val);
-  /// }
-  ///
-  /// / LD r,r
-  /// / Opcode: 01_rrr_rrr
-  /// / Page: 120
-  /// #[allow(non_snake_case)]
-  /// fn inst_LD_r_r(&mut self, r1: Reg, r2: Reg) {
-  ///  let val = self.read_reg_u8(r2);
-  ///  self.write_reg_u8(r1, val);
-  /// }
-  ///
-  /// / LD r,n
-  /// / Opcode: 00rrr110
-  /// / Page: 100
-  /// #[allow(non_snake_case)]
-  /// fn inst_LD_r_n(&mut self, r: Reg, n: u8) {
-  ///  self.write_reg_u8(r, n);
-  /// }
-  // LDI (HL),A
-  // Opcode: 0x32
-  // Page: 149
-  // Moved: LD HL,(nn) -> LDI A,(HL)
-  #[allow(non_snake_case)]
-  fn inst_LDI_A_·HL·(&mut self) {
-    let hl = self.read_reg_u16(Reg::HL);
-    let val = self.read_u8(hl);
-
-    self.write_reg_u8(Reg::A, val);
-    self.write_reg_u16(Reg::HL, hl + 1);
-  }
-
   // LDD (HL),A
-  // Opcode: 0x32
-  // Page: 149
-  // Moved: LD (nn),A -> LDD (HL),A
+  //   Opcode: 0x32
+  //   Moved: LD (nn),A -> LDD (HL),A
+  //   Page: 149
+  // LDD A,(HL)
+  //   Opcode: 0x3a
+  //   Moved: LD A,(nn) -> LDD A,(HL)
   #[allow(non_snake_case)]
-  fn inst_LDD_·HL·_A(&mut self) {
-    let hl = self.read_reg_u16(Reg::HL);
-    let a = self.read_reg_u8(Reg::A);
-    self.write_u8(hl, a);
-    self.write_reg_u16(Reg::HL, hl - 1);
+  fn inst_LDD(&mut self, o1: Operand, o2: Operand) {
+    let val = self.read_operand_u8(o2);
+    self.write_operand_u8(o1, val);
+    self.reg_hl -= 1;
   }
 
   // LDI (HL),A
-  // Opcode: 0x22
-  // Page: 146
-  // Moved: LD (nn),HL -> LDI (HL),A
+  //   Opcode: 0x22
+  //   Moved: LD (nn),HL -> LDI (HL),A
+  //   Page: 149
+  // LDI A,(HL)
+  //   Opcode: 0x2a
+  //   Moved: LD HL,(nn) -> LDI A,(HL)
+  //   Page: 146
   #[allow(non_snake_case)]
-  fn inst_LDI_·HL·_A(&mut self) {
-    let hl = self.read_reg_u16(Reg::HL);
-    let a = self.read_reg_u8(Reg::A);
-    self.write_u8(hl, a);
-    self.write_reg_u16(Reg::HL, hl + 1);
+  fn inst_LDI(&mut self, o1: Operand, o2: Operand) {
+    let val = self.read_operand_u8(o2);
+    self.write_operand_u8(o1, val);
+    self.reg_hl += 1;
   }
 
   // NOP
