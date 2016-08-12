@@ -27,7 +27,8 @@ pub enum Operand {
   FlagNZ,
   FlagNC,
   Imm8(u8),
-  Imm16(u16),
+  Imm16(u16), /* Immi8(i8),
+               * Immi16(i16), */
 }
 
 impl fmt::Display for Operand {
@@ -59,6 +60,20 @@ impl fmt::Display for Operand {
       Operand::FlagNC => write!(f, "NC"),
       Operand::Imm8(i) => write!(f, "${:02x}", i),
       Operand::Imm16(i) => write!(f, "${:04x}", i),
+      // Operand::Immi8(i) => {
+      //  if i < 0 {
+      //    write!(f, "-${:02x}", i)
+      //  } else {
+      //    write!(f, "${:02x}", i)
+      //  }
+      // }
+      // Operand::Immi16(i) => {
+      //  if i < 0 {
+      //    write!(f, "-${:04x}", i)
+      //  } else {
+      //    write!(f, "${:04x}", i)
+      //  }
+      // }
     }
   }
 }

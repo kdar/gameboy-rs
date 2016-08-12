@@ -461,8 +461,8 @@ impl Cpu {
       Instruction::INC16(o) => self.inst_INC16(o),
       Instruction::JP(o) => self.inst_JP(o),
       Instruction::JP_cc(o1, o2) => self.inst_JP_cc(o1, o2),
-      Instruction::JR_cc_e(cc, e) => self.inst_JR_cc_e(cc, e),
-      Instruction::JR_e(e) => self.inst_JR_e(e),
+      Instruction::JR(o) => self.inst_JR(o),
+      Instruction::JR_cc(o1, o2) => self.inst_JR_cc(o1, o2),
       Instruction::LD_·0xFF00C·_A => self.inst_LD_·0xFF00C·_A(),
       Instruction::LD_·0xFF00n·_A(n) => self.inst_LD_·0xFF00n·_A(n),
       Instruction::LD_·DE·_A => self.inst_LD_·DE·_A(),
@@ -867,30 +867,27 @@ impl Cpu {
     }
   }
 
-  // JR cc,e
-  // Opcode: 000cc000
-  // Page: 266
-  // This is a superset of many different instructions:
-  // JR NZ,e
-  // JR Z,e
-  // JR NC,e
-  // JR C,e
-  #[allow(non_snake_case)]
-  fn inst_JR_cc_e(&mut self, cc: Flag, e: i8) {
-    // signed argument
-    if self.read_flag(cc) {
-      // signed addition (can jump back)
-      self.reg_pc = ((self.reg_pc as i16) + (e as i16)) as u16;
-    }
-  }
-
   // JR e
-  // Opcode: 0x18
+  //   Opcode: 0x18
   // Page: 259
   #[allow(non_snake_case)]
-  fn inst_JR_e(&mut self, e: i8) {
+  fn inst_JR(&mut self, o: Operand) {
+    let val = self.read_operand_u8(o) as i8;
     // signed addition (can jump back)
-    self.reg_pc = ((self.reg_pc as i16) + (e as i16)) as u16;
+    self.reg_pc = ((self.reg_pc as i16) + (val as i16)) as u16;
+  }
+
+  // JR cc,e
+  //   Opcode: 000cc000
+  // Page: 266
+  #[allow(non_snake_case)]
+  fn inst_JR_cc(&mut self, o1: Operand, o2: Operand) {
+    // signed argument
+    if self.read_operand_u8(o1) != 0 {
+      let val = self.read_operand_u8(o2) as i8;
+      // signed addition (can jump back)
+      self.reg_pc = ((self.reg_pc as i16) + (val as i16)) as u16;
+    }
   }
 
   // LD (0xFF00+C),A

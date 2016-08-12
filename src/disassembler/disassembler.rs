@@ -147,7 +147,6 @@ impl Disassembler {
 
         0x86 => Ok((Instruction::ADD8(Operand::A, Operand::_HL_), pc)),
         0xc6 => imm!(Instruction::ADD8[Operand::A, imm8], m, addr, pc),
-
         0x09 => Ok((Instruction::ADD16(Operand::HL, Operand::BC), pc)),
         0x19 => Ok((Instruction::ADD16(Operand::HL, Operand::DE), pc)),
         0x29 => Ok((Instruction::ADD16(Operand::HL, Operand::HL), pc)),
@@ -187,7 +186,6 @@ impl Disassembler {
         0x25 => Ok((Instruction::DEC8(Operand::H), pc)),
         0x2d => Ok((Instruction::DEC8(Operand::L), pc)),
         0x35 => Ok((Instruction::DEC8(Operand::_HL_), pc)),
-
         0x0b => Ok((Instruction::DEC16(Operand::BC), pc)),
         0x1b => Ok((Instruction::DEC16(Operand::DE), pc)),
         0x2b => Ok((Instruction::DEC16(Operand::HL), pc)),
@@ -207,7 +205,6 @@ impl Disassembler {
         0x24 => Ok((Instruction::INC8(Operand::H), pc)),
         0x2c => Ok((Instruction::INC8(Operand::L), pc)),
         0x34 => Ok((Instruction::INC8(Operand::_HL_), pc)),
-
         0x03 => Ok((Instruction::INC16(Operand::BC), pc)),
         0x13 => Ok((Instruction::INC16(Operand::DE), pc)),
         0x23 => Ok((Instruction::INC16(Operand::HL), pc)),
@@ -217,36 +214,14 @@ impl Disassembler {
         0xca => imm!(Instruction::JP_cc[Operand::FlagZ, imm16], m, addr, pc),
         0xd2 => imm!(Instruction::JP_cc[Operand::FlagNC, imm16], m, addr, pc),
         0xda => imm!(Instruction::JP_cc[Operand::FlagC, imm16], m, addr, pc),
-
         0xe9 => Ok((Instruction::JP(Operand::HL), pc)),
         0xc3 => imm!(Instruction::JP[imm16], m, addr, pc),
 
-        0x20 => {
-          let e = try!(m.read_u8(addr + pc));
-          pc += 1;
-          Ok((Instruction::JR_cc_e(Flag::NZ, e as i8), pc))
-        }
-        0x28 => {
-          let e = try!(m.read_u8(addr + pc));
-          pc += 1;
-          Ok((Instruction::JR_cc_e(Flag::Z, e as i8), pc))
-        }
-        0x30 => {
-          let e = try!(m.read_u8(addr + pc));
-          pc += 1;
-          Ok((Instruction::JR_cc_e(Flag::NC, e as i8), pc))
-        }
-        0x38 => {
-          let e = try!(m.read_u8(addr + pc));
-          pc += 1;
-          Ok((Instruction::JR_cc_e(Flag::C, e as i8), pc))
-        }
-
-        0x18 => {
-          let e = try!(m.read_u8(addr + pc));
-          pc += 1;
-          Ok((Instruction::JR_e(e as i8), pc))
-        }
+        0x20 => imm!(Instruction::JR_cc[Operand::FlagNZ, imm8], m, addr, pc),
+        0x28 => imm!(Instruction::JR_cc[Operand::FlagZ, imm8], m, addr, pc),
+        0x30 => imm!(Instruction::JR_cc[Operand::FlagNC, imm8], m, addr, pc),
+        0x38 => imm!(Instruction::JR_cc[Operand::FlagC, imm8], m, addr, pc),
+        0x18 => imm!(Instruction::JR[imm8], m, addr, pc),
 
         0xe2 => Ok((Instruction::LD_·0xFF00C·_A, pc)),
         0xe0 => {

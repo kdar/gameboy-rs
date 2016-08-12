@@ -32,8 +32,8 @@ pub enum Instruction {
   INC16(Operand),
   JP(Operand),
   JP_cc(Operand, Operand),
-  JR_cc_e(Flag, i8),
-  JR_e(i8),
+  JR(Operand),
+  JR_cc(Operand, Operand),
   LD_·0xFF00C·_A, // Moved: RET PO -> LD (FF00+n),A
   LD_·0xFF00n·_A(u8), // Moved: JP PO,nn -> LD (FF00+C),A
   LD_·BC·_A,
@@ -99,8 +99,8 @@ impl fmt::Debug for Instruction {
       Instruction::INC16(o) => write!(f, "INC {}", o),
       Instruction::JP(o) => write!(f, "JP {}", o),
       Instruction::JP_cc(o1, o2) => write!(f, "JP {},{}", o1, o2),
-      Instruction::JR_cc_e(cc, e) => write!(f, "JR {},{}", cc, e),
-      Instruction::JR_e(e) => write!(f, "JR {}", e),
+      Instruction::JR(o) => write!(f, "JR {}", o),
+      Instruction::JR_cc(o1, o2) => write!(f, "JR {},{}", o1, o2),
       Instruction::LD_·0xFF00C·_A => write!(f, "LD (0xFF00+C),A"),
       Instruction::LD_·0xFF00n·_A(n) => write!(f, "LD (0xFF00+${:02x}),A", n),
       Instruction::LD_·BC·_A => write!(f, "LD (BC),A"),
