@@ -472,7 +472,7 @@ impl Cpu {
       Instruction::POP16(o) => self.inst_POP16(o),
       Instruction::PUSH16(o) => self.inst_PUSH16(o),
       Instruction::RET => self.inst_RET(),
-      Instruction::RET_cc(cc) => self.inst_RET_cc(cc),
+      Instruction::RET_cc(o) => self.inst_RET_cc(o),
       Instruction::RRA => self.inst_RRA(),
       Instruction::RST_t(t) => self.inst_RST_t(t),
       Instruction::SUB_n(n) => self.inst_SUB_n(n),
@@ -964,19 +964,19 @@ impl Cpu {
   }
 
   // RET
-  // Opcode: 0xC9
-  // Page: 278
+  //   Opcode: 0xC9
+  //   Page: 278
   #[allow(non_snake_case)]
   fn inst_RET(&mut self) {
     self.reg_pc = self.pop_word();
   }
 
   // RET cc
-  // Opcode: 11ccc000
-  // Page: 279
+  //   Opcode: 11ccc000
+  //   Page: 279
   #[allow(non_snake_case)]
-  fn inst_RET_cc(&mut self, cc: Flag) {
-    if self.read_flag(cc) {
+  fn inst_RET_cc(&mut self, o: Operand) {
+    if self.read_operand_u8(o) != 0 {
       self.reg_pc = self.pop_word();
     }
   }

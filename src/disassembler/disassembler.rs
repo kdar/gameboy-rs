@@ -357,10 +357,10 @@ impl Disassembler {
 
         0xc9 => I::RET,
 
-        0xc0 | 0xc8 | 0xd0 | 0xd8 => {
-          let cc = op >> 3 & 0b111;
-          I::RET_cc(Flag::from(cc))
-        }
+        0xc0 => I::RET_cc(O::Flag(Flag::NZ)),
+        0xc8 => I::RET_cc(O::Flag(Flag::Z)),
+        0xd0 => I::RET_cc(O::Flag(Flag::NC)),
+        0xd8 => I::RET_cc(O::Flag(Flag::C)),
 
         0x17 => I::RLA,
         0x07 => I::RLCA,
