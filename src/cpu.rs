@@ -2,8 +2,6 @@ use std::fmt;
 use std::default::Default;
 use std::cmp::PartialEq;
 
-use super::reg::Reg;
-use super::flag::Flag;
 use super::operand::Operand;
 use super::disassembler::Instruction;
 use super::disassembler::Disassembler;
@@ -15,6 +13,34 @@ fn high_byte(value: u16) -> u8 {
 
 fn low_byte(value: u16) -> u8 {
   value as u8 & 0b11111111
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Flag {
+  Z, // zero flag
+  N, // add/sub flag
+  H, // half carry flag
+  C, // carry flag
+  NZ, // non-zero (uses zero flag)
+  NC, // non-carry (uses carry flag)
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Reg {
+  B,
+  C,
+  D,
+  E,
+  H,
+  L,
+  F,
+  A,
+  BC,
+  DE,
+  HL,
+  AF,
+  SP,
+  PC,
 }
 
 pub struct Cpu {

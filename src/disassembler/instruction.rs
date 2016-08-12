@@ -1,5 +1,3 @@
-use super::super::reg::Reg;
-use super::super::flag::Flag;
 use super::super::operand::Operand;
 use std::fmt;
 

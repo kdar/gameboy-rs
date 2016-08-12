@@ -21,8 +21,6 @@ extern crate libc;
 pub mod macros;
 pub mod mem;
 pub mod cpu;
-pub mod reg;
-pub mod flag;
 pub mod disassembler;
 pub mod debugger;
 pub mod video;
@@ -33,9 +31,6 @@ pub mod linkport;
 pub mod operand;
 pub mod bios;
 pub mod system;
-
-pub use reg::Reg;
-pub use flag::Flag;
 
 #[cfg(test)]
 mod test {

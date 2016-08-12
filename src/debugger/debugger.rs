@@ -4,9 +4,8 @@ use super::rustyline::error::ReadlineError;
 use super::rustyline::Editor;
 use std::process::exit;
 
-use super::super::cpu;
+use super::super::cpu::{self, Reg};
 use super::command::Command;
-use super::super::reg::Reg;
 use super::super::system::SystemCtrl;
 
 extern "C" {
