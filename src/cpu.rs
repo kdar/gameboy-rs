@@ -457,8 +457,8 @@ impl Cpu {
       Instruction::DI => self.inst_DI(),
       Instruction::EI => self.inst_EI(),
       Instruction::HALT => self.inst_HALT(),
-      Instruction::INC_r(r) => self.inst_INC_r(r),
-      Instruction::INC_rr(rr) => self.inst_INC_rr(rr),
+      Instruction::INC8(o) => self.inst_INC8(o),
+      Instruction::INC16(o) => self.inst_INC16(o),
       Instruction::JP_HL => self.inst_JP_HL(),
       Instruction::JP_cc_nn(cc, nn) => self.inst_JP_cc_nn(cc, nn),
       Instruction::JP_nn(nn) => self.inst_JP_nn(nn),
@@ -823,28 +823,28 @@ impl Cpu {
   }
 
   // INC r
-  // Opcode: 00rrr100
+  //   Opcode: 0x04 | 0x0c | 0x14 | 0x1c | 0x24 | 0x2c | 0x3c
   // Page: 178
   #[allow(non_snake_case)]
-  fn inst_INC_r(&mut self, r: Reg) {
-    let val = self.read_reg_u8(r);
+  fn inst_INC8(&mut self, o: Operand) {
+    let val = self.read_operand_u8(o);
     let new_val = val.wrapping_add(1);
 
-    self.write_reg_u8(r, new_val);
+    self.write_operand_u8(o, new_val);
     self.write_flag(Flag::Z, new_val == 0);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, val & 0xf == 0xf);
   }
 
   // INC rr
-  // Opcode: 00ss0011
+  //   Opcode: 0x03 | 0x13 | 0x23 | 0x33
   // Page: 202
   // Originally called INC ss
   #[allow(non_snake_case)]
-  fn inst_INC_rr(&mut self, ss: Reg) {
-    let val = self.read_reg_u16(ss);
+  fn inst_INC16(&mut self, o: Operand) {
+    let val = self.read_operand_u16(o);
     let val = val.wrapping_add(1);
-    self.write_reg_u16(ss, val);
+    self.write_operand_u16(o, val);
   }
 
   // JP HL

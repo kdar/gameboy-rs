@@ -199,15 +199,19 @@ impl Disassembler {
 
         0x76 => Ok((Instruction::HALT, pc)),
 
-        0x04 | 0x0c | 0x14 | 0x1c | 0x24 | 0x2c | 0x3c => {
-          let r = op >> 3 & 0b111;
-          Ok((Instruction::INC_r(Reg::from(r)), pc))
-        }
+        0x3c => Ok((Instruction::INC8(Operand::A), pc)),
+        0x04 => Ok((Instruction::INC8(Operand::B), pc)),
+        0x0c => Ok((Instruction::INC8(Operand::C), pc)),
+        0x14 => Ok((Instruction::INC8(Operand::D), pc)),
+        0x1c => Ok((Instruction::INC8(Operand::E), pc)),
+        0x24 => Ok((Instruction::INC8(Operand::H), pc)),
+        0x2c => Ok((Instruction::INC8(Operand::L), pc)),
+        0x34 => Ok((Instruction::INC8(Operand::_HL_), pc)),
 
-        0x03 | 0x13 | 0x23 | 0x33 => {
-          let ss = op >> 4 & 0b11;
-          Ok((Instruction::INC_rr(Reg::from_pair(ss, false)), pc))
-        }
+        0x03 => Ok((Instruction::INC16(Operand::BC), pc)),
+        0x13 => Ok((Instruction::INC16(Operand::DE), pc)),
+        0x23 => Ok((Instruction::INC16(Operand::HL), pc)),
+        0x33 => Ok((Instruction::INC16(Operand::SP), pc)),
 
         0xe9 => Ok((Instruction::JP_HL, pc)),
 
