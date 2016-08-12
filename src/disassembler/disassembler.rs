@@ -163,19 +163,11 @@ impl Disassembler {
         0xa6 => Ok((Instruction::AND(Operand::_HL_), pc)),
         0xe6 => imm!(Instruction::AND[imm8], m, addr, pc),
 
-        0xc4 | 0xcc | 0xd4 | 0xdc => {
-          // | 0xe4 | 0xec | 0xf4 | 0xfc => {
-          let cc = op >> 3 & 0b111;
-          let nn = try!(m.read_u16(addr + pc));
-          pc += 2;
-          Ok((Instruction::CALL_cc_nn(Flag::from(cc), nn), pc))
-        }
-
-        0xcd => {
-          let nn = try!(m.read_u16(addr + pc));
-          pc += 2;
-          Ok((Instruction::CALL_nn(nn), pc))
-        }
+        0xc4 => imm!(Instruction::CALL_cc[Operand::FlagNZ, imm16], m, addr, pc),
+        0xcc => imm!(Instruction::CALL_cc[Operand::FlagZ, imm16], m, addr, pc),
+        0xd4 => imm!(Instruction::CALL_cc[Operand::FlagNC, imm16], m, addr, pc),
+        0xdc => imm!(Instruction::CALL_cc[Operand::FlagC, imm16], m, addr, pc),
+        0xcd => imm!(Instruction::CALL[imm16], m, addr, pc),
 
         0xbe => Ok((Instruction::CP_·HL·, pc)),
 

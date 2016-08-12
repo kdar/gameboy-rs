@@ -151,6 +151,48 @@ impl Cpu {
         let sp = self.reg_sp;
         self.read_u8(sp)
       }
+      Operand::FlagZ => {
+        if 0b10000000 & self.reg_af != 0 {
+          1
+        } else {
+          0
+        }
+      }
+      Operand::FlagN => {
+        if 0b01000000 & self.reg_af != 0 {
+          1
+        } else {
+          0
+        }
+      }
+      Operand::FlagH => {
+        if 0b00100000 & self.reg_af != 0 {
+          1
+        } else {
+          0
+        }
+      }
+      Operand::FlagC => {
+        if 0b00010000 & self.reg_af != 0 {
+          1
+        } else {
+          0
+        }
+      }
+      Operand::FlagNZ => {
+        if 0b10000000 & self.reg_af == 0 {
+          1
+        } else {
+          0
+        }
+      }
+      Operand::FlagNC => {
+        if 0b00010000 & self.reg_af == 0 {
+          1
+        } else {
+          0
+        }
+      }
       Operand::Imm8(i) => i,
       _ => panic!("cpu.read_operand_u8: unrecognized operand: {}", operand),
     }
@@ -407,8 +449,8 @@ impl Cpu {
       Instruction::ADD8(o1, o2) => self.inst_ADD8(o1, o2),
       Instruction::ADD16(o1, o2) => self.inst_ADD16(o1, o2),
       Instruction::AND(o) => self.inst_AND(o),
-      Instruction::CALL_cc_nn(cc, nn) => self.inst_CALL_cc_nn(cc, nn),
-      Instruction::CALL_nn(nn) => self.inst_CALL_nn(nn),
+      Instruction::CALL_cc(o1, o2) => self.inst_CALL_cc(o1, o2),
+      Instruction::CALL(o) => self.inst_CALL(o),
       Instruction::CP_·HL· => self.inst_CP_·HL·(),
       Instruction::CP_n(n) => self.inst_CP_n(n),
       Instruction::DEC_·HL· => self.inst_DEC_·HL·(),
@@ -689,11 +731,13 @@ impl Cpu {
   }
 
   // CALL cc,nn
-  // Opcode: 11ccc100
+  //   Opcode: 0xc4 | 0xcc | 0xd4 | 0xdc
   // Page: 275
   #[allow(non_snake_case)]
-  fn inst_CALL_cc_nn(&mut self, cc: Flag, nn: u16) {
-    if self.read_flag(cc) {
+  fn inst_CALL_cc(&mut self, o1: Operand, o2: Operand) {
+    if self.read_operand_u8(o1) != 0 {
+      let nn = self.read_operand_u16(o2);
+
       let pc = self.reg_pc;
       self.push_word(pc);
       self.reg_pc = nn;
@@ -701,10 +745,12 @@ impl Cpu {
   }
 
   // CALL nn
-  // Opcode: 0xCD
+  //   Opcode: 0xcd
   // Page: 273
   #[allow(non_snake_case)]
-  fn inst_CALL_nn(&mut self, nn: u16) {
+  fn inst_CALL(&mut self, o: Operand) {
+    let nn = self.read_operand_u16(o);
+
     let pc = self.reg_pc;
     self.push_word(pc);
     self.reg_pc = nn;
