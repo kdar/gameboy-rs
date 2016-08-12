@@ -330,6 +330,8 @@ impl Disassembler {
           I::LD8(O::Reg(Reg::A),
                  O::Addr(Addr::Imm16(0xff00 + try!(imm8(&mut pc)) as u16)))
         }
+        0xe2 => I::LD8(O::Addr(Addr::IoPortC), O::Reg(Reg::A)),
+        0xf2 => I::LD8(O::Reg(Reg::A), O::Addr(Addr::IoPortC)),
 
         0x22 => I::LDI(O::Addr(Addr::HL), O::Reg(Reg::A)),
         0x2a => I::LDI(O::Reg(Reg::A), O::Addr(Addr::HL)),

@@ -195,6 +195,10 @@ impl Cpu {
       }
       Operand::Imm(Imm::Imm8(i)) => i,
       Operand::Addr(Addr::Imm16(i)) => self.read_u8(i),
+      Operand::Addr(Addr::IoPortC) => {
+        let c = self.read_reg_u8(Reg::C);
+        self.read_u8(0xff00 + c as u16)
+      }
       _ => panic!("cpu.read_operand_u8: unrecognized operand: {:?}", operand),
     }
   }
@@ -239,6 +243,10 @@ impl Cpu {
         self.write_u8(sp, value)
       }
       Operand::Addr(Addr::Imm16(i)) => self.write_u8(i, value),
+      Operand::Addr(Addr::IoPortC) => {
+        let c = self.read_reg_u8(Reg::C);
+        self.write_u8(0xff00 + c as u16, value);
+      }
       _ => panic!("cpu.write_operand_u8: unrecognized operand: {}", operand),
     }
   }

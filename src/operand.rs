@@ -10,7 +10,7 @@ pub enum Addr {
   HL,
   SP,
   Imm16(u16),
-  OffsetReg(u16, Reg),
+  IoPortC,
 }
 
 impl fmt::Display for Addr {
@@ -21,7 +21,7 @@ impl fmt::Display for Addr {
       Addr::HL => write!(f, "(HL)"),
       Addr::SP => write!(f, "(SP)"),
       Addr::Imm16(i) => write!(f, "(${:04x})", i),
-      Addr::OffsetReg(o, r) => write!(f, "(${:04x}+{})", o, r),
+      Addr::IoPortC => write!(f, "($ff00+C)"),
     }
   }
 }
