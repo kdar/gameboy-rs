@@ -469,8 +469,8 @@ impl Cpu {
       Instruction::LDD(o1, o2) => self.inst_LDD(o1, o2),
       Instruction::LDI(o1, o2) => self.inst_LDI(o1, o2),
       Instruction::OR(o1, o2) => self.inst_OR(o1, o2),
-      Instruction::POP_rr(rr) => self.inst_POP_rr(rr),
-      Instruction::PUSH_rr(rr) => self.inst_PUSH_rr(rr),
+      Instruction::POP16(o) => self.inst_POP16(o),
+      Instruction::PUSH16(o) => self.inst_PUSH16(o),
       Instruction::RET => self.inst_RET(),
       Instruction::RET_cc(cc) => self.inst_RET_cc(cc),
       Instruction::RRA => self.inst_RRA(),
@@ -946,20 +946,20 @@ impl Cpu {
   }
 
   // POP rr
-  // Opcode: 11rr0001
-  // Page: 137
+  //   Opcode: 11rr0001
+  //   Page: 137
   #[allow(non_snake_case)]
-  fn inst_POP_rr(&mut self, rr: Reg) {
+  fn inst_POP16(&mut self, o: Operand) {
     let val = self.pop_word();
-    self.write_reg_u16(rr, val);
+    self.write_operand_u16(o, val);
   }
 
   // PUSH rr
-  // Opcode: 11rr0101
-  // Page: 134
+  //   Opcode: 11rr0101
+  //   Page: 134
   #[allow(non_snake_case)]
-  fn inst_PUSH_rr(&mut self, rr: Reg) {
-    let val = self.read_reg_u16(rr);
+  fn inst_PUSH16(&mut self, o: Operand) {
+    let val = self.read_operand_u16(o);
     self.push_word(val);
   }
 

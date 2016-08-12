@@ -346,15 +346,14 @@ impl Disassembler {
         0xb6 => I::OR(O::Reg(Reg::A), O::Addr(Addr::HL)),
         0xf6 => I::OR(O::Reg(Reg::A), O::Imm(Imm::Imm8(try!(imm8(&mut pc))))),
 
-        0xc1 | 0xd1 | 0xe1 | 0xf1 => {
-          let rr = op >> 4 & 0b11;
-          I::POP_rr(Reg::from_pair(rr, true))
-        }
-
-        0xc5 | 0xd5 | 0xe5 | 0xf5 => {
-          let rr = op >> 4 & 0b11;
-          I::PUSH_rr(Reg::from_pair(rr, true))
-        }
+        0xc1 => I::POP16(O::Reg(Reg::BC)),
+        0xd1 => I::POP16(O::Reg(Reg::DE)),
+        0xe1 => I::POP16(O::Reg(Reg::HL)),
+        0xf1 => I::POP16(O::Reg(Reg::AF)),
+        0xc5 => I::PUSH16(O::Reg(Reg::BC)),
+        0xd5 => I::PUSH16(O::Reg(Reg::DE)),
+        0xe5 => I::PUSH16(O::Reg(Reg::HL)),
+        0xf5 => I::PUSH16(O::Reg(Reg::AF)),
 
         0xc9 => I::RET,
 
