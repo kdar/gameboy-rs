@@ -452,9 +452,8 @@ impl Cpu {
       Instruction::CALL_cc(o1, o2) => self.inst_CALL_cc(o1, o2),
       Instruction::CALL(o) => self.inst_CALL(o),
       Instruction::CP(o) => self.inst_CP(o),
-      Instruction::DEC_·HL· => self.inst_DEC_·HL·(),
-      Instruction::DEC_r(r) => self.inst_DEC_r(r),
-      Instruction::DEC_rr(r) => self.inst_DEC_rr(r),
+      Instruction::DEC8(o) => self.inst_DEC8(o),
+      Instruction::DEC16(o) => self.inst_DEC16(o),
       Instruction::DI => self.inst_DI(),
       Instruction::EI => self.inst_EI(),
       Instruction::HALT => self.inst_HALT(),
@@ -775,42 +774,28 @@ impl Cpu {
   }
 
   // DEC (HL)
-  // Opcode: 0x35
-  // Page:
-  #[allow(non_snake_case)]
-  fn inst_DEC_·HL·(&mut self) {
-    let hl = self.read_reg_u16(Reg::HL);
-    let val = self.read_u8(hl);
-    let new_val = val.wrapping_sub(1);
-
-    self.write_u8(hl, new_val);
-    self.write_flag(Flag::Z, new_val == 0);
-    self.write_flag(Flag::N, true);
-    self.write_flag(Flag::H, val & 0xf == 0);
-  }
-
+  //   Opcode: 0x35
   // DEC r
-  // Opcode: 00rrr101
-  // Page: 182
+  //   Opcode: 0x05 | 0x0d | 0x15 | 0x1d | 0x25 | 0x2d | 0x3d
   #[allow(non_snake_case)]
-  fn inst_DEC_r(&mut self, r: Reg) {
-    let val = self.read_reg_u8(r);
+  fn inst_DEC8(&mut self, o: Operand) {
+    let val = self.read_operand_u8(o);
     let new_val = val.wrapping_sub(1);
 
-    self.write_reg_u8(r, new_val);
+    self.write_operand_u8(o, new_val);
     self.write_flag(Flag::Z, new_val == 0);
     self.write_flag(Flag::N, true);
     self.write_flag(Flag::H, val & 0xf == 0);
   }
 
   // DEC rr
-  // Opcode: 00rr1011
+  //   Opcode: 0x0b | 0x1b | 0x2b | 0x3b
   // Page: 205
   #[allow(non_snake_case)]
-  fn inst_DEC_rr(&mut self, r: Reg) {
-    let val = self.read_reg_u16(r);
+  fn inst_DEC16(&mut self, o: Operand) {
+    let val = self.read_operand_u16(o);
     let val = val.wrapping_sub(1);
-    self.write_reg_u16(r, val);
+    self.write_operand_u16(o, val);
   }
 
   // DI

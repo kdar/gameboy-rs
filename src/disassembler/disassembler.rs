@@ -179,17 +179,19 @@ impl Disassembler {
         0xbe => Ok((Instruction::CP(Operand::_HL_), pc)),
         0xfe => imm!(Instruction::CP[imm8], m, addr, pc),
 
-        0x35 => Ok((Instruction::DEC_·HL·, pc)),
+        0x3d => Ok((Instruction::DEC8(Operand::A), pc)),
+        0x05 => Ok((Instruction::DEC8(Operand::B), pc)),
+        0x0d => Ok((Instruction::DEC8(Operand::C), pc)),
+        0x15 => Ok((Instruction::DEC8(Operand::D), pc)),
+        0x1d => Ok((Instruction::DEC8(Operand::E), pc)),
+        0x25 => Ok((Instruction::DEC8(Operand::H), pc)),
+        0x2d => Ok((Instruction::DEC8(Operand::L), pc)),
+        0x35 => Ok((Instruction::DEC8(Operand::_HL_), pc)),
 
-        0x05 | 0x0d | 0x15 | 0x1d | 0x25 | 0x2d | 0x3d => {
-          let r = op >> 3 & 0b111;
-          Ok((Instruction::DEC_r(Reg::from(r)), pc))
-        }
-
-        0x0b | 0x1b | 0x2b | 0x3b => {
-          let rr = op >> 4 & 0b11;
-          Ok((Instruction::DEC_rr(Reg::from_pair(rr, false)), pc))
-        }
+        0x0b => Ok((Instruction::DEC16(Operand::BC), pc)),
+        0x1b => Ok((Instruction::DEC16(Operand::DE), pc)),
+        0x2b => Ok((Instruction::DEC16(Operand::HL), pc)),
+        0x3b => Ok((Instruction::DEC16(Operand::SP), pc)),
 
         0xf3 => Ok((Instruction::DI, pc)),
 
