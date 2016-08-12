@@ -377,6 +377,8 @@ impl Disassembler {
         0xf7 => I::RST(O::Imm8(0x30)),
         0xff => I::RST(O::Imm8(0x38)),
 
+        0x10 => I::STOP,
+
         0x97 => I::SUB(O::RegA, O::RegA),
         0x90 => I::SUB(O::RegA, O::RegB),
         0x91 => I::SUB(O::RegA, O::RegC),

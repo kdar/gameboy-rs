@@ -48,6 +48,7 @@ pub enum Instruction {
   RRA,
   RRCA,
   RST(Operand),
+  STOP,
   SUB(Operand, Operand),
   XOR(Operand, Operand),
 }
@@ -98,6 +99,7 @@ impl fmt::Debug for Instruction {
       Instruction::RRA => write!(f, "RRA"),
       Instruction::RRCA => write!(f, "RRCA"),
       Instruction::RST(o) => write!(f, "RST {}", o),
+      Instruction::STOP => write!(f, "STOP"),
       Instruction::SUB(o1, o2) => write!(f, "SUB {},{}", o1, o2),
       Instruction::XOR(o1, o2) => write!(f, "XOR {},{}", o1, o2),
     }

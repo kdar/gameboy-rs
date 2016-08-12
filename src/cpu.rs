@@ -503,6 +503,7 @@ impl Cpu {
       Instruction::LDD(o1, o2) => self.inst_LDD(o1, o2),
       Instruction::LDHL(o1, o2) => self.inst_LDHL(o1, o2),
       Instruction::LDI(o1, o2) => self.inst_LDI(o1, o2),
+      Instruction::NOP => self.inst_NOP(),
       Instruction::OR(o1, o2) => self.inst_OR(o1, o2),
       Instruction::POP16(o) => self.inst_POP16(o),
       Instruction::PUSH16(o) => self.inst_PUSH16(o),
@@ -511,8 +512,8 @@ impl Cpu {
       Instruction::RLCA => self.inst_RLCA(),
       Instruction::RRA => self.inst_RRA(),
       Instruction::RST(o) => self.inst_RST(o),
+      Instruction::STOP => self.inst_STOP(),
       Instruction::SUB(o1, o2) => self.inst_SUB(o1, o2),
-      Instruction::NOP => self.inst_NOP(),
       Instruction::XOR(o1, o2) => self.inst_XOR(o1, o2),
 
       _ => panic!("instruction not implemented: {:?}\n{:?}", ins, self),
@@ -1076,6 +1077,13 @@ impl Cpu {
     self.push_word(pc);
     let val = self.read_operand_u8(o);
     self.reg_pc = val as u16 * 0x08;
+  }
+
+  // STOP
+  //   Opcode: 0x10
+  #[allow(non_snake_case)]
+  fn inst_STOP(&mut self) {
+    println!("STOP not implemented");
   }
 
   // SUB n
