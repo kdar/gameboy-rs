@@ -1083,7 +1083,7 @@ impl Cpu {
   //   Opcode: 0x10
   #[allow(non_snake_case)]
   fn inst_STOP(&mut self) {
-    println!("STOP not implemented");
+    // println!("STOP not implemented");
   }
 
   // SUB n

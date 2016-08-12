@@ -1,4 +1,6 @@
 use super::mem::MemoryIo;
+use std::io;
+use std::io::Write;
 
 pub struct LinkPort {
   last_byte: u8,
@@ -31,6 +33,7 @@ impl MemoryIo for LinkPort {
       0xff02 => {
         // if value == 0x81 {
         print!("{}", self.last_byte as char);
+        io::stdout().flush();
         // }
         Ok(())
       }
