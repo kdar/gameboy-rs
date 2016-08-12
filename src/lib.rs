@@ -16,6 +16,8 @@ extern crate time;
 extern crate num;
 extern crate libc;
 
+#[macro_use]
+pub mod macros;
 pub mod mem;
 pub mod cpu;
 pub mod reg;

@@ -4,43 +4,6 @@ use super::super::operand::Operand;
 use super::instruction::Instruction;
 use super::super::mem::MemoryIo;
 
-macro_rules! try_o {
-  ($expr:expr) => (match $expr {
-    Some(val) => val,
-    None => {
-      return None;
-    },
-  })
-}
-
-macro_rules! imm8 {
-  ($inst:path[imm], $m:ident, $addr:ident, $pc:ident) => ({
-    let n = try!($m.read_u8($addr + $pc));
-    $pc += 1;
-    Ok(($inst(Operand::Imm8(n)), $pc))
-  });
-
-  ($inst:path[$operand1:path, imm], $m:ident, $addr:ident, $pc:ident) => ({
-    let n = try!($m.read_u8($addr + $pc));
-    $pc += 1;
-    Ok(($inst($operand1, Operand::Imm8(n)), $pc))
-  });
-
-  ($inst:path[imm, $operand2:path], $m:ident, $addr:ident, $pc:ident) => ({
-    let n = try!($m.read_u8($addr + $pc));
-    $pc += 1;
-    Ok(($inst(Operand::Imm8(n), $operand2), $pc))
-  });
-}
-
-// macro_rules! imm16 {
-//  ($inst:path, $m:ident, $addr:ident, $pc:ident) => ({
-//    let n = try!($m.read_u16($addr + $pc));
-//    $pc += 2;
-//    Ok(($inst(Operand::Imm16(n)), $pc))
-//  })
-// }
-
 pub struct Disassembler;
 
 impl Default for Disassembler {

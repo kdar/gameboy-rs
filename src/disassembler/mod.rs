@@ -1,5 +1,7 @@
 use std::io::Write;
 
+#[macro_use]
+pub mod macros;
 pub mod disassembler;
 pub mod instruction;
 
