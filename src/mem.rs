@@ -42,8 +42,9 @@ pub trait MemoryIo {
   }
 
   fn write_u16(&mut self, addr: u16, value: u16) -> Result<(), String> {
-    try!(self.write_u8(addr + 1, (value >> 8) as u8 & 0b11111111));
-    try!(self.write_u8(addr, value as u8 & 0b11111111));
+    let addr = addr as usize;
+    try!(self.write_u8((addr + 1) as u16, (value >> 8) as u8 & 0b11111111));
+    try!(self.write_u8(addr as u16, value as u8 & 0b11111111));
     Ok(())
   }
 }
