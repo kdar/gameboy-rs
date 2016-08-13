@@ -1179,8 +1179,6 @@ impl Cpu {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use super::super::reg::Reg;
-  use super::super::flag::Flag;
   use super::super::system::SystemCtrl;
   use super::super::mem::MemoryIo;
   use std::io::Read;
@@ -1251,45 +1249,43 @@ mod tests {
     for (k, _) in doc.as_hash().unwrap() {
       let test_name = k.as_str().unwrap();
       let unit = &doc[test_name];
-      let setup = &unit["setup"];
-      let test = &unit["test"];
+      let pre = &unit["pre"];
+      let post = &unit["post"];
 
       let mut c = testcpu();
-      for (setup_k, setup_v) in setup.as_hash().unwrap() {
-        match setup_k.as_str().unwrap() {
-          "A" => c.write_reg_u8(Reg::A, setup_v.as_i64().unwrap() as u8),
-          "F" => c.write_reg_u8(Reg::F, setup_v.as_i64().unwrap() as u8),
-          "B" => c.write_reg_u8(Reg::B, setup_v.as_i64().unwrap() as u8),
-          "C" => c.write_reg_u8(Reg::C, setup_v.as_i64().unwrap() as u8),
-          "D" => c.write_reg_u8(Reg::D, setup_v.as_i64().unwrap() as u8),
-          "E" => c.write_reg_u8(Reg::E, setup_v.as_i64().unwrap() as u8),
-          "H" => c.write_reg_u8(Reg::H, setup_v.as_i64().unwrap() as u8),
-          "L" => c.write_reg_u8(Reg::L, setup_v.as_i64().unwrap() as u8),
-          "SP" => c.reg_sp = setup_v.as_i64().unwrap() as u16,
-          "PC" => c.reg_pc = setup_v.as_i64().unwrap() as u16,
+      for (pre_k, pre_v) in pre.as_hash().unwrap() {
+        match pre_k.as_str().unwrap() {
+          "A" => c.write_reg_u8(Reg::A, pre_v.as_i64().unwrap() as u8),
+          "F" => c.write_reg_u8(Reg::F, pre_v.as_i64().unwrap() as u8),
+          "B" => c.write_reg_u8(Reg::B, pre_v.as_i64().unwrap() as u8),
+          "C" => c.write_reg_u8(Reg::C, pre_v.as_i64().unwrap() as u8),
+          "D" => c.write_reg_u8(Reg::D, pre_v.as_i64().unwrap() as u8),
+          "E" => c.write_reg_u8(Reg::E, pre_v.as_i64().unwrap() as u8),
+          "H" => c.write_reg_u8(Reg::H, pre_v.as_i64().unwrap() as u8),
+          "L" => c.write_reg_u8(Reg::L, pre_v.as_i64().unwrap() as u8),
+          "SP" => c.reg_sp = pre_v.as_i64().unwrap() as u16,
+          "PC" => c.reg_pc = pre_v.as_i64().unwrap() as u16,
           "mem" => {
-            match setup_v {
-              &Yaml::Array(ref a) => {
-                let mut count = 0;
-                for x in a {
-                  c.system.write_u8(count, x.as_i64().unwrap() as u8).unwrap();
-                  count += 1;
+            match pre_v {
+              &Yaml::Hash(ref h) => {
+                for (hk, hv) in h {
+                  c.system.write_u8(hk.as_i64().unwrap() as u16, hv.as_i64().unwrap() as u8).unwrap();
                 }
               }
               _ => panic!("unknown mem value"),
             };
           }
-          _ => panic!("unknown key in setup"),
+          _ => panic!("unknown key in pre"),
         };
       }
 
       c.step();
 
-      for (test_k, test_v) in test.as_hash().unwrap() {
-        match test_k.as_str().unwrap() {
+      for (post_k, post_v) in post.as_hash().unwrap() {
+        match post_k.as_str().unwrap() {
           "A" => {
             let v1 = c.read_reg_u8(Reg::A);
-            let v2 = test_v.as_i64().unwrap() as u8;
+            let v2 = post_v.as_i64().unwrap() as u8;
             assert!(v1 == v2,
                     "\n{0}:\n A:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
                     test_name,
@@ -1298,7 +1294,7 @@ mod tests {
           }
           "F" => {
             let v1 = c.read_reg_u8(Reg::F);
-            let v2 = test_v.as_i64().unwrap() as u8;
+            let v2 = post_v.as_i64().unwrap() as u8;
             let mut flags1 = vec![];
             if v1 & 0b10000000 != 0 {
               flags1.push("Z");
@@ -1335,7 +1331,7 @@ mod tests {
           }
           "B" => {
             let v1 = c.read_reg_u8(Reg::B);
-            let v2 = test_v.as_i64().unwrap() as u8;
+            let v2 = post_v.as_i64().unwrap() as u8;
             assert!(v1 == v2,
                     "\n{0}:\n B:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
                     test_name,
@@ -1344,7 +1340,7 @@ mod tests {
           }
           "C" => {
             let v1 = c.read_reg_u8(Reg::C);
-            let v2 = test_v.as_i64().unwrap() as u8;
+            let v2 = post_v.as_i64().unwrap() as u8;
             assert!(v1 == v2,
                     "\n{0}:\n C:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
                     test_name,
@@ -1353,7 +1349,7 @@ mod tests {
           }
           "D" => {
             let v1 = c.read_reg_u8(Reg::D);
-            let v2 = test_v.as_i64().unwrap() as u8;
+            let v2 = post_v.as_i64().unwrap() as u8;
             assert!(v1 == v2,
                     "\n{0}:\n D:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
                     test_name,
@@ -1362,7 +1358,7 @@ mod tests {
           }
           "E" => {
             let v1 = c.read_reg_u8(Reg::E);
-            let v2 = test_v.as_i64().unwrap() as u8;
+            let v2 = post_v.as_i64().unwrap() as u8;
             assert!(v1 == v2,
                     "\n{0}:\n E:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
                     test_name,
@@ -1371,7 +1367,7 @@ mod tests {
           }
           "H" => {
             let v1 = c.read_reg_u8(Reg::H);
-            let v2 = test_v.as_i64().unwrap() as u8;
+            let v2 = post_v.as_i64().unwrap() as u8;
             assert!(v1 == v2,
                     "\n{0}:\n H:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
                     test_name,
@@ -1380,7 +1376,7 @@ mod tests {
           }
           "L" => {
             let v1 = c.read_reg_u8(Reg::L);
-            let v2 = test_v.as_i64().unwrap() as u8;
+            let v2 = post_v.as_i64().unwrap() as u8;
             assert!(v1 == v2,
                     "\n{0}:\n L:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
                     test_name,
@@ -1389,7 +1385,7 @@ mod tests {
           }
           "SP" => {
             let v1 = c.reg_sp;
-            let v2 = test_v.as_i64().unwrap() as u16;
+            let v2 = post_v.as_i64().unwrap() as u16;
             assert!(v1 == v2,
                     "\n{0}:\n SP:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} \
                      [{2:08b}]",
@@ -1399,7 +1395,7 @@ mod tests {
           }
           "PC" => {
             let v1 = c.reg_pc;
-            let v2 = test_v.as_i64().unwrap() as u16;
+            let v2 = post_v.as_i64().unwrap() as u16;
             assert!(v1 == v2,
                     "\n{0}:\n PC:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} \
                      [{2:08b}]",
@@ -1408,29 +1404,25 @@ mod tests {
                     v2);
           }
           "mem" => {
-            match test_v {
-              &Yaml::Array(ref a) => {
-                let mut count = 0;
-                let mut v1 = vec![];
-                let mut v2 = vec![];
-                for x in a {
-                  let m1 = c.read_u8(count);
-                  let m2 = x.as_i64().unwrap() as u8;
-                  v1.push(m1);
-                  v2.push(m2);
-                  count += 1;
-                }
+            match post_v {
+              &Yaml::Hash(ref h) => {
+                for (hk, hv) in h {
+                  let k = hk.as_i64().unwrap() as u16;
+                  let v1 = c.system.read_u8(k).unwrap();
+                  let v2 = hv.as_i64().unwrap() as u8;
 
-                assert!(v1 == v2,
-                        "\n{0}:\n mem:\n  Got:      {1:#04x},\n  Expected: {2:#04x}",
-                        test_name,
-                        HexVec(v1),
-                        HexVec(v2));
+                  assert!(v1 == v2,
+                          "\n{0}\nmem {1}:\n  Got:      {2:#04x},\n  Expected: {3:#04x}",
+                          test_name,
+                          k,
+                          v1,
+                          v2);
+                }
               }
               _ => panic!("unknown mem value"),
             };
           }
-          _ => panic!("unknown key in setup"),
+          _ => panic!("unknown key in pre"),
         }
       }
     }

@@ -39,7 +39,7 @@ impl Bios {
 impl MemoryIo for Bios {
   fn read_u8(&self, addr: u16) -> Result<u8, String> {
     if !self.is_enabled() {
-      panic!("bootom.read_u8: tried to read with the bootrom not enabled");
+      panic!("bios.read_u8: tried to read with the bootrom not enabled");
     }
     Ok(self.rom[addr as usize])
   }

@@ -4,7 +4,7 @@ use super::rustyline::error::ReadlineError;
 use super::rustyline::Editor;
 use std::process::exit;
 
-use super::super::cpu::{self, Reg};
+use super::super::cpu::{Cpu, Reg};
 use super::command::Command;
 use super::super::system::SystemCtrl;
 
@@ -15,7 +15,7 @@ extern "C" {
 }
 
 pub struct Debugger {
-  cpu: cpu::Cpu,
+  cpu: Cpu,
   breakpoints: Vec<usize>,
   break_after_inst: bool,
 }
@@ -23,7 +23,7 @@ pub struct Debugger {
 impl Default for Debugger {
   fn default() -> Debugger {
     Debugger {
-      cpu: cpu::Cpu::default(),
+      cpu: Cpu::default(),
       breakpoints: vec![],
       break_after_inst: false,
     }
@@ -31,13 +31,8 @@ impl Default for Debugger {
 }
 
 impl Debugger {
-  pub fn new(system: Box<SystemCtrl>) -> Debugger {
-    let cpu = cpu::Cpu::new(system);
+  pub fn new(cpu: Cpu) -> Debugger {
     Debugger { cpu: cpu, ..Debugger::default() }
-  }
-
-  pub fn bootstrap(&mut self) {
-    self.cpu.bootstrap();
   }
 
   fn step(&mut self, display_instructions: bool) -> bool {

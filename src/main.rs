@@ -72,15 +72,15 @@ fn main() {
     };
 
     let system = try_log!(system::Config::new().boot_rom(boot_rom).cart_rom(cart_rom).create());
+    let mut cpu = Cpu::new(system);
+    if bootstrap {
+      cpu.bootstrap();
+    }
 
     if matches.is_present("debug") {
-      let mut gb = debugger::Debugger::new(system);
+      let mut gb = debugger::Debugger::new(cpu);
       gb.run();
     } else {
-      let mut cpu = Cpu::new(system);
-      if bootstrap {
-        cpu.bootstrap();
-      }
       loop {
         cpu.step();
       }
