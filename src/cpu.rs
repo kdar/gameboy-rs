@@ -479,6 +479,7 @@ impl Cpu {
       Instruction::RR(o) => self.inst_RR(o),
       Instruction::RRC(o) => self.inst_RRC(o),
       Instruction::RLA => self.inst_RLA(),
+      Instruction::SLA(o) => self.inst_SLA(o),
       Instruction::SRL(o) => self.inst_SRL(o),
       Instruction::SWAP(v) => self.inst_SWAP(v),
 
@@ -637,12 +638,30 @@ impl Cpu {
   }
 
   // RRC r
-  //  Opcode: 0xcb
+  //  Opcode: 0xcb 0x0f | 0x08 | 0x09 | 0x0a | 0x0b | 0x0c | 0x0d
+  // RRC (HL)
+  //  Opcode: 0xcb 0x0e
   #[allow(non_snake_case)]
   fn inst_RRC(&mut self, o: Operand) {
     let val = self.read_operand_u8(o);
     let carry = val & 0x1 != 0;
     let result = val.rotate_right(1);
+
+    self.write_operand_u8(o, result);
+    self.write_flag(Flag::Z, result == 0);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, false);
+    self.write_flag(Flag::C, carry);
+  }
+
+  // SLA r
+  //   Opcode: 0xcb 0x27 | 0x20 | 0x21 | 0x22 | 0x23 | 0x24 | 0x25
+  // SLA (HL)
+  //   Opcode: 0xcb 0x26
+  fn inst_SLA(&mut self, o: Operand) {
+    let val = self.read_operand_u8(o);
+    let carry = val & 0x80 != 0;
+    let result = val << 1;
 
     self.write_operand_u8(o, result);
     self.write_flag(Flag::Z, result == 0);
