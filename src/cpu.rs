@@ -1200,7 +1200,7 @@ impl Cpu {
     self.write_reg_u8(Reg::A, result);
     self.write_flag(Flag::Z, result == 0);
     self.write_flag(Flag::N, true);
-    self.write_flag(Flag::H, val1 & 0x0F < (val2 & 0x0F + carry_val));
+    self.write_flag(Flag::H, val1 & 0xf < (val2 & 0xf) + carry_val);
     self.write_flag(Flag::C, carry1 || carry2);
   }
 
