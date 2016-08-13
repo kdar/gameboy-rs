@@ -574,11 +574,12 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_RL(&mut self, o: Operand) {
     let mut val = self.read_operand_u8(o);
-    let carry = self.read_flag(Flag::C);
+    let prev_carry = self.read_flag(Flag::C);
+    let carry = val & (1 << 7) != 0;
 
     val <<= 1;
 
-    if carry {
+    if prev_carry {
       val |= 1; // set bit 0 to 1
     } else {
       val &= !1; // set bit 0 to 0
@@ -588,7 +589,7 @@ impl Cpu {
     self.write_flag(Flag::Z, val == 0);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, false);
-    self.write_flag(Flag::C, val & (1 << 7) != 0);
+    self.write_flag(Flag::C, carry);
   }
 
   // RLC r
