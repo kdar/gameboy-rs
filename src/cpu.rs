@@ -961,7 +961,7 @@ impl Cpu {
   fn inst_LDI(&mut self, o1: Operand, o2: Operand) {
     let val = self.read_operand_u8(o2);
     self.write_operand_u8(o1, val);
-    self.reg_hl += 1;
+    self.reg_hl = self.reg_hl.wrapping_add(1);
   }
 
   // NOP
