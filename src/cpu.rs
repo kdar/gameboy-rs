@@ -518,6 +518,7 @@ impl Cpu {
       Instruction::RRCA => self.inst_RRCA(),
       Instruction::RST(o) => self.inst_RST(o),
       Instruction::SBC(o) => self.inst_SBC(o),
+      Instruction::SCF => self.inst_SCF(),
       Instruction::STOP => self.inst_STOP(),
       Instruction::SUB(o1, o2) => self.inst_SUB(o1, o2),
       Instruction::XOR(o1, o2) => self.inst_XOR(o1, o2),
@@ -1190,6 +1191,15 @@ impl Cpu {
     self.write_flag(Flag::N, true);
     self.write_flag(Flag::H, val1 & 0x0F < (val2 & 0x0F + carry_val));
     self.write_flag(Flag::C, carry1 || carry2);
+  }
+
+  // SCF
+  //   Opcode: 0x37
+  #[allow(non_snake_case)]
+  fn inst_SCF(&mut self) {
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, false);
+    self.write_flag(Flag::C, true);
   }
 
   // STOP
