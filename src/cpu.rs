@@ -475,6 +475,7 @@ impl Cpu {
       // 0xCB instructions
       Instruction::BIT(o1, o2) => self.inst_BIT(o1, o2),
       Instruction::RL(o) => self.inst_RL(o),
+      Instruction::RLC(o) => self.inst_RLC(o),
       Instruction::RR(o) => self.inst_RR(o),
       Instruction::RLA => self.inst_RLA(),
       Instruction::SRL(o) => self.inst_SRL(o),
@@ -587,6 +588,23 @@ impl Cpu {
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, false);
     self.write_flag(Flag::C, val & (1 << 7) != 0);
+  }
+
+  // RLC r
+  //   Opcode: 0xcb 0x07 | 0x00 | 0x01 | 0x02 | 0x03 | 0x04 | 0x05
+  // RLC (HL)
+  //   Opcode: 0xcb 0x06
+  #[allow(non_snake_case)]
+  fn inst_RLC(&mut self, o: Operand) {
+    let val = self.read_operand_u8(o);
+    let carry = val & 0x80 != 0;
+    let result = val.rotate_left(1);
+
+    self.write_operand_u8(o, result);
+    self.write_flag(Flag::Z, result == 0);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, false);
+    self.write_flag(Flag::C, carry);
   }
 
   // RR r
