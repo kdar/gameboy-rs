@@ -513,13 +513,14 @@ impl Cpu {
       Instruction::RETI => self.inst_RETI(),
       Instruction::RLCA => self.inst_RLCA(),
       Instruction::RRA => self.inst_RRA(),
+      Instruction::RRCA => self.inst_RRCA(),
       Instruction::RST(o) => self.inst_RST(o),
       Instruction::SBC(o) => self.inst_SBC(o),
       Instruction::STOP => self.inst_STOP(),
       Instruction::SUB(o1, o2) => self.inst_SUB(o1, o2),
       Instruction::XOR(o1, o2) => self.inst_XOR(o1, o2),
 
-      _ => panic!("instruction not implemented: {:?}\n{:?}", ins, self),
+      // _ => panic!("instruction not implemented: {:?}\n{:?}", ins, self),
     };
 
     // self.clock_t += t;
@@ -1079,7 +1080,7 @@ impl Cpu {
   fn inst_RRA(&mut self) {
     let val = self.read_reg_u8(Reg::A);
     let prev_carry = self.read_flag(Flag::C);
-    let carry = val & 1 != 0;
+    let carry = val & 0x1 != 0;
     let mut result = val >> 1;
 
     if prev_carry {
@@ -1087,6 +1088,20 @@ impl Cpu {
     } else {
       result &= !0b10000000; // set bit 7 to 0
     }
+
+    self.write_reg_u8(Reg::A, result);
+    self.write_flag(Flag::Z, false);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, false);
+    self.write_flag(Flag::C, carry);
+  }
+
+  // RRA
+  //   Opcode: 0x0f
+  fn inst_RRCA(&mut self) {
+    let val = self.read_reg_u8(Reg::A);
+    let carry = val & 0x1 != 0;
+    let result = val.rotate_right(1);
 
     self.write_reg_u8(Reg::A, result);
     self.write_flag(Flag::Z, false);
