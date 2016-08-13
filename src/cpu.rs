@@ -832,9 +832,10 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_ADD_SP(&mut self, o: Operand) {
     let val1 = self.read_reg_u16(Reg::SP);
-    let val2 = self.read_operand_u8(o) as i8 as u16;
+    let val2 = self.read_operand_u8(o) as i8 as i16 as u16;
+    let carry = (((val1 & 0xFF) + (val2 & 0xFF)) & 0x100) > 0;
 
-    let (result, carry) = val1.overflowing_add(val2);
+    let result = val1.wrapping_add(val2);
 
     self.write_reg_u16(Reg::SP, result);
     self.write_flag(Flag::Z, false);
