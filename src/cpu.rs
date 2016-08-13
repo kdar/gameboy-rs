@@ -510,6 +510,7 @@ impl Cpu {
       Instruction::PUSH16(o) => self.inst_PUSH16(o),
       Instruction::RET => self.inst_RET(),
       Instruction::RET_cc(o) => self.inst_RET_cc(o),
+      Instruction::RETI => self.inst_RETI(),
       Instruction::RLCA => self.inst_RLCA(),
       Instruction::RRA => self.inst_RRA(),
       Instruction::RST(o) => self.inst_RST(o),
@@ -1007,7 +1008,7 @@ impl Cpu {
   }
 
   // RET
-  //   Opcode: 0xC9
+  //   Opcode: 0xc9
   //   Page: 278
   #[allow(non_snake_case)]
   fn inst_RET(&mut self) {
@@ -1015,13 +1016,21 @@ impl Cpu {
   }
 
   // RET cc
-  //   Opcode: 11ccc000
+  //   Opcode: 0xc0 | 0xc8 | 0xd0 | 0xd8
   //   Page: 279
   #[allow(non_snake_case)]
   fn inst_RET_cc(&mut self, o: Operand) {
     if self.read_operand_u8(o) != 0 {
       self.reg_pc = self.pop_word();
     }
+  }
+
+  // RETI
+  //   Opcode: 0xd9
+  #[allow(non_snake_case)]
+  fn inst_RETI(&mut self) {
+    self.reg_pc = self.pop_word();
+    self.interrupt_master_enable = true;
   }
 
   // RLA

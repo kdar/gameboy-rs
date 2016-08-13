@@ -359,11 +359,11 @@ impl Disassembler {
         0xf5 => I::PUSH16(O::RegAF),
 
         0xc9 => I::RET,
-
         0xc0 => I::RET_cc(O::FlagNZ),
         0xc8 => I::RET_cc(O::FlagZ),
         0xd0 => I::RET_cc(O::FlagNC),
         0xd8 => I::RET_cc(O::FlagC),
+        0xd9 => I::RETI,
 
         0x17 => I::RLA,
         0x07 => I::RLCA,
