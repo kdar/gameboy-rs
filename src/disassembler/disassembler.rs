@@ -200,6 +200,8 @@ impl Disassembler {
         0xbe => I::CP(O::AddrHL),
         0xfe => I::CP(O::Imm8(((try!(imm8(&mut pc)))))),
 
+        0x27 => I::DAA,
+
         0x3d => I::DEC8(O::RegA),
         0x05 => I::DEC8(O::RegB),
         0x0d => I::DEC8(O::RegC),

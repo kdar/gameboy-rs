@@ -488,6 +488,7 @@ impl Cpu {
       Instruction::CALL_cc(o1, o2) => self.inst_CALL_cc(o1, o2),
       Instruction::CALL(o) => self.inst_CALL(o),
       Instruction::CP(o) => self.inst_CP(o),
+      Instruction::DAA => self.inst_DAA(),
       Instruction::DEC8(o) => self.inst_DEC8(o),
       Instruction::DEC16(o) => self.inst_DEC16(o),
       Instruction::DI => self.inst_DI(),
@@ -786,6 +787,43 @@ impl Cpu {
     self.write_flag(Flag::N, true);
     self.write_flag(Flag::H, a & 0x0F < val & 0x0F);
     self.write_flag(Flag::C, carry);
+  }
+
+  // DAA
+  //   Opcode: 0x27
+  #[allow(non_snake_case)]
+  fn inst_DAA(&mut self) {
+    // Based on http://forums.nesdev.com/viewtopic.php?t=9088
+
+    let mut val = self.read_reg_u8(Reg::A) as usize;
+
+    if !self.read_flag(Flag::N) {
+      if self.read_flag(Flag::H) || (val & 0xf) > 9 {
+        val = val.wrapping_add(0x06);
+      }
+
+      if self.read_flag(Flag::C) || (val > 0x9f) {
+        val = val.wrapping_add(0x60);
+      }
+    } else {
+      if self.read_flag(Flag::H) {
+        val = (val.wrapping_sub(6)) & 0xff;
+      }
+
+      if self.read_flag(Flag::C) {
+        val = val.wrapping_sub(0x60);
+      }
+    }
+
+    if (val & 0x100) == 0x100 {
+      self.write_flag(Flag::C, true);
+    }
+
+    let val = (val & 0xff) as u8;
+
+    self.write_reg_u8(Reg::A, val);
+    self.write_flag(Flag::Z, val == 0);
+    self.write_flag(Flag::H, false);
   }
 
   // DEC (HL)
@@ -1098,6 +1136,7 @@ impl Cpu {
 
   // RRA
   //   Opcode: 0x0f
+  #[allow(non_snake_case)]
   fn inst_RRCA(&mut self) {
     let val = self.read_reg_u8(Reg::A);
     let carry = val & 0x1 != 0;
