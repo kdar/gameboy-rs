@@ -480,6 +480,7 @@ impl Cpu {
       Instruction::RRC(o) => self.inst_RRC(o),
       Instruction::RLA => self.inst_RLA(),
       Instruction::SLA(o) => self.inst_SLA(o),
+      Instruction::SRA(o) => self.inst_SRA(o),
       Instruction::SRL(o) => self.inst_SRL(o),
       Instruction::SWAP(v) => self.inst_SWAP(v),
 
@@ -662,6 +663,23 @@ impl Cpu {
     let val = self.read_operand_u8(o);
     let carry = val & 0x80 != 0;
     let result = val << 1;
+
+    self.write_operand_u8(o, result);
+    self.write_flag(Flag::Z, result == 0);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, false);
+    self.write_flag(Flag::C, carry);
+  }
+
+  // SRA r
+  //   Opcode: 0xcb
+  // SRA (HL)
+  //   Opcode: 0xcb
+  fn inst_SRA(&mut self, o: Operand) {
+    let val = self.read_operand_u8(o);
+    let carry = val & 0x1 != 0;
+    let bit7 = val & 0x80;
+    let result = (val >> 1) | bit7;
 
     self.write_operand_u8(o, result);
     self.write_flag(Flag::Z, result == 0);

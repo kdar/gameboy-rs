@@ -14,6 +14,7 @@ pub enum Instruction {
   RR(Operand),
   RRC(Operand),
   SLA(Operand),
+  SRA(Operand),
   SRL(Operand),
   SWAP(Operand),
 
@@ -75,6 +76,7 @@ impl fmt::Debug for Instruction {
       Instruction::RR(o) => write!(f, "RR {}", o),
       Instruction::RRC(o) => write!(f, "RRC {}", o),
       Instruction::SLA(o) => write!(f, "SLA {}", o),
+      Instruction::SRA(o) => write!(f, "SRA {}", o),
       Instruction::SRL(o) => write!(f, "SRL {}", o),
       Instruction::SWAP(o) => write!(f, "SWAP {}", o),
 
