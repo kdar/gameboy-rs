@@ -16,7 +16,7 @@ pub enum Instruction {
 
   ADC(Operand, Operand),
   ADD8(Operand, Operand),
-  ADD16(Operand, Operand),
+  ADD_HL(Operand),
   AND(Operand),
   CALL(Operand),
   CALL_cc(Operand, Operand),
@@ -67,7 +67,7 @@ impl fmt::Debug for Instruction {
 
       Instruction::ADC(o1, o2) => write!(f, "ADC {},{}", o1, o2),
       Instruction::ADD8(o1, o2) => write!(f, "ADD {},{}", o1, o2),
-      Instruction::ADD16(o1, o2) => write!(f, "ADD {},{}", o1, o2),
+      Instruction::ADD_HL(o) => write!(f, "ADD HL,{}", o),
       Instruction::AND(o) => write!(f, "AND {}", o),
       Instruction::CALL_cc(o1, o2) => write!(f, "CALL {},{}", o1, o2),
       Instruction::CALL(o) => write!(f, "CALL {}", o),

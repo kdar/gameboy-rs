@@ -482,7 +482,7 @@ impl Cpu {
 
       Instruction::ADC(o1, o2) => self.inst_ADC(o1, o2),
       Instruction::ADD8(o1, o2) => self.inst_ADD8(o1, o2),
-      Instruction::ADD16(o1, o2) => self.inst_ADD16(o1, o2),
+      Instruction::ADD_HL(o) => self.inst_ADD_HL(o),
       Instruction::AND(o) => self.inst_AND(o),
       Instruction::CALL_cc(o1, o2) => self.inst_CALL_cc(o1, o2),
       Instruction::CALL(o) => self.inst_CALL(o),
@@ -692,13 +692,13 @@ impl Cpu {
   // ADD HL,rr
   //   Opcode: 0x09 | 0x19 | 0x29 | 0x39
   #[allow(non_snake_case)]
-  fn inst_ADD16(&mut self, o1: Operand, o2: Operand) {
-    let val1 = self.read_operand_u16(o1);
-    let val2 = self.read_operand_u16(o2);
+  fn inst_ADD_HL(&mut self, o: Operand) {
+    let val1 = self.read_reg_u16(Reg::HL);
+    let val2 = self.read_operand_u16(o);
 
     let (result, carry) = val1.overflowing_add(val2);
 
-    self.write_operand_u16(o1, result);
+    self.write_reg_u16(Reg::HL, result);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, (result ^ val1 ^ val2) & 0x1000 != 0);
     self.write_flag(Flag::C, carry);
