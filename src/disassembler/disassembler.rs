@@ -379,6 +379,16 @@ impl Disassembler {
         0xf7 => I::RST(O::Imm8(0x30)),
         0xff => I::RST(O::Imm8(0x38)),
 
+        0x9f => I::SBC(O::RegA),
+        0x98 => I::SBC(O::RegB),
+        0x99 => I::SBC(O::RegC),
+        0x9a => I::SBC(O::RegD),
+        0x9b => I::SBC(O::RegE),
+        0x9c => I::SBC(O::RegH),
+        0x9d => I::SBC(O::RegL),
+        0x9e => I::SBC(O::AddrHL),
+        0xde => I::SBC(O::Imm8(try!(imm8(&mut pc)))),
+
         0x10 => I::STOP,
 
         0x97 => I::SUB(O::RegA, O::RegA),

@@ -513,6 +513,7 @@ impl Cpu {
       Instruction::RLCA => self.inst_RLCA(),
       Instruction::RRA => self.inst_RRA(),
       Instruction::RST(o) => self.inst_RST(o),
+      Instruction::SBC(o) => self.inst_SBC(o),
       Instruction::STOP => self.inst_STOP(),
       Instruction::SUB(o1, o2) => self.inst_SUB(o1, o2),
       Instruction::XOR(o1, o2) => self.inst_XOR(o1, o2),
@@ -1094,6 +1095,27 @@ impl Cpu {
     self.push_word(pc);
     let val = self.read_operand_u8(o);
     self.reg_pc = val as u16 * 0x08;
+  }
+
+  // SBC A,r
+  //   Opcode:
+  #[allow(non_snake_case)]
+  fn inst_SBC(&mut self, o: Operand) {
+    let val1 = self.read_reg_u8(Reg::A);
+    let val2 = self.read_operand_u8(o);
+    let carry_val = if self.read_flag(Flag::C) {
+      1
+    } else {
+      0
+    };
+    let (result, carry1) = val1.overflowing_sub(val2);
+    let (result, carry2) = result.overflowing_sub(carry_val);
+
+    self.write_reg_u8(Reg::A, result);
+    self.write_flag(Flag::Z, result == 0);
+    self.write_flag(Flag::N, true);
+    self.write_flag(Flag::H, val1 & 0x0F < (val2 & 0x0F + carry_val));
+    self.write_flag(Flag::C, carry1 || carry2);
   }
 
   // STOP
