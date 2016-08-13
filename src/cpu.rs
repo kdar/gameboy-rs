@@ -501,7 +501,7 @@ impl Cpu {
       Instruction::LD8(o1, o2) => self.inst_LD8(o1, o2),
       Instruction::LD16(o1, o2) => self.inst_LD16(o1, o2),
       Instruction::LDD(o1, o2) => self.inst_LDD(o1, o2),
-      Instruction::LDHL(o1, o2) => self.inst_LDHL(o1, o2),
+      Instruction::LD_HL(o1, o2) => self.inst_LD_HL(o1, o2),
       Instruction::LDI(o1, o2) => self.inst_LDI(o1, o2),
       Instruction::NOP => self.inst_NOP(),
       Instruction::OR(o1, o2) => self.inst_OR(o1, o2),
@@ -917,7 +917,7 @@ impl Cpu {
   // LD HL,SP+n
   //    Opcode: 0xf8
   #[allow(non_snake_case)]
-  fn inst_LDHL(&mut self, o1: Operand, o2: Operand) {
+  fn inst_LD_HL(&mut self, o1: Operand, o2: Operand) {
     let val1 = self.read_operand_u16(o1);
     let val2 = self.read_operand_u8(o2) as i8 as u16;
     let (result, carry) = val1.overflowing_add(val2);
