@@ -539,7 +539,7 @@ impl Cpu {
   fn pop_word(&mut self) -> u16 {
     let sp = self.reg_sp;
     let val = self.read_u16(sp);
-    self.reg_sp = self.reg_sp.wrapping_sub(2);
+    self.reg_sp = self.reg_sp.wrapping_add(2);
     val
   }
 
