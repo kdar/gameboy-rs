@@ -483,6 +483,7 @@ impl Cpu {
       Instruction::ADC(o1, o2) => self.inst_ADC(o1, o2),
       Instruction::ADD8(o1, o2) => self.inst_ADD8(o1, o2),
       Instruction::ADD_HL(o) => self.inst_ADD_HL(o),
+      Instruction::ADD_SP(o) => self.inst_ADD_SP(o),
       Instruction::AND(o) => self.inst_AND(o),
       Instruction::CALL_cc(o1, o2) => self.inst_CALL_cc(o1, o2),
       Instruction::CALL(o) => self.inst_CALL(o),
@@ -701,6 +702,22 @@ impl Cpu {
     self.write_reg_u16(Reg::HL, result);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, (result ^ val1 ^ val2) & 0x1000 != 0);
+    self.write_flag(Flag::C, carry);
+  }
+
+  // ADD SP,n
+  //   Opcode: 0xe8
+  #[allow(non_snake_case)]
+  fn inst_ADD_SP(&mut self, o: Operand) {
+    let val1 = self.read_reg_u16(Reg::SP);
+    let val2 = self.read_operand_u8(o) as i8 as u16;
+
+    let (result, carry) = val1.overflowing_add(val2);
+
+    self.write_reg_u16(Reg::SP, result);
+    self.write_flag(Flag::Z, false);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, (((val1 & 0xF) + (val2 & 0xF)) & 0x10) > 0);
     self.write_flag(Flag::C, carry);
   }
 
