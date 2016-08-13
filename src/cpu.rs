@@ -488,6 +488,7 @@ impl Cpu {
       Instruction::CALL_cc(o1, o2) => self.inst_CALL_cc(o1, o2),
       Instruction::CALL(o) => self.inst_CALL(o),
       Instruction::CP(o) => self.inst_CP(o),
+      Instruction::CPL => self.inst_CPL(),
       Instruction::DAA => self.inst_DAA(),
       Instruction::DEC8(o) => self.inst_DEC8(o),
       Instruction::DEC16(o) => self.inst_DEC16(o),
@@ -787,6 +788,16 @@ impl Cpu {
     self.write_flag(Flag::N, true);
     self.write_flag(Flag::H, a & 0x0F < val & 0x0F);
     self.write_flag(Flag::C, carry);
+  }
+
+  // CPL
+  //   Opcode: 0x2f
+  #[allow(non_snake_case)]
+  fn inst_CPL(&mut self) {
+    let val = self.read_reg_u8(Reg::A) ^ 0xff;
+    self.write_reg_u8(Reg::A, val);
+    self.write_flag(Flag::N, true);
+    self.write_flag(Flag::H, true);
   }
 
   // DAA
