@@ -474,6 +474,7 @@ impl Cpu {
 
       // 0xCB instructions
       Instruction::BIT(o1, o2) => self.inst_BIT(o1, o2),
+      Instruction::RES(o1, o2) => self.inst_RES(o1, o2),
       Instruction::RL(o) => self.inst_RL(o),
       Instruction::RLC(o) => self.inst_RLC(o),
       Instruction::RR(o) => self.inst_RR(o),
@@ -566,6 +567,25 @@ impl Cpu {
     self.write_flag(Flag::Z, val2 & (1 << val1) == 0);
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, true);
+  }
+
+  // RES b,r
+  //   Opcode: 0xcb 0x87 | 0x8f | 0x97 | 0x9f | 0xa7 | 0xaf | 0xb7 | 0xbf |
+  //                0x80 | 0x88 | 0x90 | 0x98 | 0xa0 | 0xa8 | 0xb0 | 0xb8 |
+  //                0x81 | 0x89 | 0x91 | 0x99 | 0xa1 | 0xa9 | 0xb1 | 0xb9 |
+  //                0x82 | 0x8a | 0x92 | 0x9a | 0xa2 | 0xaa | 0xb2 | 0xba |
+  //                0x83 | 0x8b | 0x93 | 0x9b | 0xa3 | 0xab | 0xb3 | 0xbb |
+  //                0x84 | 0x8c | 0x94 | 0x9c | 0xa4 | 0xac | 0xb4 | 0xbc |
+  //                0x85 | 0x8d | 0x95 | 0x9d | 0xa5 | 0xad | 0xb5 | 0xbd
+  // RES b,(HL)
+  //   Opcode: 0xcb 0x86 | 0x8e | 0x96 | 0x9e | 0xa6 | 0xae | 0xb6 | 0xbe
+  #[allow(non_snake_case)]
+  fn inst_RES(&mut self, o1: Operand, o2: Operand) {
+    let val1 = self.read_operand_u8(o1);
+    let val2 = self.read_operand_u8(o2);
+    let result = val2 & !(1 << val1);
+
+    self.write_operand_u8(o2, result);
   }
 
   // RL r
@@ -672,9 +692,9 @@ impl Cpu {
   }
 
   // SRA r
-  //   Opcode: 0xcb
+  //   Opcode: 0xcb 0x2f | 0x28 | 0x29 | 0x2a | 0x2b | 0x2c | 0x2d
   // SRA (HL)
-  //   Opcode: 0xcb
+  //   Opcode: 0xcb 0x2e
   fn inst_SRA(&mut self, o: Operand) {
     let val = self.read_operand_u8(o);
     let carry = val & 0x1 != 0;

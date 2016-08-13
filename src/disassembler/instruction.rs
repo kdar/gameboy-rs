@@ -9,6 +9,7 @@ pub enum Instruction {
 
   // 0xCB instructions
   BIT(Operand, Operand),
+  RES(Operand, Operand),
   RL(Operand),
   RLC(Operand),
   RR(Operand),
@@ -71,6 +72,7 @@ impl fmt::Debug for Instruction {
       Instruction::InvalidCB(d) => write!(f, "DB ${:02x}", d),
 
       Instruction::BIT(o1, o2) => write!(f, "BIT {},{}", o1, o2),
+      Instruction::RES(o1, o2) => write!(f, "RES {},{}", o1, o2),
       Instruction::RL(o) => write!(f, "RL {}", o),
       Instruction::RLC(o) => write!(f, "RLC {}", o),
       Instruction::RR(o) => write!(f, "RR {}", o),
