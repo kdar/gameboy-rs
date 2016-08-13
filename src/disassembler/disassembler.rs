@@ -190,6 +190,8 @@ impl Disassembler {
         0xdc => I::CALL_cc(O::FlagC, O::Imm16(try!(imm16(&mut pc)))),
         0xcd => I::CALL(O::Imm16(try!(imm16(&mut pc)))),
 
+        0x3f => I::CCF,
+
         0xbf => I::CP(O::RegA),
         0xb8 => I::CP(O::RegB),
         0xb9 => I::CP(O::RegC),

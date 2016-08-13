@@ -487,6 +487,7 @@ impl Cpu {
       Instruction::AND(o) => self.inst_AND(o),
       Instruction::CALL_cc(o1, o2) => self.inst_CALL_cc(o1, o2),
       Instruction::CALL(o) => self.inst_CALL(o),
+      Instruction::CCF => self.inst_CCF(),
       Instruction::CP(o) => self.inst_CP(o),
       Instruction::CPL => self.inst_CPL(),
       Instruction::DAA => self.inst_DAA(),
@@ -770,6 +771,16 @@ impl Cpu {
     let pc = self.reg_pc;
     self.push_word(pc);
     self.reg_pc = nn;
+  }
+
+  // CCF
+  //   Opcode: 0x3f
+  #[allow(non_snake_case)]
+  fn inst_CCF(&mut self) {
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, false);
+    let c = self.read_flag(Flag::C);
+    self.write_flag(Flag::C, !c);
   }
 
   // CP n
