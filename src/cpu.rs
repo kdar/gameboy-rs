@@ -1295,7 +1295,7 @@ impl Cpu {
     let pc = self.reg_pc;
     self.push_word(pc);
     let val = self.read_operand_u8(o);
-    self.reg_pc = val as u16 * 0x08;
+    self.reg_pc = val as u16;
   }
 
   // SBC A,r
