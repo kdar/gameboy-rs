@@ -480,6 +480,7 @@ impl Cpu {
       Instruction::RR(o) => self.inst_RR(o),
       Instruction::RRC(o) => self.inst_RRC(o),
       Instruction::RLA => self.inst_RLA(),
+      Instruction::SET(o1, o2) => self.inst_SET(o1, o2),
       Instruction::SLA(o) => self.inst_SLA(o),
       Instruction::SRA(o) => self.inst_SRA(o),
       Instruction::SRL(o) => self.inst_SRL(o),
@@ -675,10 +676,31 @@ impl Cpu {
     self.write_flag(Flag::C, carry);
   }
 
+  // SET b,r
+  //   Opcode: 0xcb 0xc7 | 0xcf | 0xd7 | 0xdf | 0xe7 | 0xef | 0xf7 |
+  //                0xff | 0xc0 | 0xc8 | 0xd0 | 0xd8 | 0xe0 | 0xe8 |
+  //                0xf0 | 0xf8 | 0xc1 | 0xc9 | 0xd1 | 0xd9 | 0xe1 |
+  //                0xe9 | 0xf1 | 0xf9 | 0xc2 | 0xca | 0xd2 | 0xda |
+  //                0xe2 | 0xea | 0xf2 | 0xfa | 0xc3 | 0xcb | 0xd3 |
+  //                0xdb | 0xe3 | 0xeb | 0xf3 | 0xfb | 0xc4 | 0xcc |
+  //                0xd4 | 0xdc | 0xe4 | 0xec | 0xf4 | 0xfc | 0xc5 |
+  //                0xcd | 0xd5 | 0xdd | 0xe5 | 0xed | 0xf5 | 0xfd
+  // SET b,(HL)
+  //   Opcode: 0xcb 0xc6 | 0xce | 0xd6 | 0xde | 0xe6 | 0xee | 0xf6 | 0xfe
+  #[allow(non_snake_case)]
+  fn inst_SET(&mut self, o1: Operand, o2: Operand) {
+    let val1 = self.read_operand_u8(o1);
+    let val2 = self.read_operand_u8(o2);
+    let result = val2 | (1 << val1);
+
+    self.write_operand_u8(o2, result);
+  }
+
   // SLA r
   //   Opcode: 0xcb 0x27 | 0x20 | 0x21 | 0x22 | 0x23 | 0x24 | 0x25
   // SLA (HL)
   //   Opcode: 0xcb 0x26
+  #[allow(non_snake_case)]
   fn inst_SLA(&mut self, o: Operand) {
     let val = self.read_operand_u8(o);
     let carry = val & 0x80 != 0;
@@ -695,6 +717,7 @@ impl Cpu {
   //   Opcode: 0xcb 0x2f | 0x28 | 0x29 | 0x2a | 0x2b | 0x2c | 0x2d
   // SRA (HL)
   //   Opcode: 0xcb 0x2e
+  #[allow(non_snake_case)]
   fn inst_SRA(&mut self, o: Operand) {
     let val = self.read_operand_u8(o);
     let carry = val & 0x1 != 0;
