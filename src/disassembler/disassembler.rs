@@ -131,6 +131,15 @@ impl Disassembler {
         0x1d => I::RR(O::RegL),
         0x1e => I::RR(O::AddrHL),
 
+        0x0f => I::RRC(O::RegA),
+        0x08 => I::RRC(O::RegB),
+        0x09 => I::RRC(O::RegC),
+        0x0a => I::RRC(O::RegD),
+        0x0b => I::RRC(O::RegE),
+        0x0c => I::RRC(O::RegH),
+        0x0d => I::RRC(O::RegL),
+        0x0e => I::RRC(O::AddrHL),
+
         0x3f => I::SRL(O::RegA),
         0x38 => I::SRL(O::RegB),
         0x39 => I::SRL(O::RegC),

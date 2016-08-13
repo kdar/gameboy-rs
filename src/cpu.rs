@@ -477,6 +477,7 @@ impl Cpu {
       Instruction::RL(o) => self.inst_RL(o),
       Instruction::RLC(o) => self.inst_RLC(o),
       Instruction::RR(o) => self.inst_RR(o),
+      Instruction::RRC(o) => self.inst_RRC(o),
       Instruction::RLA => self.inst_RLA(),
       Instruction::SRL(o) => self.inst_SRL(o),
       Instruction::SWAP(v) => self.inst_SWAP(v),
@@ -634,6 +635,21 @@ impl Cpu {
     self.write_flag(Flag::C, carry);
   }
 
+  // RRC r
+  //  Opcode: 0xcb
+  #[allow(non_snake_case)]
+  fn inst_RRC(&mut self, o: Operand) {
+    let val = self.read_operand_u8(o);
+    let carry = val & 0x1 != 0;
+    let result = val.rotate_right(1);
+
+    self.write_operand_u8(o, result);
+    self.write_flag(Flag::Z, result == 0);
+    self.write_flag(Flag::N, false);
+    self.write_flag(Flag::H, false);
+    self.write_flag(Flag::C, carry);
+  }
+
   // SRL r
   //   Opcode: 0xcb 0x3f | 0x38 | 0x39 | 0x3a | 0x3b | 0x3c | 0x3d
   // SRL (HL)
@@ -654,9 +670,9 @@ impl Cpu {
   }
 
   // SWAP r
-  //   Opcode: 0xCB 0x37 | 0x30 | 0x31 | 0x32 | 0x33 | 0x34 | 0x35
+  //   Opcode: 0xcb 0x37 | 0x30 | 0x31 | 0x32 | 0x33 | 0x34 | 0x35
   // SWAP (HL)
-  //   Opcode: 0xCB 0x36
+  //   Opcode: 0xcb 0x36
   #[allow(non_snake_case)]
   fn inst_SWAP(&mut self, o: Operand) {
     let val = self.read_operand_u8(o);
