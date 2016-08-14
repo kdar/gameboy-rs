@@ -536,17 +536,17 @@ impl Cpu {
     // self.clock_t += t;
   }
 
-  fn push_word(&mut self, w: u16) {
-    self.reg_sp = self.reg_sp.wrapping_sub(2);
-    let sp = self.reg_sp;
-    self.write_u16(sp, w);
-  }
-
-  fn pop_word(&mut self) -> u16 {
+  fn pop_u16(&mut self) -> u16 {
     let sp = self.reg_sp;
     let val = self.read_u16(sp);
     self.reg_sp = self.reg_sp.wrapping_add(2);
     val
+  }
+
+  fn push_u16(&mut self, val: u16) {
+    self.reg_sp = self.reg_sp.wrapping_sub(2);
+    let sp = self.reg_sp;
+    self.write_u16(sp, val);
   }
 
   // BIT b,r
@@ -872,7 +872,7 @@ impl Cpu {
       let nn = self.read_operand_u16(o2);
 
       let pc = self.reg_pc;
-      self.push_word(pc);
+      self.push_u16(pc);
       self.reg_pc = nn;
     }
   }
@@ -885,7 +885,7 @@ impl Cpu {
     let nn = self.read_operand_u16(o);
 
     let pc = self.reg_pc;
-    self.push_word(pc);
+    self.push_u16(pc);
     self.reg_pc = nn;
   }
 
@@ -1173,7 +1173,7 @@ impl Cpu {
   //   Page: 137
   #[allow(non_snake_case)]
   fn inst_POP16(&mut self, o: Operand) {
-    let val = self.pop_word();
+    let val = self.pop_u16();
     self.write_operand_u16(o, val);
   }
 
@@ -1183,7 +1183,7 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_PUSH16(&mut self, o: Operand) {
     let val = self.read_operand_u16(o);
-    self.push_word(val);
+    self.push_u16(val);
   }
 
   // RET
@@ -1191,7 +1191,7 @@ impl Cpu {
   //   Page: 278
   #[allow(non_snake_case)]
   fn inst_RET(&mut self) {
-    self.reg_pc = self.pop_word();
+    self.reg_pc = self.pop_u16();
   }
 
   // RET cc
@@ -1200,7 +1200,7 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_RET_cc(&mut self, o: Operand) {
     if self.read_operand_u8(o) != 0 {
-      self.reg_pc = self.pop_word();
+      self.reg_pc = self.pop_u16();
     }
   }
 
@@ -1208,7 +1208,7 @@ impl Cpu {
   //   Opcode: 0xd9
   #[allow(non_snake_case)]
   fn inst_RETI(&mut self) {
-    self.reg_pc = self.pop_word();
+    self.reg_pc = self.pop_u16();
     self.interrupt_master_enable = true;
   }
 
@@ -1295,7 +1295,7 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_RST(&mut self, o: Operand) {
     let pc = self.reg_pc;
-    self.push_word(pc);
+    self.push_u16(pc);
     let val = self.read_operand_u8(o);
     self.reg_pc = val as u16;
   }
