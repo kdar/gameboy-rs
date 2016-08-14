@@ -108,7 +108,7 @@ impl MemoryIo for System {
     match addr {
       // boot / cart rom
       0x0000...0x3fff => {
-        if self.booting && addr < 0xFF {
+        if self.booting && addr < 0x100 {
           self.bios.read_u8(addr)
         } else {
           self.cartridge.read_u8(addr)
@@ -187,7 +187,7 @@ impl MemoryIo for System {
     match addr {
       // boot / cart rom
       0x0000...0x3fff => {
-        if self.booting && addr < 0xFF {
+        if self.booting && addr < 0x100 {
           Err("system.write_u8: shouldn't be writing to boot rom".to_owned())
         } else {
           self.cartridge.write_u8(addr, value)
