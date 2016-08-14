@@ -245,7 +245,7 @@ impl Cpu {
   pub fn write_operand_u8(&mut self, operand: Operand, value: u8) {
     match operand {
       Operand::RegA => self.reg_af = (value as u16) << 8 | low_byte(self.reg_af) as u16,
-      Operand::RegF => self.reg_af = (high_byte(self.reg_af) as u16) << 8 | value as u16,
+      Operand::RegF => self.reg_af = (high_byte(self.reg_af) as u16) << 8 | (value as u16 & 0xf0),
       Operand::RegB => self.reg_bc = (value as u16) << 8 | low_byte(self.reg_bc) as u16,
       Operand::RegC => self.reg_bc = (high_byte(self.reg_bc) as u16) << 8 | value as u16,
       Operand::RegD => self.reg_de = (value as u16) << 8 | low_byte(self.reg_de) as u16,
@@ -279,7 +279,7 @@ impl Cpu {
 
   pub fn write_operand_u16(&mut self, operand: Operand, value: u16) {
     match operand {
-      Operand::RegAF => self.reg_af = value,
+      Operand::RegAF => self.reg_af = value & 0xfff0,
       Operand::RegBC => self.reg_bc = value,
       Operand::RegDE => self.reg_de = value,
       Operand::RegHL => self.reg_hl = value,
