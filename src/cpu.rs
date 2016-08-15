@@ -56,7 +56,7 @@ pub struct Cpu {
   interrupt_master_enable: bool,
   halt: bool,
 
-  system: Box<SystemCtrl>,
+  system: Box<SystemCtrl + Send>,
   disasm: Disassembler,
 }
 
@@ -112,7 +112,7 @@ impl fmt::Debug for Cpu {
 }
 
 impl Cpu {
-  pub fn new(system: Box<SystemCtrl>) -> Cpu {
+  pub fn new(system: Box<SystemCtrl + Send>) -> Cpu {
     let mut c = Cpu::default();
     c.system = system;
     c
@@ -438,6 +438,11 @@ impl Cpu {
     // if self.halt {
     //
     // }
+    // TEST
+    // if self.reg_pc == 0x282a {
+    //  self.system.debug();
+    // }
+
     match self.disasm.at(self.system.as_memoryio(), self.reg_pc) {
       Ok((inst, inc)) => {
         let pc_at_inst = self.reg_pc;

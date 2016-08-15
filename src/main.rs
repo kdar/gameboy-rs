@@ -12,11 +12,15 @@ use std::path::Path;
 use clap::{Arg, App};
 use simplelog::{TermLogger, LogLevelFilter};
 use std::process::exit;
+use std::sync::mpsc::{self, Receiver, Sender};
+use std::thread;
 
 use gameboy::debugger;
 use gameboy::disassembler;
 use gameboy::cpu::Cpu;
 use gameboy::system;
+use gameboy::ui::Display;
+use gameboy::ui::piston::Win;
 
 macro_rules! try_log {
   ($expr:expr) => (match $expr {
@@ -26,6 +30,24 @@ macro_rules! try_log {
       exit(1);
     }
   })
+}
+
+struct ProxyDisplay {
+  sender: Sender<ProxyEvent>,
+}
+
+enum ProxyEvent {
+  SetPixel(u32, u32, [u8; 4]),
+  Swap,
+}
+
+impl Display for ProxyDisplay {
+  fn set_pixel(&mut self, x: u32, y: u32, color: [u8; 4]) {
+    self.sender.send(ProxyEvent::SetPixel(x, y, color)).unwrap();
+  }
+  fn swap(&mut self) {
+    self.sender.send(ProxyEvent::Swap).unwrap();
+  }
 }
 
 fn main() {
@@ -71,7 +93,15 @@ fn main() {
       None
     };
 
-    let system = try_log!(system::Config::new().boot_rom(boot_rom).cart_rom(cart_rom).create());
+    let (sender, receiver) = mpsc::channel();
+
+    let mut display = Win::new();
+    let proxy_display = Box::new(ProxyDisplay { sender: sender });
+    let system = try_log!(system::Config::new()
+      .boot_rom(boot_rom)
+      .cart_rom(cart_rom)
+      .display(proxy_display)
+      .create());
     let mut cpu = Cpu::new(system);
     if bootstrap {
       cpu.bootstrap();
@@ -81,10 +111,27 @@ fn main() {
       let mut gb = debugger::Debugger::new(cpu);
       gb.run();
     } else {
+      let t = thread::spawn(move || run_main(cpu));
+
       loop {
-        cpu.step();
+        match receiver.recv().unwrap() {
+          ProxyEvent::SetPixel(x, y, color) => {
+            display.set_pixel(x, y, color);
+          }
+          ProxyEvent::Swap => {
+            display.swap();
+          }
+        }
       }
+
+      t.join().unwrap();
     }
+  }
+}
+
+fn run_main(mut cpu: Cpu) {
+  loop {
+    cpu.step();
   }
 }
 

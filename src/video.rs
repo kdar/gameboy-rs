@@ -1,10 +1,9 @@
 use std::fmt;
-use piston_window::*;
 use num::FromPrimitive;
-// use im;
 // use time::{Duration, SteadyTime};
 use super::mem::MemoryIo;
 use super::bit::Bit;
+use super::ui::{Display, NullDisplay};
 
 const VBLANK_CYCLES: isize = 114;
 const HBLANK_CYCLES: isize = 50;
@@ -78,9 +77,15 @@ enum LcdMode {
   AccessVram = 3, // During Transfering Data to LCD Driver
 }
 
+trait Test {
+  fn test(&self) {}
+  // fn set_pixel(&mut self, x: u32, y: u32, color: [u8; 4]) {}
+  // fn swap(&mut self) {}
+}
+struct TestImpl;
+impl Test for TestImpl {}
+
 pub struct Video {
-  window: Option<PistonWindow>,
-  // tilemap: [[u8; ]],
   control: u8,
   status: u8,
   mode: LcdMode,
@@ -97,13 +102,14 @@ pub struct Video {
   tile_data: [[u8; 16]; TILE_DATA_SIZE],
   tile_map1: [u8; TILE_MAP_SIZE],
   tile_map2: [u8; TILE_MAP_SIZE],
-  oam: [u8; 160], // Sprite attribute table
+  // Sprite attribute table
+  oam: [u8; 160],
+  display: Box<Display + Send>,
 }
 
 impl Default for Video {
   fn default() -> Video {
     Video {
-      window: None,
       control: 0,
       status: 0,
       mode: LcdMode::Hblank,
@@ -121,13 +127,14 @@ impl Default for Video {
       tile_map1: [0; TILE_MAP_SIZE],
       tile_map2: [0; TILE_MAP_SIZE],
       oam: [0; 160],
+      display: Box::new(NullDisplay::default()),
     }
   }
 }
 
 impl fmt::Debug for Video {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    try!(write!(f, "\nVideo:"));
+
     write!(f, "\n")
   }
 }
@@ -166,10 +173,7 @@ impl MemoryIo for Video {
       0xff41 => Ok(self.status),
       0xff42 => Ok(self.scroll_y),
       0xff43 => Ok(self.scroll_x),
-      0xff44 => {
-        // println!("read: {}", self.current_line);
-        Ok(self.current_line)
-      }
+      0xff44 => Ok(self.current_line),
       0xff45 => Ok(self.ly_compare),
       0xff47 => Ok(self.bg_palette.value),
       0xff48 => Ok(self.obj_palette0.value),
@@ -278,13 +282,19 @@ impl MemoryIo for Video {
 
 impl Video {
   pub fn new() -> Video {
-    Video {
-      // window: Some(WindowSettings::new("Gameboy-rs", [160, 144])
-      //   .exit_on_esc(true)
-      //   .build()
-      //   .unwrap()),
-      ..Video::default()
+    Video::default()
+  }
+
+  pub fn set_display(&mut self, display: Box<Display + Send>) {
+    self.display = display;
+  }
+
+  pub fn debug(&self) {
+    for x in 0..16 {
+      println!("{:08b} ", self.tile_data[0][x]);
     }
+    println!("");
+    panic!("");
   }
 
   pub fn step(&mut self) {
@@ -301,17 +311,20 @@ impl Video {
     }
 
     match self.mode {
+      // Mode 2
       LcdMode::AccessOam => {
         // println!("access oam");
         self.mode = LcdMode::AccessVram;
         self.cycles += READING_VRAM_CYCLES;
       }
+      // Mode 3
       LcdMode::AccessVram => {
         // println!("access vram");
         self.render_line();
         self.mode = LcdMode::Hblank;
         self.cycles += HBLANK_CYCLES;
       }
+      // Mode 0
       LcdMode::Hblank => {
         // println!("hblank");
         self.current_line += 1;
@@ -321,8 +334,11 @@ impl Video {
         } else {
           self.mode = LcdMode::Vblank;
           self.cycles += VBLANK_CYCLES;
+
+          self.draw_frame();
         }
       }
+      // Mode 1
       LcdMode::Vblank => {
         // println!("vblank");
         self.current_line += 1;
@@ -337,42 +353,21 @@ impl Video {
     }
   }
 
+  fn draw_frame(&mut self) {
+    // let mut img: image::ImageBuffer<im::Rgba<u8>, Vec<u8>> = image::ImageBuffer::new(128, 192);
+    // if SteadyTime::now() - self.testtime > Duration::seconds(5) {
+    //  for y in 0..192 {
+    //    for x in 0..8 {
+    //      println!("{:08b} ", self.tile_data[y][x]);
+    //      // img.put_pixel(, y, im::Rgba([255, 255, 255, 255]));
+    //    }
+    //    println!("");
+    //    panic!("");
+    //  }
+    // }
+  }
+
   fn render_line(&self) {
     // println!("render_line: {}", self.current_line);
   }
-
-  // pub fn run(&mut self) {
-  //   let image = Image::new().rect([0.0, 0.0, 160.0, 144.0]);
-  //
-  //   // let mut img: im::ImageBuffer<im::Rgba<u8>, Vec<u8>> = im::ImageBuffer::new(200, 200);
-  //   // img.put_pixel(10, 10, im::Rgba([255, 255, 255, 255]));
-  //   let (w, h) = (160, 144);
-  //   let mut img: im::ImageBuffer<im::Rgba<u8>, Vec<u8>> = im::ImageBuffer::new(w, h);
-  //   for x in 0..w {
-  //     for y in 0..h {
-  //       img.put_pixel(x, y, im::Rgba([x as u8, x as u8, x as u8, 255]));
-  //     }
-  //   }
-  //
-  //   let texture = Texture::from_image(&mut self.window.factory, &img, &TextureSettings::new())
-  //     .unwrap();
-  //
-  //   let mut frame_count = 0;
-  //   let mut start = SteadyTime::now();
-  //   while let Some(e) = self.window.next() {
-  //     frame_count += 1;
-  //
-  //     if SteadyTime::now() - start >= Duration::seconds(1) {
-  //       println!("fps: {}", frame_count);
-  //       frame_count = 0;
-  //       start = SteadyTime::now();
-  //     }
-  //
-  //     self.window.draw_2d(&e, |c, g| {
-  //       clear([0.0; 4], g);
-  //
-  //       image.draw(&texture, &draw_state::DrawState::default(), c.transform, g);
-  //     });
-  //   }
-  // }
 }

@@ -31,6 +31,7 @@ pub mod linkport;
 pub mod operand;
 pub mod bios;
 pub mod system;
+pub mod ui;
 
 #[cfg(test)]
 mod test {

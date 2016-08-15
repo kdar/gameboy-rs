@@ -7,6 +7,7 @@ use super::mem::MemoryIo;
 use super::video::Video;
 use super::audio::Audio;
 use super::linkport::LinkPort;
+use super::ui::{Display, NullDisplay};
 
 pub const WORK_RAM_0_LEN: usize = 0xcfff - 0xc000;
 pub const WORK_RAM_1_LEN: usize = 0xdfff - 0xd000;
@@ -15,6 +16,7 @@ pub const HIGH_RAM_LEN: usize = 0xfffe - 0xff80;
 pub struct Config {
   cfg_boot_rom: Option<Box<[u8]>>,
   cfg_cart_rom: Box<[u8]>,
+  cfg_display: Box<Display + Send>,
 }
 
 impl Default for Config {
@@ -22,6 +24,7 @@ impl Default for Config {
     Config {
       cfg_boot_rom: None,
       cfg_cart_rom: Box::new([]),
+      cfg_display: Box::new(NullDisplay::default()),
     }
   }
 }
@@ -41,12 +44,19 @@ impl Config {
     self
   }
 
-  pub fn create(self) -> Result<Box<SystemCtrl>, String> {
+  pub fn display(mut self, display: Box<Display + Send>) -> Config {
+    self.cfg_display = display;
+    self
+  }
+
+  pub fn create(self) -> Result<Box<SystemCtrl + Send>, String> {
     let mut s = System::new();
     try!(s.bios.load(self.cfg_boot_rom));
     // self.cfg_boot_rom = None;
     try!(s.cartridge.load(self.cfg_cart_rom));
     // self.cfg_cart_rom = Box::new([]);
+
+    s.video.set_display(self.cfg_display);
 
     Ok(Box::new(s))
   }
@@ -55,6 +65,7 @@ impl Config {
 pub trait SystemCtrl: MemoryIo {
   fn step(&mut self) {}
   fn as_memoryio(&self) -> &MemoryIo;
+  fn debug(&self) {}
 }
 
 pub struct System {
@@ -99,6 +110,7 @@ impl fmt::Debug for System {
     try!(write!(f,
                 "\nWork ram 1 checksum: {:?}",
                 md5::compute(&self.work_ram_1[..])));
+    // try!(write!(f, "\nVideo\n{}", self.video));
     write!(f, "\n")
   }
 }
@@ -257,6 +269,10 @@ impl System {
 }
 
 impl SystemCtrl for System {
+  fn debug(&self) {
+    self.video.debug();
+  }
+
   fn step(&mut self) {
     self.video.step();
   }
