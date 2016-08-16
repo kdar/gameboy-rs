@@ -92,7 +92,7 @@ impl Default for System {
     System {
       bios: Bios::default(),
       cartridge: Cartridge::default(),
-      video: Video::default(),
+      video: Video::new(),
       audio: Audio::default(),
       linkport: LinkPort::default(),
       work_ram_0: [0; WORK_RAM_0_LEN + 1],

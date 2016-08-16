@@ -17,6 +17,8 @@ extern crate time;
 extern crate num;
 extern crate libc;
 extern crate rand;
+#[macro_use]
+extern crate bitflags;
 
 #[macro_use]
 pub mod macros;
@@ -27,7 +29,6 @@ pub mod debugger;
 pub mod video;
 pub mod audio;
 pub mod cartridge;
-pub mod bit;
 pub mod linkport;
 pub mod operand;
 pub mod bios;
@@ -35,7 +36,7 @@ pub mod system;
 pub mod ui;
 
 pub enum GbEvent {
-  Frame(Vec<u32>),
+  Frame(Vec<[u8; 4]>),
 }
 
 #[cfg(test)]

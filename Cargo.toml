@@ -19,6 +19,7 @@ num-macros = "0.1"
 libc = "0.2"
 yaml-rust = "0.3"
 rand = "0.3"
+bitflags = "0.7"
 
 [lib]
 name = "gameboy"

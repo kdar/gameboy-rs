@@ -2,7 +2,9 @@ use piston_window::*;
 use im;
 use time::{Duration, SteadyTime};
 use std::sync::mpsc::{self, Receiver};
+
 use super::GbEvent;
+use super::video;
 
 pub struct Ui {
   win: Option<PistonWindow>,
@@ -19,10 +21,10 @@ impl Default for Ui {
     let (_, null_receiver) = mpsc::channel();
     Ui {
       win: None,
-      scale: 2.0,
-      width: 160,
-      height: 144,
-      buffer: im::ImageBuffer::new(160, 144),
+      scale: 5.0,
+      width: video::SCREEN_WIDTH,
+      height: video::SCREEN_HEIGHT,
+      buffer: im::ImageBuffer::new(video::SCREEN_WIDTH, video::SCREEN_HEIGHT),
       doflush: false,
       event_receiver: null_receiver,
     }
@@ -43,17 +45,7 @@ impl Ui {
 
   pub fn run(&mut self) {
     let mut win = self.win.as_mut().unwrap();
-    let image = Image::new().rect([0.0, 0.0, (self.width as f64) * self.scale, (self.height as f64) * self.scale]);
-
-    // let mut img: im::ImageBuffer<im::Rgba<u8>, Vec<u8>> = im::ImageBuffer::new(200, 200);
-    // img.put_pixel(10, 10, im::Rgba([255, 255, 255, 255]));
-    // let (w, h) = (160, 144);
-    // let mut img: im::ImageBuffer<im::Rgba<u8>, Vec<u8>> = im::ImageBuffer::new(w, h);
-    // for x in 0..w {
-    //  for y in 0..h {
-    //    img.put_pixel(x, y, im::Rgba([x as u8, x as u8, x as u8, 255]));
-    //  }
-    // }
+    let image = Image::new().rect([0.0, 0.0, self.width as f64, self.height as f64]);
 
     let mut texture = Texture::from_image(&mut win.factory, &self.buffer, &TextureSettings::new()).unwrap();
 
@@ -67,8 +59,8 @@ impl Ui {
           GbEvent::Frame(d) => {
             for (x, y, pixel) in self.buffer.enumerate_pixels_mut() {
               let v = d[(y as usize) * (self.width as usize) + (x as usize)];
-              let (r, g, b, a) = ((v >> 24 & 0xff) as u8, (v >> 16 & 0xff) as u8, (v >> 8 & 0xff) as u8, (v & 0xff) as u8);
-              *pixel = im::Rgba([r, g, b, a])
+              // let (r, g, b, a) = ((v >> 24 & 0xff) as u8, (v >> 16 & 0xff) as u8, (v >> 8 & 0xff) as u8, (v & 0xff) as u8);
+              *pixel = im::Rgba([v[0], v[1], v[2], v[3]])
             }
             // im::imageops::resize(&self.buffer,
             //                     ((self.width as f64) * self.scale) as u32,

@@ -12,7 +12,7 @@ use std::path::Path;
 use clap::{Arg, App};
 use simplelog::{TermLogger, LogLevelFilter};
 use std::process::exit;
-use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::mpsc;
 use std::thread;
 
 use gameboy::disassembler;
