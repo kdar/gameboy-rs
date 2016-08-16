@@ -16,6 +16,7 @@ extern crate image as im;
 extern crate time;
 extern crate num;
 extern crate libc;
+extern crate rand;
 
 #[macro_use]
 pub mod macros;
@@ -32,6 +33,10 @@ pub mod operand;
 pub mod bios;
 pub mod system;
 pub mod ui;
+
+pub enum GbEvent {
+  Frame(Vec<u32>),
+}
 
 #[cfg(test)]
 mod test {

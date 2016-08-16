@@ -15,12 +15,11 @@ use std::process::exit;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
 
-use gameboy::debugger;
 use gameboy::disassembler;
+use gameboy::ui::Ui;
 use gameboy::cpu::Cpu;
 use gameboy::system;
-use gameboy::ui::Display;
-use gameboy::ui::piston::Win;
+use gameboy::debugger;
 
 macro_rules! try_log {
   ($expr:expr) => (match $expr {
@@ -30,24 +29,6 @@ macro_rules! try_log {
       exit(1);
     }
   })
-}
-
-struct ProxyDisplay {
-  sender: Sender<ProxyEvent>,
-}
-
-enum ProxyEvent {
-  SetPixel(u32, u32, [u8; 4]),
-  Swap,
-}
-
-impl Display for ProxyDisplay {
-  fn set_pixel(&mut self, x: u32, y: u32, color: [u8; 4]) {
-    self.sender.send(ProxyEvent::SetPixel(x, y, color)).unwrap();
-  }
-  fn swap(&mut self) {
-    self.sender.send(ProxyEvent::Swap).unwrap();
-  }
 }
 
 fn main() {
@@ -95,43 +76,30 @@ fn main() {
 
     let (sender, receiver) = mpsc::channel();
 
-    let mut display = Win::new();
-    let proxy_display = Box::new(ProxyDisplay { sender: sender });
     let system = try_log!(system::Config::new()
       .boot_rom(boot_rom)
       .cart_rom(cart_rom)
-      .display(proxy_display)
+      .event_sender(sender.clone())
       .create());
     let mut cpu = Cpu::new(system);
+
     if bootstrap {
       cpu.bootstrap();
     }
 
     if matches.is_present("debug") {
-      let mut gb = debugger::Debugger::new(cpu);
-      gb.run();
+      // let mut gb = debugger::Debugger::new(cpu);
+      // gb.run();
     } else {
-      let t = thread::spawn(move || run_main(cpu));
-
-      loop {
-        match receiver.recv().unwrap() {
-          ProxyEvent::SetPixel(x, y, color) => {
-            display.set_pixel(x, y, color);
-          }
-          ProxyEvent::Swap => {
-            display.swap();
-          }
+      thread::spawn(move || {
+        loop {
+          cpu.step();
         }
-      }
-
-      t.join().unwrap();
+      });
     }
-  }
-}
 
-fn run_main(mut cpu: Cpu) {
-  loop {
-    cpu.step();
+    let mut ui = Ui::new(receiver);
+    ui.run();
   }
 }
 

@@ -1,9 +1,12 @@
 use std::fmt;
 use num::FromPrimitive;
+use std::sync::mpsc::Sender;
+use rand;
 // use time::{Duration, SteadyTime};
+
 use super::mem::MemoryIo;
 use super::bit::Bit;
-use super::ui::{Display, NullDisplay};
+use super::GbEvent;
 
 const VBLANK_CYCLES: isize = 114;
 const HBLANK_CYCLES: isize = 50;
@@ -12,7 +15,16 @@ const READING_VRAM_CYCLES: isize = 43;
 const TILE_DATA_SIZE: usize = 192 * 2;
 const TILE_MAP_SIZE: usize = 1024;
 
-#[derive(Copy, Clone, NumFromPrimitive)]
+fn color_to_pixel(c: Color) -> u32 {
+  match c {
+    Color::White => 0xffffffff,
+    Color::LightGray => 0xc0c0c0ff,
+    Color::DarkGray => 0x606060ff,
+    Color::Black => 0x00000000,
+  }
+}
+
+#[derive(Copy, Clone, Debug, NumFromPrimitive)]
 enum Color {
   White = 0,
   LightGray = 1,
@@ -77,14 +89,6 @@ enum LcdMode {
   AccessVram = 3, // During Transfering Data to LCD Driver
 }
 
-trait Test {
-  fn test(&self) {}
-  // fn set_pixel(&mut self, x: u32, y: u32, color: [u8; 4]) {}
-  // fn swap(&mut self) {}
-}
-struct TestImpl;
-impl Test for TestImpl {}
-
 pub struct Video {
   control: u8,
   status: u8,
@@ -104,7 +108,8 @@ pub struct Video {
   tile_map2: [u8; TILE_MAP_SIZE],
   // Sprite attribute table
   oam: [u8; 160],
-  display: Box<Display + Send>,
+  event_sender: Option<Sender<GbEvent>>,
+  pixels: [u32; 160 * 144],
 }
 
 impl Default for Video {
@@ -127,7 +132,8 @@ impl Default for Video {
       tile_map1: [0; TILE_MAP_SIZE],
       tile_map2: [0; TILE_MAP_SIZE],
       oam: [0; 160],
-      display: Box::new(NullDisplay::default()),
+      event_sender: None,
+      pixels: [0xffffffff; 160 * 144],
     }
   }
 }
@@ -180,7 +186,7 @@ impl MemoryIo for Video {
       0xff49 => Ok(self.obj_palette1.value),
       0xff4a => Ok(self.window_y),
       0xff4B => Ok(self.window_x),
-      _ => Ok(0),
+      _ => panic!("video.read_u8: non implemented range: {:#04x}", addr),
     }
   }
 
@@ -194,6 +200,7 @@ impl MemoryIo for Video {
         let offset = addr - 0x8000;
         let tile = &mut self.tile_data[offset as usize / 16];
         tile[offset as usize % 16] = value;
+        // println!("write tile data {:x} @ {:x}", value, offset);
       }
       0x9800...0x9bff => {
         if self.mode == LcdMode::AccessVram {
@@ -210,6 +217,9 @@ impl MemoryIo for Video {
 
         let offset = addr - 0x9c00;
         self.tile_map2[offset as usize] = value;
+      }
+      0xfe00...0xfe9f => {
+        self.oam[addr as usize - 0xfe00 as usize] = value;
       }
       0xff40 => {
         let old_lcd_on = self.control.has_bit(LcdControl::DisplayOn as usize);
@@ -247,33 +257,33 @@ impl MemoryIo for Video {
       0xff44 => self.current_line = 0,
       0xff45 => self.ly_compare = value,
 
-      0x8000...0x9fff => {
-        // let offset = addr as usize - 0x8000 as usize;
-        // self.vram[offset] = value;
-      }
-
+      // 0x8000...0x9fff => {
+      // let offset = addr as usize - 0x8000 as usize;
+      // self.vram[offset] = value;
+      // }
+      //
       // 0xff44 => self.current_line = value,
       0xff47 => {
-        // println!("video: bg palette: {:#04x}", addr);
         self.bg_palette = Palette::from_u8(value);
+        // println!("video: bg palette: {:?}", self.bg_palette.colors);
       }
       0xff48 => {
-        // println!("video: obj 0 palette: {:#04x}", addr);
         self.obj_palette0 = Palette::from_u8(value);
+        // println!("video: obj 0 palette: {:?}", self.obj_palette0.colors);
       }
       0xff49 => {
-        // println!("video: obj 1 palette: {:#04x}", addr);
         self.obj_palette1 = Palette::from_u8(value);
+        // println!("video: obj 1 palette: {:?}", self.obj_palette1.colors);
       }
 
       0xff4a => self.window_y = value,
-      0xff4B => self.window_x = value,
+      0xff4b => self.window_x = value,
 
       0xff46 => {
         println!("DMA TRANSFER START");
       }
 
-      _ => (), // println!("video: non implemented range: {:#04x}", addr),
+      _ => println!("video.write_u8: non implemented range: {:#04x}", addr),
     };
 
     Ok(())
@@ -285,8 +295,8 @@ impl Video {
     Video::default()
   }
 
-  pub fn set_display(&mut self, display: Box<Display + Send>) {
-    self.display = display;
+  pub fn set_event_sender(&mut self, s: Sender<GbEvent>) {
+    self.event_sender = Some(s);
   }
 
   pub fn debug(&self) {
@@ -320,7 +330,7 @@ impl Video {
       // Mode 3
       LcdMode::AccessVram => {
         // println!("access vram");
-        self.render_line();
+        self.render();
         self.mode = LcdMode::Hblank;
         self.cycles += HBLANK_CYCLES;
       }
@@ -335,7 +345,9 @@ impl Video {
           self.mode = LcdMode::Vblank;
           self.cycles += VBLANK_CYCLES;
 
-          self.draw_frame();
+          if let &Some(ref s) = &self.event_sender {
+            s.send(GbEvent::Frame(self.pixels.to_vec())).unwrap();
+          }
         }
       }
       // Mode 1
@@ -353,21 +365,69 @@ impl Video {
     }
   }
 
-  fn draw_frame(&mut self) {
-    // let mut img: image::ImageBuffer<im::Rgba<u8>, Vec<u8>> = image::ImageBuffer::new(128, 192);
-    // if SteadyTime::now() - self.testtime > Duration::seconds(5) {
-    //  for y in 0..192 {
-    //    for x in 0..8 {
-    //      println!("{:08b} ", self.tile_data[y][x]);
-    //      // img.put_pixel(, y, im::Rgba([255, 255, 255, 255]));
-    //    }
-    //    println!("");
-    //    panic!("");
+  fn render(&mut self) {
+    // for x in 0..16 {
+    //  print!("{:x} ", self.tile_data[0][x]);
+    // }
+    // println!("");
+    // for y in 0..self.tile_data.len() {
+    //  for x in 0..8 {
+    //    let color = match (self.tile_data[y][x], self.tile_data[y][x + 8]) {
+    //      (0, 0) => 0xffffffff,
+    //      (1, 0) => 0xc0c0c0ff,
+    //      (0, 1) => 0x606060ff,
+    //      (1, 1) => 0x00000000,
+    //      (_, _) => 0,
+    //    };
+    //    self.pixels[y * 144 + x] = color;
     //  }
     // }
-  }
 
-  fn render_line(&self) {
-    // println!("render_line: {}", self.current_line);
+    // use std::fs::File;
+    // use std::io::Write;
+    //
+    // let mut f = File::create("log.txt").unwrap();
+    // for x in 0..TILE_DATA_SIZE {
+    //  f.write(&self.tile_data[x][..]);
+    //
+    // }
+    // f.flush();
+
+
+    // let tiles = &[[0x00, 0x00, 0x3c, 0x3c, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x3c, 0x3c, 0x00, 0x00],
+    //              [0x00, 0x00, 0x18, 0x18, 0x38, 0x38, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x3C, 0x3C, 0x00, 0x00]];
+
+    // println!("{:?}", &tile[..]);
+    for i in 0..64 {
+      let tile = &self.tile_data[i];
+      for y in 0..8 {
+        let data1 = tile[y * 2];
+        let data2 = tile[y * 2 + 1];
+        for x in 0..8 {
+          let v = ((data1 >> (7 - x)) & 0b1) | ((data2 >> (7 - x)) & 0b1) << 1;
+          let color: Color = FromPrimitive::from_u8(v).unwrap();
+          let loc = i * 8 + x + y * 160 + ((i / 12) * 160 * 8);
+          if loc < self.pixels.len() {
+            self.pixels[loc] = color_to_pixel(color);
+          }
+        }
+      }
+    }
+
+    // for i in 0..8 {
+    // println!("{:08b}", data[i]);
+    // let data1 = self.tile_data[tilex][i * 2];
+    // let data2 = self.tile_data[tilex][i * 2 + 1];
+    // for x in 0..8 {
+    //  let v = ((data1 >> (7 - x)) & 0b1) | ((data2 >> (7 - x)) & 0b1) << 1;
+    //  if v != 0 {
+    //    println!("{}", v);
+    //  }
+    //  let color: Color = FromPrimitive::from_u8(v).unwrap();
+    //  self.pixels[i * 160 + x] = color_to_pixel(color);
+    //  // print!("{:02} ", v);
+    // }
+    // println!("");
+    // }
   }
 }

@@ -1,5 +1,6 @@
 use std::fmt;
 use md5;
+use std::sync::mpsc::Sender;
 
 use super::bios::Bios;
 use super::cartridge::Cartridge;
@@ -7,7 +8,7 @@ use super::mem::MemoryIo;
 use super::video::Video;
 use super::audio::Audio;
 use super::linkport::LinkPort;
-use super::ui::{Display, NullDisplay};
+use super::GbEvent;
 
 pub const WORK_RAM_0_LEN: usize = 0xcfff - 0xc000;
 pub const WORK_RAM_1_LEN: usize = 0xdfff - 0xd000;
@@ -16,7 +17,7 @@ pub const HIGH_RAM_LEN: usize = 0xfffe - 0xff80;
 pub struct Config {
   cfg_boot_rom: Option<Box<[u8]>>,
   cfg_cart_rom: Box<[u8]>,
-  cfg_display: Box<Display + Send>,
+  cfg_event_sender: Option<Sender<GbEvent>>,
 }
 
 impl Default for Config {
@@ -24,7 +25,7 @@ impl Default for Config {
     Config {
       cfg_boot_rom: None,
       cfg_cart_rom: Box::new([]),
-      cfg_display: Box::new(NullDisplay::default()),
+      cfg_event_sender: None,
     }
   }
 }
@@ -44,8 +45,8 @@ impl Config {
     self
   }
 
-  pub fn display(mut self, display: Box<Display + Send>) -> Config {
-    self.cfg_display = display;
+  pub fn event_sender(mut self, s: Sender<GbEvent>) -> Config {
+    self.cfg_event_sender = Some(s);
     self
   }
 
@@ -56,7 +57,9 @@ impl Config {
     try!(s.cartridge.load(self.cfg_cart_rom));
     // self.cfg_cart_rom = Box::new([]);
 
-    s.video.set_display(self.cfg_display);
+    if self.cfg_event_sender.is_some() {
+      s.video.set_event_sender(self.cfg_event_sender.unwrap());
+    }
 
     Ok(Box::new(s))
   }
