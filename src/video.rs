@@ -152,26 +152,26 @@ impl MemoryIo for Video {
     // println!("reading vid byte from: {:#04x}", addr);
     match addr {
       0x8000...0x97ff => {
-        if self.mode == LcdMode::AccessVram {
-          return Ok(0);
-        }
+        // if self.mode == LcdMode::AccessVram {
+        //  return Ok(0);
+        // }
 
         let offset = addr - 0x8000;
         let tile = &self.tile_data[offset as usize / 16];
         Ok(tile[offset as usize % 16])
       }
       0x9800...0x9bff => {
-        if self.mode == LcdMode::AccessVram {
-          return Ok(0);
-        }
+        // if self.mode == LcdMode::AccessVram {
+        //  return Ok(0);
+        // }
 
         let offset = addr - 0x9800;
         Ok(self.tile_map1[offset as usize])
       }
       0x9c00...0x9fff => {
-        if self.mode == LcdMode::AccessVram {
-          return Ok(0);
-        }
+        // if self.mode == LcdMode::AccessVram {
+        //  return Ok(0);
+        // }
 
         let offset = addr - 0x9c00;
         Ok(self.tile_map2[offset as usize])
@@ -195,9 +195,9 @@ impl MemoryIo for Video {
   fn write_u8(&mut self, addr: u16, value: u8) -> Result<(), String> {
     match addr {
       0x8000...0x97ff => {
-        if self.mode == LcdMode::AccessVram {
-          return Ok(());
-        }
+        // if self.mode == LcdMode::AccessVram {
+        //  return Ok(());
+        // }
 
         let offset = addr - 0x8000;
         let tile = &mut self.tile_data[offset as usize / 16];
@@ -205,17 +205,17 @@ impl MemoryIo for Video {
         // println!("write tile data {:x} @ {:x}", value, offset);
       }
       0x9800...0x9bff => {
-        if self.mode == LcdMode::AccessVram {
-          return Ok(());
-        }
+        // if self.mode == LcdMode::AccessVram {
+        //  return Ok(());
+        // }
 
         let offset = addr - 0x9800;
         self.tile_map1[offset as usize] = value;
       }
       0x9c00...0x9fff => {
-        if self.mode == LcdMode::AccessVram {
-          return Ok(());
-        }
+        // if self.mode == LcdMode::AccessVram {
+        //  return Ok(());
+        // }
 
         let offset = addr - 0x9c00;
         self.tile_map2[offset as usize] = value;
@@ -332,7 +332,7 @@ impl Video {
       // Mode 3
       LcdMode::AccessVram => {
         // println!("access vram");
-        self.render();
+        self.render_line();
         self.mode = LcdMode::Hblank;
         self.cycles += HBLANK_CYCLES;
       }
@@ -346,10 +346,7 @@ impl Video {
         } else {
           self.mode = LcdMode::Vblank;
           self.cycles += VBLANK_CYCLES;
-
-          if let &Some(ref s) = &self.event_sender {
-            s.send(GbEvent::Frame(self.pixels.to_vec())).unwrap();
-          }
+          self.render_image();
         }
       }
       // Mode 1
@@ -367,31 +364,75 @@ impl Video {
     }
   }
 
-  fn render(&mut self) {
-    if self.control.contains(LCD_BG_ON) {
-      let tile_map = if self.control.contains(LCD_BG_MAP) {
-        &self.tile_map2
-      } else {
-        &self.tile_map1
-      };
+  fn render_image(&mut self) {
+    if let &Some(ref s) = &self.event_sender {
+      s.send(GbEvent::Frame(self.pixels.to_vec())).unwrap();
+    }
+  }
 
-      let bgy = self.scroll_y.wrapping_add(self.line);
+  fn render_line(&mut self) {
+    self.render_bg_line();
+  }
+
+  fn render_bg_line(&mut self) {
+    if !self.control.contains(LCD_BG_ON) {
+      // If the background is disabled we just render the line
+      // as white.
+      for x in 0..SCREEN_WIDTH {
+        self.pixels[(self.line as usize) * (SCREEN_WIDTH as usize) + x as usize] = Color::White.pixel();
+      }
+      return;
     }
 
-    // for i in 0..64 {
-    //  let tile = &self.tile_data[i];
-    //  for y in 0..8 {
-    //    let data1 = tile[y * 2];
-    //    let data2 = tile[y * 2 + 1];
-    //    for x in 0..8 {
-    //      let v = ((data1 >> (7 - x)) & 0b1) | ((data2 >> (7 - x)) & 0b1) << 1;
-    //      let color: Color = FromPrimitive::from_u8(v).unwrap();
-    //      let loc = i * 8 + x + y * SCREEN_WIDTH + ((i / 10) * SCREEN_WIDTH * 8);
-    //      if loc < self.pixels.len() {
-    //        self.pixels[loc] = color.pixel();
-    //      }
-    //    }
-    //  }
-    // }
+    // Get the tile map depending on what the bg map select is set
+    // to in the control.
+    let tile_map = if self.control.contains(LCD_BG_MAP) {
+      &self.tile_map2
+    } else {
+      &self.tile_map1
+    };
+
+    // Get the offset into the tile data based on which area is selected
+    // by the bg select in the control.
+    let tile_data_offset = if self.control.contains(LCD_BG_SELECT) {
+      0
+    } else {
+      // this offset is because the data in the second tile data area is
+      // signed. -128 to 127
+      128
+    };
+
+    // Find out our true bg Y coordinate by adding the y scroll position
+    // to our current line.
+    let bg_y = self.line.wrapping_add(self.scroll_y) as usize;
+    // There are 32x32 tiles, where each tile is 8x8 pixels. So we
+    // need to find the y component of the tile we're in by which
+    // line+scroll_y we're on.
+    let tile_y = (bg_y / 8) % 32;
+
+    for x in 0..SCREEN_WIDTH {
+      let bg_x = (x as usize).wrapping_add(self.scroll_x as usize);
+      // Again, we get the x component of the tile we're in based on
+      // x+scroll_x.
+      let tile_x = (bg_x / 8) % 32;
+
+      let tile_map_num = tile_map[tile_y * 32 + tile_x] as usize;
+
+      // Select the tile based on control.
+      let single_tile = if self.control.contains(LCD_BG_SELECT) {
+        self.tile_data[tile_data_offset + tile_map_num]
+      } else {
+        self.tile_data[(tile_data_offset as i16 + 128 + (tile_map_num as i8 as i16)) as usize]
+      };
+
+      // Tile date is 16 bytes long, with each line being 2 bytes. We grab the correct bytes
+      // by our current line, and then do some math to find out what color it is.
+      let b1 = single_tile[(bg_y % 8) * 2];
+      let b2 = single_tile[(bg_y % 8) * 2 + 1];
+      let bit = (7 as usize).wrapping_sub(bg_x) % 8;
+      let color: Color = FromPrimitive::from_u8(((b1 >> bit) & 0b1) | ((b2 >> bit) & 0b1) << 1).unwrap();
+
+      self.pixels[(self.line as usize) * (SCREEN_WIDTH as usize) + (x as usize)] = color.pixel();
+    }
   }
 }
