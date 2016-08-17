@@ -397,8 +397,6 @@ impl Video {
     let tile_data_offset = if self.control.contains(LCD_BG_SELECT) {
       0
     } else {
-      // this offset is because the data in the second tile data area is
-      // signed. -128 to 127
       128
     };
 
@@ -422,7 +420,7 @@ impl Video {
       let single_tile = if self.control.contains(LCD_BG_SELECT) {
         self.tile_data[tile_data_offset + tile_map_num]
       } else {
-        self.tile_data[(tile_data_offset as i16 + 128 + (tile_map_num as i8 as i16)) as usize]
+        self.tile_data[(tile_data_offset as i16 + (tile_map_num as i8 as i16)) as usize]
       };
 
       // Tile date is 16 bytes long, with each line being 2 bytes. We grab the correct bytes

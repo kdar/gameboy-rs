@@ -21,7 +21,7 @@ impl Default for Ui {
     let (_, null_receiver) = mpsc::channel();
     Ui {
       win: None,
-      scale: 5.0,
+      scale: 4.0,
       width: video::SCREEN_WIDTH,
       height: video::SCREEN_HEIGHT,
       buffer: im::ImageBuffer::new(video::SCREEN_WIDTH, video::SCREEN_HEIGHT),
