@@ -14,6 +14,35 @@ pub const WORK_RAM_0_LEN: usize = 0xcfff - 0xc000;
 pub const WORK_RAM_1_LEN: usize = 0xdfff - 0xd000;
 pub const HIGH_RAM_LEN: usize = 0xfffe - 0xff80;
 
+struct Dma {
+  src: u16,
+  dst: u16,
+  state: DmaState,
+}
+
+impl Default for Dma {
+  fn default() -> Dma {
+    Dma {
+      src: 0,
+      dst: 0,
+      state: DmaState::Stopped,
+    }
+  }
+}
+
+impl Dma {
+  fn start(&mut self, addr_high: u8) {
+    self.state = DmaState::Starting;
+    self.src = (addr_high as u16) << 8;
+  }
+}
+
+enum DmaState {
+  Started,
+  Stopped,
+  Starting,
+}
+
 pub struct Config {
   cfg_boot_rom: Option<Box<[u8]>>,
   cfg_cart_rom: Box<[u8]>,
@@ -77,6 +106,7 @@ pub struct System {
   video: Video,
   audio: Audio,
   linkport: LinkPort,
+  dma: Dma,
 
   work_ram_0: [u8; WORK_RAM_0_LEN + 1],
   work_ram_1: [u8; WORK_RAM_1_LEN + 1],
@@ -95,6 +125,7 @@ impl Default for System {
       video: Video::new(),
       audio: Audio::default(),
       linkport: LinkPort::default(),
+      dma: Dma::default(),
       work_ram_0: [0; WORK_RAM_0_LEN + 1],
       work_ram_1: [0; WORK_RAM_1_LEN + 1],
       high_ram: [0; HIGH_RAM_LEN + 1],
@@ -199,6 +230,10 @@ impl MemoryIo for System {
   }
 
   fn write_u8(&mut self, addr: u16, value: u8) -> Result<(), String> {
+    if addr == 0xfe46 {
+      println!("uhhhh start???");
+    }
+
     match addr {
       // boot / cart rom
       0x0000...0x3fff => {
@@ -218,6 +253,11 @@ impl MemoryIo for System {
       0xfe00...0xfe9f => self.video.write_u8(addr, value),
       // audio
       0xff10...0xff3f => self.audio.write_u8(addr, value),
+      0xff46 => {
+        println!("dma start!");
+        self.dma.start(value);
+        Ok(())
+      }
       // video control
       0xff40...0xff4c => self.video.write_u8(addr, value),
       // link port
@@ -255,6 +295,7 @@ impl MemoryIo for System {
         self.interrupt_enable = value;
         Ok(())
       }
+
       // io ports
       0xff00...0xff7f => {
         // Err(format!("write_u8 Addr::IOPorts not implemented: {:?}", mapped))
@@ -269,6 +310,28 @@ impl System {
   pub fn new() -> System {
     System::default()
   }
+
+  pub fn dma_step(&mut self) {
+    match self.dma.state {
+      DmaState::Starting => {
+        self.dma.dst = 0xfe00;
+        self.dma.state = DmaState::Started;
+      }
+      DmaState::Started => {
+        if self.dma.dst >= 0xfea0 {
+          self.dma.dst = 0xfe00;
+          self.dma.state = DmaState::Stopped;
+        } else {
+          let value = self.read_u8(self.dma.src).unwrap();
+          let dst = self.dma.dst;
+          self.write_u8(dst, value);
+          self.dma.src += 1;
+          self.dma.dst += 1;
+        }
+      }
+      DmaState::Stopped => {}
+    };
+  }
 }
 
 impl SystemCtrl for System {
@@ -278,6 +341,7 @@ impl SystemCtrl for System {
 
   fn step(&mut self) {
     self.video.step();
+    self.dma_step();
   }
 
   fn as_memoryio(&self) -> &MemoryIo {
