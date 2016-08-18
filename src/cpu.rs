@@ -62,8 +62,9 @@ pub struct Cpu {
 
 impl PartialEq for Cpu {
   fn eq(&self, x: &Cpu) -> bool {
-    self.reg_af == x.reg_af && self.reg_bc == x.reg_bc && self.reg_de == x.reg_de && self.reg_hl == x.reg_hl &&
-    self.reg_sp == x.reg_sp && self.reg_pc == x.reg_pc && self.clock_t == x.clock_t
+    self.reg_af == x.reg_af && self.reg_bc == x.reg_bc && self.reg_de == x.reg_de &&
+    self.reg_hl == x.reg_hl && self.reg_sp == x.reg_sp && self.reg_pc == x.reg_pc &&
+    self.clock_t == x.clock_t
   }
 }
 
@@ -177,48 +178,12 @@ impl Cpu {
         let sp = self.reg_sp;
         self.read_u8(sp)
       }
-      Operand::FlagZ => {
-        if 0b10000000 & self.reg_af != 0 {
-          1
-        } else {
-          0
-        }
-      }
-      Operand::FlagN => {
-        if 0b01000000 & self.reg_af != 0 {
-          1
-        } else {
-          0
-        }
-      }
-      Operand::FlagH => {
-        if 0b00100000 & self.reg_af != 0 {
-          1
-        } else {
-          0
-        }
-      }
-      Operand::FlagC => {
-        if 0b00010000 & self.reg_af != 0 {
-          1
-        } else {
-          0
-        }
-      }
-      Operand::FlagNZ => {
-        if 0b10000000 & self.reg_af == 0 {
-          1
-        } else {
-          0
-        }
-      }
-      Operand::FlagNC => {
-        if 0b00010000 & self.reg_af == 0 {
-          1
-        } else {
-          0
-        }
-      }
+      Operand::FlagZ => if 0b10000000 & self.reg_af != 0 { 1 } else { 0 },
+      Operand::FlagN => if 0b01000000 & self.reg_af != 0 { 1 } else { 0 },
+      Operand::FlagH => if 0b00100000 & self.reg_af != 0 { 1 } else { 0 },
+      Operand::FlagC => if 0b00010000 & self.reg_af != 0 { 1 } else { 0 },
+      Operand::FlagNZ => if 0b10000000 & self.reg_af == 0 { 1 } else { 0 },
+      Operand::FlagNC => if 0b00010000 & self.reg_af == 0 { 1 } else { 0 },
       Operand::Imm8(i) => i,
       Operand::AddrImm16(i) => self.read_u8(i),
       Operand::AddrIoPortC => {
@@ -783,11 +748,7 @@ impl Cpu {
     let val1 = self.read_operand_u8(o1);
     let val2 = self.read_operand_u8(o2);
 
-    let c = if self.read_flag(Flag::C) {
-      1
-    } else {
-      0
-    };
+    let c = if self.read_flag(Flag::C) { 1 } else { 0 };
 
     let (result, carry1) = val1.overflowing_add(val2);
     let (result, carry2) = result.overflowing_add(c);
@@ -1311,11 +1272,7 @@ impl Cpu {
   fn inst_SBC(&mut self, o: Operand) {
     let val1 = self.read_reg_u8(Reg::A);
     let val2 = self.read_operand_u8(o);
-    let carry_val = if self.read_flag(Flag::C) {
-      1
-    } else {
-      0
-    };
+    let carry_val = if self.read_flag(Flag::C) { 1 } else { 0 };
     let (result, carry1) = val1.overflowing_sub(val2);
     let (result, carry2) = result.overflowing_sub(carry_val);
 
@@ -1477,7 +1434,9 @@ mod tests {
             match pre_v {
               &Yaml::Hash(ref h) => {
                 for (hk, hv) in h {
-                  c.system.write_u8(hk.as_i64().unwrap() as u16, hv.as_i64().unwrap() as u8).unwrap();
+                  c.system
+                    .write_u8(hk.as_i64().unwrap() as u16, hv.as_i64().unwrap() as u8)
+                    .unwrap();
                 }
               }
               _ => panic!("unknown mem value"),
