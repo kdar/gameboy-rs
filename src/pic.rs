@@ -71,8 +71,10 @@ impl Pic {
     self.enabled.bits()
   }
 
-  pub fn next_interrupt(&self) -> Option<Interrupt> {
+  pub fn next_interrupt(&mut self) -> Option<Interrupt> {
     // https://stackoverflow.com/questions/18806481
-    Interrupt::from_u8(self.flags.bits() & ((!self.flags.bits()).wrapping_add(1)))
+    let bits = self.flags.bits() & ((!self.flags.bits()).wrapping_add(1));
+    self.flags = Interrupts::from_bits_truncate(!bits & self.flags.bits());
+    Interrupt::from_u8(bits)
   }
 }

@@ -99,7 +99,7 @@ pub trait SystemCtrl: MemoryIo {
   fn step(&mut self) {}
   fn as_memoryio(&self) -> &MemoryIo;
   fn debug(&self) {}
-  fn next_interrupt(&self) -> Option<Interrupt> {
+  fn next_interrupt(&mut self) -> Option<Interrupt> {
     None
   }
 }
@@ -352,7 +352,7 @@ impl SystemCtrl for System {
     self as &MemoryIo
   }
 
-  fn next_interrupt(&self) -> Option<Interrupt> {
+  fn next_interrupt(&mut self) -> Option<Interrupt> {
     self.pic.next_interrupt()
   }
 }

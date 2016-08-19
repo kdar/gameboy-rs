@@ -88,8 +88,10 @@ fn main() {
     }
 
     if matches.is_present("debug") {
-      // let mut gb = debugger::Debugger::new(cpu);
-      // gb.run();
+      // TODO: this doesn't work with the UI just yet.
+      let mut gb = debugger::Debugger::new(cpu);
+      gb.run();
+      exit(0);
     } else {
       thread::spawn(move || {
         loop {
