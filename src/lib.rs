@@ -34,6 +34,7 @@ pub mod operand;
 pub mod bios;
 pub mod system;
 pub mod ui;
+pub mod pic;
 
 pub enum GbEvent {
   Frame(Vec<[u8; 4]>),

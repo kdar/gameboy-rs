@@ -43,6 +43,51 @@ pub enum Reg {
   PC,
 }
 
+#[derive(PartialEq)]
+enum ImeState {
+  Enabling,
+  Enabled,
+  Disabled,
+}
+
+#[derive(PartialEq)]
+struct Ime {
+  state: ImeState,
+}
+
+impl Default for Ime {
+  fn default() -> Ime {
+    Ime { state: ImeState::Disabled }
+  }
+}
+
+impl Ime {
+  fn step(&mut self) {
+    match self.state {
+      ImeState::Enabling => {
+        self.state = ImeState::Enabled;
+      }
+      _ => (),
+    }
+  }
+
+  fn set_enabling(&mut self) {
+    self.state = ImeState::Enabling;
+  }
+
+  fn set_enabled(&mut self, v: bool) {
+    if v {
+      self.state = ImeState::Enabled;
+    } else {
+      self.state = ImeState::Disabled;
+    }
+  }
+
+  fn enabled(&self) -> bool {
+    self.state == ImeState::Enabled
+  }
+}
+
 pub struct Cpu {
   reg_af: u16, // Accumulator and flags
   reg_bc: u16, // B and C general purpose
@@ -53,7 +98,7 @@ pub struct Cpu {
   reg_pc: u16, // Program counter
 
   clock_t: u32, // Cycles
-  interrupt_master_enable: bool,
+  ime: Ime,
   halt: bool,
 
   system: Box<SystemCtrl + Send>,
@@ -78,7 +123,7 @@ impl Default for Cpu {
       reg_sp: 0,
       reg_pc: 0,
       clock_t: 0,
-      interrupt_master_enable: false,
+      ime: Ime::default(),
       halt: false,
       system: Box::new(System::default()),
       disasm: Disassembler::new(),
@@ -403,10 +448,6 @@ impl Cpu {
     // if self.halt {
     //
     // }
-    // TEST
-    // if self.reg_pc == 0x282a {
-    //  self.system.debug();
-    // }
 
     match self.disasm.at(self.system.as_memoryio(), self.reg_pc) {
       Ok((inst, inc)) => {
@@ -414,6 +455,20 @@ impl Cpu {
         self.reg_pc += inc;
         self.execute_instruction(inst);
 
+        if self.ime.enabled() {
+          match self.system.next_interrupt() {
+            Some(int) => {
+              self.halt = false;
+              self.ime.set_enabled(false);
+              let pc = self.reg_pc;
+              self.push_u16(pc);
+              self.reg_pc = int.addr();
+            }
+            None => (),
+          };
+        }
+
+        self.ime.step();
         self.system.step();
 
         (inst, pc_at_inst)
@@ -961,7 +1016,7 @@ impl Cpu {
   // Page: 192
   #[allow(non_snake_case)]
   fn inst_DI(&mut self) {
-    self.interrupt_master_enable = false;
+    self.ime.set_enabled(false);
   }
 
   // EI
@@ -969,7 +1024,7 @@ impl Cpu {
   // Page: 193
   #[allow(non_snake_case)]
   fn inst_EI(&mut self) {
-    self.interrupt_master_enable = true;
+    self.ime.set_enabling();
   }
 
   // HALT
@@ -1175,7 +1230,7 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_RETI(&mut self) {
     self.reg_pc = self.pop_u16();
-    self.interrupt_master_enable = true;
+    self.ime.set_enabled(true);
   }
 
   // RLA

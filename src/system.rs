@@ -9,6 +9,7 @@ use super::video::Video;
 use super::audio::Audio;
 use super::linkport::LinkPort;
 use super::GbEvent;
+use super::pic::{Pic, Interrupt};
 
 pub const WORK_RAM_0_LEN: usize = 0xcfff - 0xc000;
 pub const WORK_RAM_1_LEN: usize = 0xdfff - 0xd000;
@@ -98,6 +99,9 @@ pub trait SystemCtrl: MemoryIo {
   fn step(&mut self) {}
   fn as_memoryio(&self) -> &MemoryIo;
   fn debug(&self) {}
+  fn next_interrupt(&self) -> Option<Interrupt> {
+    None
+  }
 }
 
 pub struct System {
@@ -107,13 +111,13 @@ pub struct System {
   audio: Audio,
   linkport: LinkPort,
   dma: Dma,
+  pic: Pic,
 
   work_ram_0: [u8; WORK_RAM_0_LEN + 1],
   work_ram_1: [u8; WORK_RAM_1_LEN + 1],
 
   high_ram: [u8; HIGH_RAM_LEN + 1],
 
-  interrupt_enable: u8,
   booting: bool,
 }
 
@@ -126,10 +130,10 @@ impl Default for System {
       audio: Audio::default(),
       linkport: LinkPort::default(),
       dma: Dma::default(),
+      pic: Pic::default(),
       work_ram_0: [0; WORK_RAM_0_LEN + 1],
       work_ram_1: [0; WORK_RAM_1_LEN + 1],
       high_ram: [0; HIGH_RAM_LEN + 1],
-      interrupt_enable: 0,
       booting: true,
     }
   }
@@ -215,14 +219,11 @@ impl MemoryIo for System {
       // booting flag
       0xff50 => {
         // Err(format!("the booting flag shouldn't need to be read: {:?}", mapped))
-        if self.booting {
-          Ok((0))
-        } else {
-          Ok((1))
-        }
+        if self.booting { Ok((0)) } else { Ok((1)) }
       }
+      0xff0f => Ok(self.pic.flags()),
       // interrupt enable
-      0xffff => Ok(self.interrupt_enable),
+      0xffff => Ok(self.pic.enabled()),
       // io ports
       0xff00...0xff7f => Ok((0)),
       _ => Err(format!("system.read_u8: unknown mapped addr: {:#04x}", addr)),
@@ -290,12 +291,15 @@ impl MemoryIo for System {
         self.booting = value == 0;
         Ok(())
       }
-      // interrupt enable
-      0xffff => {
-        self.interrupt_enable = value;
+      0xff0f => {
+        self.pic.set_flags(value);
         Ok(())
       }
-
+      // interrupt enable
+      0xffff => {
+        self.pic.set_enabled(value);
+        Ok(())
+      }
       // io ports
       0xff00...0xff7f => {
         // Err(format!("write_u8 Addr::IOPorts not implemented: {:?}", mapped))
@@ -346,5 +350,9 @@ impl SystemCtrl for System {
 
   fn as_memoryio(&self) -> &MemoryIo {
     self as &MemoryIo
+  }
+
+  fn next_interrupt(&self) -> Option<Interrupt> {
+    self.pic.next_interrupt()
   }
 }
