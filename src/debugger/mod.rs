@@ -1,5 +1,6 @@
 extern crate rustyline;
 
 mod debugger;
-mod command;
+mod cmd;
+mod ast;
 pub use self::debugger::*;

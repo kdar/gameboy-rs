@@ -5,7 +5,8 @@ use super::rustyline::Editor;
 use std::process::exit;
 
 use super::super::cpu::{Cpu, Reg};
-use super::command::Command;
+use super::ast::Command;
+use super::cmd;
 use super::super::system::SystemCtrl;
 
 extern "C" {
@@ -106,27 +107,19 @@ impl Debugger {
 
           rl.add_history_entry(&line);
 
-          let c = match Command::parse(&line) {
+          let c = match cmd::parse_cmd(&line) {
             Ok(c) => c,
             Err(e) => {
-              println!("Unable to parse \"{}\": {}", line, e);
+              println!("Unable to parse \"{}\": {:?}", line, e);
               continue;
             }
           };
 
           match c {
-            Command::Continue(skip) => {
-              let mut skip = match skip {
-                Some(v) => v,
-                None => 0,
-              };
-
+            Command::Continue => {
               loop {
-                if self.step(true) {
-                  if skip == 0 {
-                    break;
-                  }
-                  skip -= 1;
+                if self.step(false) {
+                  break;
                 }
               }
             }
@@ -151,25 +144,24 @@ impl Debugger {
               }
             }
             Command::Step(s) => {
-              for _ in 0..s {
-                if self.step(true) {
-                  break;
+              match s {
+                Some(s) => {
+                  for _ in 0..s {
+                    if self.step(true) {
+                      break;
+                    }
+                  }
                 }
-              }
-            }
-            Command::Config(args) => {
-              if let Some(args) = args {
-                if args[0] == "break-after" {
-                  println!("breakpoints will now break after the instruction executes");
-                  self.break_after_inst = true;
+                None => {
+                  self.step(true);
                 }
-              }
+              };
             }
             Command::Print(addr) => {
               let d = self.cpu.read_u8(addr as u16);
               println!("{:#04x}", d);
             }
-            Command::Breakpoint(Some(l)) => {
+            Command::Breakpoint(l) => {
               self.breakpoints.push(l as usize);
               println!("Added breakpoint @ {:#04x}", l);
             }
@@ -179,9 +171,6 @@ impl Debugger {
               }
             }
             Command::Exit => exit(0),
-            _ => {
-              println!("Unknown command: {:?}", c);
-            }
           };
         }
         Err(ReadlineError::Interrupted) => {

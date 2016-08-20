@@ -9,8 +9,6 @@ extern crate difference;
 extern crate yaml_rust;
 
 extern crate md5;
-#[macro_use]
-extern crate nom;
 extern crate piston_window;
 extern crate image as im;
 extern crate time;
@@ -35,6 +33,7 @@ pub mod bios;
 pub mod system;
 pub mod ui;
 pub mod pic;
+pub mod timer;
 
 pub enum GbEvent {
   Frame(Vec<[u8; 4]>),
