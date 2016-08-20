@@ -2,6 +2,7 @@ use std::fmt;
 use num::FromPrimitive;
 use std::sync::mpsc::Sender;
 // use time::{Duration, SteadyTime};
+use std::cmp::Ordering;
 
 use super::mem::MemoryIo;
 use super::GbEvent;
@@ -15,7 +16,7 @@ const TILE_MAP_SIZE: usize = 1024;
 pub const SCREEN_WIDTH: u32 = 160;
 pub const SCREEN_HEIGHT: u32 = 144;
 
-#[derive(Copy, Clone, Debug, NumFromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, NumFromPrimitive)]
 enum Color {
   White = 0,
   LightGray = 1,
@@ -51,36 +52,62 @@ impl Default for Palette {
 impl Palette {
   fn from_u8(value: u8) -> Palette {
     Palette {
-      colors: [FromPrimitive::from_u8(value & 0b11).unwrap(),
-               FromPrimitive::from_u8(value >> 2 & 0b11).unwrap(),
-               FromPrimitive::from_u8(value >> 4 & 0b11).unwrap(),
-               FromPrimitive::from_u8(value >> 6 & 0b11).unwrap()],
+      colors: [FromPrimitive::from_u8(value & 0b11).unwrap(), FromPrimitive::from_u8(value >> 2 & 0b11).unwrap(), FromPrimitive::from_u8(value >> 4 & 0b11).unwrap(), FromPrimitive::from_u8(value >> 6 & 0b11).unwrap()],
       value: value,
     }
   }
 }
 
-bitflags! {
-    flags LcdControl: u8 {
-      const LCD_DISPLAY_ON = 0b10000000, // Bit 7 - LCD Display Enable             (0=Off, 1=On)
-      const LCD_WINDOW_MAP = 0b01000000, // Bit 6 - Window Tile Map Display Select (0=9800-9BFF, 1=9C00-9FFF)
-      const LCD_WINDOW_ON =  0b00100000, // Bit 5 - Window Display Enable          (0=Off, 1=On)
-      const LCD_BG_SELECT =  0b00010000, // Bit 4 - BG & Window Tile Data Select   (0=8800-97FF, 1=8000-8FFF)
-      const LCD_BG_MAP =     0b00001000, // Bit 3 - BG Tile Map Display Select     (0=9800-9BFF, 1=9C00-9FFF)
-      const LCD_OBJ_SIZE =   0b00000100, // Bit 2 - OBJ (Sprite) Size              (0=8x8, 1=8x16)
-      const LCD_OBJ_ON =     0b00000010, // Bit 1 - OBJ (Sprite) Display Enable    (0=Off, 1=On)
-      const LCD_BG_ON =      0b00000001, // Bit 0 - BG Display (for CGB see below) (0=Off, 1=On)
+#[derive(Copy, Clone, Debug)]
+struct Sprite {
+  y: u8,
+  x: u8,
+  tile: u8,
+  flags: SpriteFlags,
+}
+
+impl Default for Sprite {
+  fn default() -> Sprite {
+    Sprite {
+      y: 0,
+      x: 0,
+      tile: 0,
+      flags: SpriteFlags::empty(),
     }
+  }
 }
 
 bitflags! {
-    flags LcdStatus: u8 {
-      const LCD_COINCIDENCE_INTERRUPT = 0b01000000, // (1=Enable) (Read/Write)
-      const LCD_OAM_INTERRUPT =         0b00100000, // (1=Enable) (Read/Write)
-      const LCD_VBLANK_INTERRUPT =      0b00010000, // (1=Enable) (Read/Write)
-      const LCD_HBLANK_INTERRUPT =      0b00001000, // (1=Enable) (Read/Write)
-      const LCD_COINCIDENCE_FLAG =      0b00000100, // (0:LYC<>LY, 1:LYC=LY) (Read Only)
-    }
+  flags SpriteFlags: u8 {
+     const SPRITE_PRIORITY =  0b10000000, // Bit 7
+     const SPRITE_Y_FLIP =    0b01000000, // Bit 6
+     const SPRITE_X_FLIP =    0b00100000, // Bit 5
+     const SPRITE_PALETTE =   0b00010000, // Bit 4
+     const SPRITE_TILE_BANK = 0b00001000, // Bit 3
+  }
+}
+
+bitflags! {
+  flags LcdControl: u8 {
+    const LCD_DISPLAY_ON =  0b10000000, // Bit 7 - LCD Display Enable             (0=Off, 1=On)
+    const LCD_WIN_MAP =     0b01000000, // Bit 6 - Window Tile Map Display Select (0=9800-9BFF, 1=9C00-9FFF)
+    const LCD_WIN_ON =      0b00100000, // Bit 5 - Window Display Enable          (0=Off, 1=On)
+    const LCD_DATA_SELECT = 0b00010000, // Bit 4 - BG & Window Tile Data Select   (0=8800-97FF, 1=8000-8FFF)
+    const LCD_BG_MAP =      0b00001000, // Bit 3 - BG Tile Map Display Select     (0=9800-9BFF, 1=9C00-9FFF)
+    const LCD_OBJ_SIZE =    0b00000100, // Bit 2 - OBJ (Sprite) Size              (0=8x8, 1=8x16)
+    const LCD_OBJ_ON =      0b00000010, // Bit 1 - OBJ (Sprite) Display Enable    (0=Off, 1=On)
+    const LCD_BG_ON =       0b00000001, // Bit 0 - BG Display (for CGB see below) (0=Off, 1=On)
+  }
+}
+
+bitflags! {
+  flags LcdStatus: u8 {
+    const LCD_COINCIDENCE_INTERRUPT = 0b01000000, // (1=Enable) (Read/Write)
+    const LCD_OAM_INTERRUPT =         0b00100000, // (1=Enable) (Read/Write)
+    const LCD_VBLANK_INTERRUPT =      0b00010000, // (1=Enable) (Read/Write)
+    const LCD_HBLANK_INTERRUPT =      0b00001000, // (1=Enable) (Read/Write)
+    const LCD_COINCIDENCE_FLAG =      0b00000100, // (0:LYC<>LY, 1:LYC=LY) (Read Only)
+  }
 }
 
 #[derive(Debug, PartialEq, NumFromPrimitive)]
@@ -98,8 +125,8 @@ pub struct Video {
   cycles: isize,
   scroll_y: u8,
   scroll_x: u8,
-  window_y: u8,
-  window_x: u8,
+  win_y: u8,
+  win_x: u8,
   ly_compare: u8,
   bg_palette: Palette,
   obj_palette0: Palette,
@@ -108,10 +135,10 @@ pub struct Video {
   tile_data: [[u8; 16]; TILE_DATA_SIZE],
   tile_map1: [u8; TILE_MAP_SIZE],
   tile_map2: [u8; TILE_MAP_SIZE],
-  // Sprite attribute table
-  oam: [u8; 160],
+  sprites: [Sprite; 40],
   event_sender: Option<Sender<GbEvent>>,
   pixels: [[u8; 4]; SCREEN_WIDTH as usize * SCREEN_HEIGHT as usize],
+  bg_priority: [bool; SCREEN_WIDTH as usize],
 }
 
 impl Default for Video {
@@ -123,8 +150,8 @@ impl Default for Video {
       cycles: READING_OAM_CYCLES,
       scroll_y: 0,
       scroll_x: 0,
-      window_y: 0,
-      window_x: 0,
+      win_y: 0,
+      win_x: 0,
       ly_compare: 0,
       bg_palette: Palette::default(),
       obj_palette0: Palette::default(),
@@ -133,9 +160,10 @@ impl Default for Video {
       tile_data: [[0; 16]; TILE_DATA_SIZE],
       tile_map1: [0; TILE_MAP_SIZE],
       tile_map2: [0; TILE_MAP_SIZE],
-      oam: [0; 160],
+      sprites: [Sprite::default(); 40],
       event_sender: None,
       pixels: [Color::White.pixel(); SCREEN_WIDTH as usize * SCREEN_HEIGHT as usize],
+      bg_priority: [false; SCREEN_WIDTH as usize],
     }
   }
 }
@@ -152,31 +180,42 @@ impl MemoryIo for Video {
     // println!("reading vid byte from: {:#04x}", addr);
     match addr {
       0x8000...0x97ff => {
+        // TODO: Uncomment these checks to AccessVram when we have timing correct.
         // if self.mode == LcdMode::AccessVram {
         //  return Ok(0);
         // }
 
-        let offset = addr - 0x8000;
-        let tile = &self.tile_data[offset as usize / 16];
-        Ok(tile[offset as usize % 16])
+        let offset = (addr as usize) - 0x8000;
+        let tile = &self.tile_data[offset / 16];
+        Ok(tile[offset % 16])
       }
       0x9800...0x9bff => {
         // if self.mode == LcdMode::AccessVram {
         //  return Ok(0);
         // }
 
-        let offset = addr - 0x9800;
-        Ok(self.tile_map1[offset as usize])
+        let offset = (addr as usize) - 0x9800;
+        Ok(self.tile_map1[offset])
       }
       0x9c00...0x9fff => {
         // if self.mode == LcdMode::AccessVram {
         //  return Ok(0);
         // }
 
-        let offset = addr - 0x9c00;
-        Ok(self.tile_map2[offset as usize])
+        let offset = (addr as usize) - 0x9c00;
+        Ok(self.tile_map2[offset])
       }
-      0xfe00...0xfe9f => Ok(self.oam[addr as usize - 0xfe00 as usize]),
+      0xfe00...0xfe9f => {
+        let offset = (addr as usize) - 0xfe00;
+        let sprite = &self.sprites[offset / 4];
+        Ok(match offset % 4 {
+          0 => sprite.y,
+          1 => sprite.x,
+          2 => sprite.tile,
+          3 => sprite.flags.bits(),
+          _ => panic!("video.read_u8: unexpected sprite attribute"),
+        })
+      }
       0xff40 => Ok(self.control.bits),
       0xff41 => Ok(self.status.bits),
       0xff42 => Ok(self.scroll_y),
@@ -186,8 +225,8 @@ impl MemoryIo for Video {
       0xff47 => Ok(self.bg_palette.value),
       0xff48 => Ok(self.obj_palette0.value),
       0xff49 => Ok(self.obj_palette1.value),
-      0xff4a => Ok(self.window_y),
-      0xff4B => Ok(self.window_x),
+      0xff4a => Ok(self.win_y),
+      0xff4B => Ok(self.win_x),
       _ => panic!("video.read_u8: non implemented range: {:#04x}", addr),
     }
   }
@@ -199,9 +238,9 @@ impl MemoryIo for Video {
         //  return Ok(());
         // }
 
-        let offset = addr - 0x8000;
-        let tile = &mut self.tile_data[offset as usize / 16];
-        tile[offset as usize % 16] = value;
+        let offset = (addr as usize) - 0x8000;
+        let tile = &mut self.tile_data[offset / 16];
+        tile[offset % 16] = value;
         // println!("write tile data {:x} @ {:x}", value, offset);
       }
       0x9800...0x9bff => {
@@ -221,7 +260,19 @@ impl MemoryIo for Video {
         self.tile_map2[offset as usize] = value;
       }
       0xfe00...0xfe9f => {
-        self.oam[addr as usize - 0xfe00 as usize] = value;
+        let offset = (addr as usize) - 0xfe00;
+        let mut sprite = &mut self.sprites[offset / 4];
+        // if offset >= 0 && offset <= 3 {
+        println!("setting sprite: {:x}", offset);
+        // }
+
+        match offset % 4 {
+          0 => sprite.y = value,
+          1 => sprite.x = value,
+          2 => sprite.tile = value,
+          3 => sprite.flags = SpriteFlags::from_bits_truncate(value),
+          _ => panic!("video.write_u8: unexpected sprite attribute"),
+        };
       }
       0xff40 => {
         let old_lcd_on = self.control.contains(LCD_DISPLAY_ON);
@@ -278,12 +329,8 @@ impl MemoryIo for Video {
         // println!("video: obj 1 palette: {:?}", self.obj_palette1.colors);
       }
 
-      0xff4a => self.window_y = value,
-      0xff4b => self.window_x = value,
-
-      0xff46 => {
-        println!("DMA TRANSFER START");
-      }
+      0xff4a => self.win_y = value,
+      0xff4b => self.win_x = value,
 
       _ => println!("video.write_u8: non implemented range: {:#04x}", addr),
     };
@@ -372,6 +419,14 @@ impl Video {
 
   fn render_line(&mut self) {
     self.render_bg_line();
+
+    if self.control.contains(LCD_WIN_ON) {
+      self.render_win_line();
+    }
+
+    if self.control.contains(LCD_OBJ_ON) {
+      self.render_obj_line();
+    }
   }
 
   fn render_bg_line(&mut self) {
@@ -392,14 +447,6 @@ impl Video {
       &self.tile_map1
     };
 
-    // Get the offset into the tile data based on which area is selected
-    // by the bg select in the control.
-    let tile_data_offset = if self.control.contains(LCD_BG_SELECT) {
-      0
-    } else {
-      128
-    };
-
     // Find out our true bg Y coordinate by adding the y scroll position
     // to our current line.
     let bg_y = self.line.wrapping_add(self.scroll_y) as usize;
@@ -408,8 +455,8 @@ impl Video {
     // line+scroll_y we're on.
     let tile_y = (bg_y / 8) % 32;
 
-    for x in 0..SCREEN_WIDTH {
-      let bg_x = (x as usize).wrapping_add(self.scroll_x as usize);
+    for x in 0..(SCREEN_WIDTH as usize) {
+      let bg_x = x.wrapping_add(self.scroll_x as usize);
       // Again, we get the x component of the tile we're in based on
       // x+scroll_x.
       let tile_x = (bg_x / 8) % 32;
@@ -417,10 +464,10 @@ impl Video {
       let tile_map_num = tile_map[tile_y * 32 + tile_x] as usize;
 
       // Select the tile based on control.
-      let single_tile = if self.control.contains(LCD_BG_SELECT) {
-        self.tile_data[tile_data_offset + tile_map_num]
+      let single_tile = if self.control.contains(LCD_DATA_SELECT) {
+        self.tile_data[tile_map_num]
       } else {
-        self.tile_data[(tile_data_offset as i16 + (tile_map_num as i8 as i16)) as usize]
+        self.tile_data[(128 + (tile_map_num as i8 as i16)) as usize]
       };
 
       // Tile date is 16 bytes long, with each line being 2 bytes. We grab the correct bytes
@@ -428,9 +475,130 @@ impl Video {
       let b1 = single_tile[(bg_y % 8) * 2];
       let b2 = single_tile[(bg_y % 8) * 2 + 1];
       let bit = (7 as usize).wrapping_sub(bg_x) % 8;
-      let color: Color = FromPrimitive::from_u8(((b1 >> bit) & 0b1) | ((b2 >> bit) & 0b1) << 1).unwrap();
+      let color_num = ((b1 >> bit) & 0b1) | ((b2 >> bit) & 0b1) << 1;
+      let color: Color = self.bg_palette.colors[color_num as usize];
+      self.bg_priority[x] = color != Color::White;
 
-      self.pixels[(self.line as usize) * (SCREEN_WIDTH as usize) + (x as usize)] = color.pixel();
+      self.pixels[(self.line as usize) * (SCREEN_WIDTH as usize) + x] = color.pixel();
+    }
+  }
+
+  fn render_win_line(&mut self) {
+    let win_y = self.line as isize - self.win_y as isize;
+    if win_y < 0 {
+      return;
+    }
+
+    let win_y = win_y as usize;
+    let win_x = self.win_x.wrapping_sub(7) as usize;
+
+    let tile_map = if self.control.contains(LCD_WIN_MAP) {
+      &self.tile_map2
+    } else {
+      &self.tile_map1
+    };
+
+    let tile_y = win_y / 8;
+
+    for x in 0..(SCREEN_WIDTH as usize) {
+      if x < win_x {
+        continue;
+      }
+
+      let tile_x = x.wrapping_sub(win_x) / 8;
+      let tile_map_num = tile_map[tile_y * 32 + tile_x] as usize;
+
+      let single_tile = if self.control.contains(LCD_DATA_SELECT) {
+        self.tile_data[tile_map_num]
+      } else {
+        self.tile_data[(128 + (tile_map_num as i8 as i16)) as usize]
+      };
+
+      let b1 = single_tile[(win_y % 8) * 2];
+      let b2 = single_tile[(win_y % 8) * 2 + 1];
+      let bit = (7 as usize).wrapping_sub(x) % 8;
+      let color_num = ((b1 >> bit) & 0b1) | ((b2 >> bit) & 0b1) << 1;
+      let color: Color = self.bg_palette.colors[color_num as usize];
+      self.bg_priority[x] = color != Color::White;
+
+      self.pixels[(self.line as usize) * (SCREEN_WIDTH as usize) + x] = color.pixel();
+    }
+  }
+
+  fn render_obj_line(&mut self) {
+    let sprite_size = if self.control.contains(LCD_OBJ_SIZE) {
+      16
+    } else {
+      8
+    };
+
+    let mut sprites: Vec<(usize, &Sprite)> = self.sprites
+      .iter()
+      .filter(|sprite| self.line.wrapping_sub(sprite.y.wrapping_sub(16)) < sprite_size)
+      .take(10)
+      .enumerate()
+      .collect();
+
+    // for i in 0..self.sprites.len() {
+    //  println!("{}: {:?}", i, self.sprites[i]);
+    // }
+
+    sprites.sort_by(|a, b| {
+      match a.1.x.cmp(&b.1.x) {
+        Ordering::Equal => a.0.cmp(&b.0).reverse(),
+        Ordering::Less => Ordering::Greater,
+        Ordering::Greater => Ordering::Less,
+      }
+    });
+
+    for (_, sprite) in sprites {
+      let sprite_y = sprite.y.wrapping_sub(16);
+      let sprite_x = sprite.x.wrapping_sub(8);
+
+      // println!("{} {}", sprite_x, sprite_y);
+
+      let palette = if sprite.flags.contains(SPRITE_PALETTE) {
+        &self.obj_palette1
+      } else {
+        &self.obj_palette0
+      };
+
+      let mut sprite_tile = sprite.tile as usize;
+      let mut line = if sprite.flags.contains(SPRITE_Y_FLIP) {
+        sprite_size.wrapping_sub(self.line.wrapping_sub(sprite_y)).wrapping_sub(1)
+      } else {
+        self.line.wrapping_sub(sprite_y)
+      };
+
+      if line >= 8 {
+        sprite_tile = sprite_tile.wrapping_add(1);
+        line -= 8;
+      }
+
+      line *= 2;
+
+      if sprite_size == 16 {
+        sprite_tile &= 0xFE;
+      }
+
+      let single_tile = &self.tile_data[sprite_tile];
+      let b1 = single_tile[line as usize];
+      let b2 = single_tile[line as usize + 1];
+
+      for x in (0..8).rev() {
+        let bit = if sprite.flags.contains(SPRITE_X_FLIP) {
+          7 - x
+        } else {
+          x
+        };
+
+        let color_num = ((b1 >> bit) & 0b1) | ((b2 >> bit) & 0b1) << 1;
+        let color: Color = palette.colors[color_num as usize];
+        let dest = sprite_x.wrapping_add(7 - x) as usize;
+        if (dest < SCREEN_WIDTH as usize && color != Color::White) && (sprite.flags.contains(SPRITE_PRIORITY) || !self.bg_priority[dest]) {
+          self.pixels[dest] = color.pixel();
+        }
+      }
     }
   }
 }
