@@ -10,6 +10,7 @@ use super::audio::Audio;
 use super::linkport::LinkPort;
 use super::GbEvent;
 use super::pic::{Pic, Interrupt};
+use super::timer::Timer;
 
 pub const WORK_RAM_0_LEN: usize = 0xcfff - 0xc000;
 pub const WORK_RAM_1_LEN: usize = 0xdfff - 0xd000;
@@ -102,6 +103,7 @@ pub trait SystemCtrl: MemoryIo {
   fn next_interrupt(&mut self) -> Option<Interrupt> {
     None
   }
+  fn has_interrupt(&self) -> bool;
 }
 
 pub struct System {
@@ -112,6 +114,7 @@ pub struct System {
   linkport: LinkPort,
   dma: Dma,
   pic: Pic,
+  timer: Timer,
 
   work_ram_0: [u8; WORK_RAM_0_LEN + 1],
   work_ram_1: [u8; WORK_RAM_1_LEN + 1],
@@ -131,6 +134,7 @@ impl Default for System {
       linkport: LinkPort::default(),
       dma: Dma::default(),
       pic: Pic::default(),
+      timer: Timer::default(),
       work_ram_0: [0; WORK_RAM_0_LEN + 1],
       work_ram_1: [0; WORK_RAM_1_LEN + 1],
       high_ram: [0; HIGH_RAM_LEN + 1],
@@ -170,17 +174,6 @@ impl MemoryIo for System {
       0x8000...0x9fff => self.video.read_u8(addr),
       // cart ram
       0xa000...0xbfff => self.cartridge.read_u8(addr),
-      // sprite table
-      0xfe00...0xfe9f => self.video.read_u8(addr),
-      // audio
-      0xff10...0xff3f => self.audio.read_u8(addr),
-      // video control
-      0xff40...0xff4c => self.video.read_u8(addr),
-      // link port
-      0xff01...0xff02 => self.linkport.read_u8(addr),
-      // echo
-      0xe000...0xfdff => self.read_u8(addr - 0xe000 + 0xc000),
-
       // work ram 0
       0xc000...0xcfff => {
         self.work_ram_0
@@ -201,10 +194,26 @@ impl MemoryIo for System {
           })
           .and_then(|&x| Ok(x))
       }
-      // unusuable
-      0xfea0...0xfeff => {
-        // println!("read_u8 occurred at unusable memory addr: {:#04x}", addr);
-        Ok((0))
+      // echo
+      0xe000...0xfdff => self.read_u8(addr - 0xe000 + 0xc000),
+      // sprite table
+      0xfe00...0xfe9f => self.video.read_u8(addr),
+      // joypad
+      0xff00 => Ok(0),
+      // link port
+      0xff01...0xff02 => self.linkport.read_u8(addr),
+      // timer
+      0xff04...0xff07 => self.timer.read_u8(addr),
+      // interrupt flags
+      0xff0f => self.pic.read_u8(addr),
+      // audio
+      0xff10...0xff3f => self.audio.read_u8(addr),
+      // video control
+      0xff40...0xff4c => self.video.read_u8(addr),
+      // booting flag
+      0xff50 => {
+        // Err(format!("the booting flag shouldn't need to be read: {:?}", mapped))
+        if self.booting { Ok((0)) } else { Ok((1)) }
       }
       // high ram
       0xff80...0xfffe => {
@@ -216,16 +225,10 @@ impl MemoryIo for System {
           })
           .and_then(|&x| Ok(x))
       }
-      // booting flag
-      0xff50 => {
-        // Err(format!("the booting flag shouldn't need to be read: {:?}", mapped))
-        if self.booting { Ok((0)) } else { Ok((1)) }
-      }
-      0xff0f => Ok(self.pic.flags()),
       // interrupt enable
-      0xffff => Ok(self.pic.enabled()),
+      0xffff => self.pic.read_u8(addr),
       // io ports
-      0xff00...0xff7f => Ok((0)),
+      // 0xff00...0xff7f => Ok((0)),
       _ => Err(format!("system.read_u8: unknown mapped addr: {:#04x}", addr)),
     }
   }
@@ -250,22 +253,6 @@ impl MemoryIo for System {
       0x8000...0x9fff => self.video.write_u8(addr, value),
       // cart ram
       0xa000...0xbfff => self.cartridge.write_u8(addr, value),
-      // sprite table
-      0xfe00...0xfe9f => self.video.write_u8(addr, value),
-      // audio
-      0xff10...0xff3f => self.audio.write_u8(addr, value),
-      0xff46 => {
-        println!("dma start!");
-        self.dma.start(value);
-        Ok(())
-      }
-      // video control
-      0xff40...0xff4c => self.video.write_u8(addr, value),
-      // link port
-      0xff01...0xff02 => self.linkport.write_u8(addr, value),
-      // echo
-      0xe000...0xfdff => self.write_u8(addr - 0xe000 + 0xc000, value),
-
       // work ram 0
       0xc000...0xcfff => {
         self.work_ram_0[(addr - 0xc000) as usize] = value;
@@ -276,9 +263,33 @@ impl MemoryIo for System {
         self.work_ram_1[(addr - 0xd000) as usize] = value;
         Ok(())
       }
-      // unusuable
-      0xfea0...0xfeff => {
-        // println!("write_u8 occurred at unusable memory addr: {:#04x}", addr);
+      // echo
+      0xe000...0xfdff => self.write_u8(addr - 0xe000 + 0xc000, value),
+      // sprite table
+      0xfe00...0xfe9f => self.video.write_u8(addr, value),
+      // joypad
+      0xff00 => Ok(()),
+      // link port
+      0xff01...0xff02 => self.linkport.write_u8(addr, value),
+      // timer
+      0xff04...0xff07 => self.timer.write_u8(addr, value),
+      // interrupt flags
+      0xff0f => self.pic.write_u8(addr, value),
+      // audio
+      0xff10...0xff3f => self.audio.write_u8(addr, value),
+      // video control
+      0xff40...0xff45 => self.video.write_u8(addr, value),
+      // DMA transfer
+      0xff46 => {
+        println!("dma start!");
+        self.dma.start(value);
+        Ok(())
+      }
+      // video control
+      0xff47...0xff4b => self.video.write_u8(addr, value),
+      // booting flag
+      0xff50 => {
+        self.booting = value == 0;
         Ok(())
       }
       // high ram
@@ -286,25 +297,8 @@ impl MemoryIo for System {
         self.high_ram[(addr - 0xff80) as usize] = value;
         Ok(())
       }
-      // booting flag
-      0xff50 => {
-        self.booting = value == 0;
-        Ok(())
-      }
-      0xff0f => {
-        self.pic.set_flags(value);
-        Ok(())
-      }
       // interrupt enable
-      0xffff => {
-        self.pic.set_enabled(value);
-        Ok(())
-      }
-      // io ports
-      0xff00...0xff7f => {
-        // Err(format!("write_u8 Addr::IOPorts not implemented: {:?}", mapped))
-        Ok(())
-      }
+      0xffff => self.pic.write_u8(addr, value),
       _ => Err(format!("system.write_u8: unknown mapped addr: {:#04x}", addr)),
     }
   }
@@ -344,8 +338,9 @@ impl SystemCtrl for System {
   }
 
   fn step(&mut self) {
-    self.video.step();
+    self.video.step(&mut self.pic);
     self.dma_step();
+    self.timer.step(&mut self.pic);
   }
 
   fn as_memoryio(&self) -> &MemoryIo {
@@ -354,5 +349,9 @@ impl SystemCtrl for System {
 
   fn next_interrupt(&mut self) -> Option<Interrupt> {
     self.pic.next_interrupt()
+  }
+
+  fn has_interrupt(&self) -> bool {
+    self.pic.has_interrupt()
   }
 }

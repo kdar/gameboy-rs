@@ -1,3 +1,5 @@
+use super::mem::MemoryIo;
+
 bitflags! {
   flags Interrupts: u8 {
     const INT_JOYPAD =   1 << 4,
@@ -8,6 +10,7 @@ bitflags! {
   }
 }
 
+#[derive(PartialEq)]
 pub enum Interrupt {
   Joypad = 1 << 4,
   Serial = 1 << 3,
@@ -54,27 +57,58 @@ impl Default for Pic {
   }
 }
 
+impl MemoryIo for Pic {
+  fn read_u8(&self, addr: u16) -> Result<u8, String> {
+    match addr {
+      // The top 3 bits are unusued and always set to 1.
+      0xff0f => Ok(self.flags.bits()),// | 0b11100000),
+      0xffff => Ok(self.enabled.bits()),
+      _ => unreachable!(),
+    }
+  }
+
+  fn write_u8(&mut self, addr: u16, value: u8) -> Result<(), String> {
+    match addr {
+      0xff0f => {
+        self.flags = Interrupts::from_bits_truncate(value);
+        // println!("flags: {:?}", self.flags);
+      }
+      0xffff => {
+        self.enabled = Interrupts::from_bits_truncate(value);
+        // println!("enabled: {:?}", self.enabled);
+      }
+      _ => unreachable!(),
+    };
+    Ok(())
+  }
+}
+
 impl Pic {
-  pub fn set_flags(&mut self, v: u8) {
-    self.flags = Interrupts::from_bits_truncate(v);
-  }
-
-  pub fn flags(&self) -> u8 {
-    self.flags.bits()
-  }
-
-  pub fn set_enabled(&mut self, v: u8) {
-    self.enabled = Interrupts::from_bits_truncate(v);
-  }
-
-  pub fn enabled(&self) -> u8 {
-    self.enabled.bits()
-  }
-
   pub fn next_interrupt(&mut self) -> Option<Interrupt> {
+    let bits = self.flags.bits() & self.enabled.bits();
+    if bits == 0 {
+      return None;
+    }
+
     // https://stackoverflow.com/questions/18806481
-    let bits = self.flags.bits() & ((!self.flags.bits()).wrapping_add(1));
+    let bits = bits & ((!bits).wrapping_add(1));
     self.flags = Interrupts::from_bits_truncate(!bits & self.flags.bits());
+
+    // TEST
+    // let i = Interrupt::from_u8(bits);
+    // if i.is_some() && i.unwrap() == Interrupt::Timer {
+    //  println!("{:08b}", self.flags.bits());
+    //  println!("got timer interrup[t");
+    // }
+
     Interrupt::from_u8(bits)
+  }
+
+  pub fn interrupt(&mut self, int: Interrupt) {
+    self.flags.insert(Interrupts::from_bits_truncate(int as u8));
+  }
+
+  pub fn has_interrupt(&self) -> bool {
+    self.flags.bits() & self.enabled.bits() != 0
   }
 }

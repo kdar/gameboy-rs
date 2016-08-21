@@ -6,6 +6,7 @@ use std::cmp::Ordering;
 
 use super::mem::MemoryIo;
 use super::GbEvent;
+use super::pic::{Pic, Interrupt};
 
 const VBLANK_CYCLES: isize = 114;
 const HBLANK_CYCLES: isize = 50;
@@ -52,7 +53,10 @@ impl Default for Palette {
 impl Palette {
   fn from_u8(value: u8) -> Palette {
     Palette {
-      colors: [FromPrimitive::from_u8(value & 0b11).unwrap(), FromPrimitive::from_u8(value >> 2 & 0b11).unwrap(), FromPrimitive::from_u8(value >> 4 & 0b11).unwrap(), FromPrimitive::from_u8(value >> 6 & 0b11).unwrap()],
+      colors: [FromPrimitive::from_u8(value & 0b11).unwrap(),
+               FromPrimitive::from_u8(value >> 2 & 0b11).unwrap(),
+               FromPrimitive::from_u8(value >> 4 & 0b11).unwrap(),
+               FromPrimitive::from_u8(value >> 6 & 0b11).unwrap()],
       value: value,
     }
   }
@@ -89,14 +93,22 @@ bitflags! {
 
 bitflags! {
   flags LcdControl: u8 {
-    const LCD_DISPLAY_ON =  0b10000000, // Bit 7 - LCD Display Enable             (0=Off, 1=On)
-    const LCD_WIN_MAP =     0b01000000, // Bit 6 - Window Tile Map Display Select (0=9800-9BFF, 1=9C00-9FFF)
-    const LCD_WIN_ON =      0b00100000, // Bit 5 - Window Display Enable          (0=Off, 1=On)
-    const LCD_DATA_SELECT = 0b00010000, // Bit 4 - BG & Window Tile Data Select   (0=8800-97FF, 1=8000-8FFF)
-    const LCD_BG_MAP =      0b00001000, // Bit 3 - BG Tile Map Display Select     (0=9800-9BFF, 1=9C00-9FFF)
-    const LCD_OBJ_SIZE =    0b00000100, // Bit 2 - OBJ (Sprite) Size              (0=8x8, 1=8x16)
-    const LCD_OBJ_ON =      0b00000010, // Bit 1 - OBJ (Sprite) Display Enable    (0=Off, 1=On)
-    const LCD_BG_ON =       0b00000001, // Bit 0 - BG Display (for CGB see below) (0=Off, 1=On)
+    // Bit 7 - LCD Display Enable             (0=Off, 1=On)
+    const LCD_DISPLAY_ON =  0b10000000,
+    // Bit 6 - Window Tile Map Display Select (0=9800-9BFF, 1=9C00-9FFF)
+    const LCD_WIN_MAP =     0b01000000,
+    // Bit 5 - Window Display Enable          (0=Off, 1=On)
+    const LCD_WIN_ON =      0b00100000,
+    // Bit 4 - BG & Window Tile Data Select   (0=8800-97FF, 1=8000-8FFF)
+    const LCD_DATA_SELECT = 0b00010000,
+    // Bit 3 - BG Tile Map Display Select     (0=9800-9BFF, 1=9C00-9FFF)
+    const LCD_BG_MAP =      0b00001000,
+    // Bit 2 - OBJ (Sprite) Size              (0=8x8, 1=8x16)
+    const LCD_OBJ_SIZE =    0b00000100,
+    // Bit 1 - OBJ (Sprite) Display Enable    (0=Off, 1=On)
+    const LCD_OBJ_ON =      0b00000010,
+    // Bit 0 - BG Display (for CGB see below) (0=Off, 1=On)
+    const LCD_BG_ON =       0b00000001,
   }
 }
 
@@ -302,7 +314,8 @@ impl MemoryIo for Video {
 
       0xff41 => {
         // Bits 0-2 are read only.
-        self.status = LcdStatus::from_bits((value & 0b11111000) | (self.status.bits & 0b00000111)).unwrap();
+        self.status = LcdStatus::from_bits((value & 0b11111000) | (self.status.bits & 0b00000111))
+          .unwrap();
       }
 
       0xff42 => self.scroll_y = value,
@@ -356,7 +369,25 @@ impl Video {
     panic!("");
   }
 
-  pub fn step(&mut self) {
+  fn set_mode(&mut self, mode: LcdMode, pic: &mut Pic) {
+    self.mode = mode;
+    match self.mode {
+      LcdMode::AccessOam => {
+        if self.status.contains(LCD_OAM_INTERRUPT) {
+          pic.interrupt(Interrupt::LcdStat);
+        }
+      }
+      LcdMode::Vblank => {
+        pic.interrupt(Interrupt::Vblank);
+        if self.status.contains(LCD_VBLANK_INTERRUPT) || self.status.contains(LCD_OAM_INTERRUPT) {
+          pic.interrupt(Interrupt::LcdStat);
+        }
+      }
+      _ => (),
+    }
+  }
+
+  pub fn step(&mut self, pic: &mut Pic) {
     if !self.control.contains(LCD_DISPLAY_ON) {
       return;
     }
@@ -434,7 +465,8 @@ impl Video {
       // If the background is disabled we just render the line
       // as white.
       for x in 0..SCREEN_WIDTH {
-        self.pixels[(self.line as usize) * (SCREEN_WIDTH as usize) + x as usize] = Color::White.pixel();
+        self.pixels[(self.line as usize) * (SCREEN_WIDTH as usize) + x as usize] =
+          Color::White.pixel();
       }
       return;
     }
@@ -595,7 +627,8 @@ impl Video {
         let color_num = ((b1 >> bit) & 0b1) | ((b2 >> bit) & 0b1) << 1;
         let color: Color = palette.colors[color_num as usize];
         let dest = sprite_x.wrapping_add(7 - x) as usize;
-        if (dest < SCREEN_WIDTH as usize && color != Color::White) && (sprite.flags.contains(SPRITE_PRIORITY) || !self.bg_priority[dest]) {
+        if (dest < SCREEN_WIDTH as usize && color != Color::White) &&
+           (sprite.flags.contains(SPRITE_PRIORITY) || !self.bg_priority[dest]) {
           self.pixels[dest] = color.pixel();
         }
       }

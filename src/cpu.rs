@@ -444,10 +444,14 @@ impl Cpu {
   }
 
   pub fn step(&mut self) -> (Instruction, u16) {
-    // TODO: unhalt on interrupt
-    // if self.halt {
-    //
-    // }
+    if self.halt {
+      if self.system.has_interrupt() {
+        self.halt = false;
+      } else {
+        self.system.step();
+        return (Instruction::HALT, 0);
+      }
+    }
 
     match self.disasm.at(self.system.as_memoryio(), self.reg_pc) {
       Ok((inst, inc)) => {
@@ -455,19 +459,7 @@ impl Cpu {
         self.reg_pc += inc;
         self.execute_instruction(inst);
 
-        if self.ime.enabled() {
-          match self.system.next_interrupt() {
-            Some(int) => {
-              self.halt = false;
-              self.ime.set_enabled(false);
-              let pc = self.reg_pc;
-              self.push_u16(pc);
-              self.reg_pc = int.addr();
-            }
-            None => (),
-          };
-        }
-
+        self.handle_interrupts();
         self.ime.step();
         self.system.step();
 
@@ -476,6 +468,21 @@ impl Cpu {
       Err(e) => {
         panic!("cpu.step: {}", e);
       }
+    }
+  }
+
+  fn handle_interrupts(&mut self) {
+    if self.ime.enabled() {
+      match self.system.next_interrupt() {
+        Some(int) => {
+          self.halt = false;
+          self.ime.set_enabled(false);
+          let pc = self.reg_pc;
+          self.push_u16(pc);
+          self.reg_pc = int.addr();
+        }
+        None => (),
+      };
     }
   }
 
