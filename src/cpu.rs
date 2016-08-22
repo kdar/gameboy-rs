@@ -504,14 +504,9 @@ impl Cpu {
   fn execute_instruction(&mut self, ins: Instruction) {
     match ins {
       Instruction::Invalid(d) => {
-        // Ignore instructions that the Gameboy doesn't support.
-        match d {
-          0xFC | _ => {
-            panic!("execute_instruction: Invalid instruction encountered: {:#04x}\n{:?}",
-                   d,
-                   self)
-          }
-        }
+        panic!("execute_instruction: Invalid instruction encountered: {:#04x}\n{:?}",
+               d,
+               self);
       }
       Instruction::InvalidCB(d) => {
         panic!("execute_instruction: Invalid CB instruction encountered: {:#04x}\n{:?}",
@@ -1062,7 +1057,7 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_HALT(&mut self) {
     self.halt = true;
-    println!("halted @ {:#06x}!", self.reg_pc);
+    // println!("halted @ {:#06x}!", self.reg_pc);
   }
 
   // INC r
