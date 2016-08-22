@@ -3,6 +3,9 @@ use libc;
 use super::rustyline::error::ReadlineError;
 use super::rustyline::Editor;
 use std::process::exit;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use ctrlc;
 
 use super::super::cpu::{Cpu, Reg};
 use super::ast::Command;
@@ -37,33 +40,6 @@ impl Debugger {
   }
 
   fn step(&mut self, display_instructions: bool) -> bool {
-    // let result = panic::catch_unwind(|| {
-    //   return self.cpu.step();
-    // });
-    //
-    // let (inst, pc) = match result {
-    //   Ok(v) => v,
-    //   Err(e) => {
-    //     println!("{:?}", e);
-    //     return true;
-    //   }
-    // };
-
-    // if self.break_after_inst {
-    //   let pc = self.cpu.pc();
-    //
-    //   let (inst, pc_at_inst) = self.cpu.step();
-    //   if display_instructions {
-    //     println!("{:#04x}: {:?}", pc_at_inst, inst);
-    //   }
-    //
-    //   for &b in &self.breakpoints {
-    //     if pc as usize == b {
-    //       println!("Breakpoint hit @ {:#04x}: {:?}", pc, self.cpu.peek_at(pc));
-    //       return true;
-    //     }
-    //   }
-    // } else {
     let (inst, pc_at_inst) = self.cpu.step();
 
     if display_instructions {
@@ -92,6 +68,12 @@ impl Debugger {
       libc::setbuf(stdin as *mut libc::FILE, 0 as *mut i8);
     }
 
+    let signal = Arc::new(AtomicBool::new(false));
+    let signal_clone = signal.clone();
+    ctrlc::set_handler(move || {
+      signal_clone.store(true, Ordering::SeqCst);
+    });
+
     let mut rl = Editor::<()>::new();
     if let Err(_) = rl.load_history("history.txt") {
       println!("No previous history.");
@@ -118,6 +100,12 @@ impl Debugger {
           match c {
             Command::Continue => {
               loop {
+                if signal.load(Ordering::SeqCst) {
+                  println!("Got SIGINT. Breaking.");
+                  signal.store(false, Ordering::SeqCst);
+                  break;
+                }
+
                 if self.step(false) {
                   break;
                 }

@@ -21,6 +21,7 @@ yaml-rust = "0.3"
 rand = "0.3"
 bitflags = "0.7"
 lalrpop-util = "0.12"
+ctrlc = "2.0"
 
 [build-dependencies]
 lalrpop = "0.12"
