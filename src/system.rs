@@ -198,6 +198,8 @@ impl MemoryIo for System {
       0xe000...0xfdff => self.read_u8(addr - 0xe000 + 0xc000),
       // sprite table
       0xfe00...0xfe9f => self.video.read_u8(addr),
+      // Unused
+      0xfea0...0xfeff => Ok(0),
       // joypad
       0xff00 => Ok(0),
       // link port
@@ -269,6 +271,8 @@ impl MemoryIo for System {
       0xe000...0xfdff => self.write_u8(addr - 0xe000 + 0xc000, value),
       // sprite table
       0xfe00...0xfe9f => self.video.write_u8(addr, value),
+      // Unused
+      0xfea0...0xfeff => Ok(()),
       // joypad
       0xff00 => Ok(()),
       // link port
