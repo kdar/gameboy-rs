@@ -97,7 +97,7 @@ pub struct Cpu {
   reg_sp: u16, // Stack pointer
   reg_pc: u16, // Program counter
 
-  clock_t: u32, // Cycles
+  machine_cycles: u32, // 1 machine cycle = 4 clock cycles
   ime: Ime,
   halt: bool,
 
@@ -109,7 +109,7 @@ impl PartialEq for Cpu {
   fn eq(&self, x: &Cpu) -> bool {
     self.reg_af == x.reg_af && self.reg_bc == x.reg_bc && self.reg_de == x.reg_de &&
     self.reg_hl == x.reg_hl && self.reg_sp == x.reg_sp && self.reg_pc == x.reg_pc &&
-    self.clock_t == x.clock_t
+    self.machine_cycles == x.machine_cycles
   }
 }
 
@@ -122,7 +122,7 @@ impl Default for Cpu {
       reg_hl: 0,
       reg_sp: 0,
       reg_pc: 0,
-      clock_t: 0,
+      machine_cycles: 0,
       ime: Ime::default(),
       halt: false,
       system: Box::new(System::default()),
@@ -152,7 +152,7 @@ impl fmt::Debug for Cpu {
     if self.read_flag(Flag::C) {
       try!(write!(f, "C"));
     }
-    try!(write!(f, "\nClock T: {}", self.clock_t));
+    try!(write!(f, "\nMachine cycles: {}", self.machine_cycles));
     write!(f, "\n")
   }
 }
@@ -195,6 +195,15 @@ impl Cpu {
     self.write_u8(0xff47, 0xfc);
     self.write_u8(0xff48, 0xff);
     self.write_u8(0xff49, 0xff);
+  }
+
+  fn mcycle(&mut self, machine_cycles: u32) {
+    // step the system by the amount of clock cycles
+    for _ in 0..(machine_cycles * 4) {
+      self.system.step();
+    }
+
+    self.machine_cycles += machine_cycles;
   }
 
   pub fn read_operand_u8(&mut self, operand: Operand) -> u8 {
@@ -353,7 +362,8 @@ impl Cpu {
     }
   }
 
-  pub fn read_u8(&self, addr: u16) -> u8 {
+  pub fn read_u8(&mut self, addr: u16) -> u8 {
+    self.mcycle(1);
     let val = self.system.read_u8(addr);
     match val {
       Ok(v) => v,
@@ -361,7 +371,8 @@ impl Cpu {
     }
   }
 
-  fn read_u16(&self, addr: u16) -> u16 {
+  fn read_u16(&mut self, addr: u16) -> u16 {
+    self.mcycle(2);
     let val = self.system.read_u16(addr);
     match val {
       Ok(v) => v,
@@ -370,6 +381,7 @@ impl Cpu {
   }
 
   fn write_u8(&mut self, addr: u16, value: u8) {
+    self.mcycle(1);
     match self.system.write_u8(addr, value) {
       Ok(v) => v,
       Err(e) => panic!("cpu.write_u8: {}\n{:?}", e, self),
@@ -377,6 +389,7 @@ impl Cpu {
   }
 
   fn write_u16(&mut self, addr: u16, value: u16) {
+    self.mcycle(2);
     match self.system.write_u16(addr, value) {
       Ok(v) => v,
       Err(e) => panic!("cpu.write_u16: {}\n{:?}", e, self),
@@ -448,6 +461,7 @@ impl Cpu {
       if self.system.has_interrupt() {
         self.halt = false;
       } else {
+        self.machine_cycles += 1;
         self.system.step();
         return (Instruction::HALT, 0);
       }
@@ -479,6 +493,7 @@ impl Cpu {
           self.ime.set_enabled(false);
           let pc = self.reg_pc;
           self.push_u16(pc);
+          self.mcycle(6);
           self.reg_pc = int.addr();
         }
         None => (),
@@ -564,8 +579,6 @@ impl Cpu {
 
       // _ => panic!("instruction not implemented: {:?}\n{:?}", ins, self),
     };
-
-    // self.clock_t += t;
   }
 
   fn pop_u16(&mut self) -> u16 {
@@ -853,6 +866,8 @@ impl Cpu {
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, (result ^ val1 ^ val2) & 0x1000 != 0);
     self.write_flag(Flag::C, carry);
+
+    self.mcycle(1);
   }
 
   // ADD SP,n
@@ -870,6 +885,8 @@ impl Cpu {
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, (((val1 & 0xF) + (val2 & 0xF)) & 0x10) > 0);
     self.write_flag(Flag::C, carry);
+
+    self.mcycle(2);
   }
 
   // AND n
@@ -902,6 +919,8 @@ impl Cpu {
       let pc = self.reg_pc;
       self.push_u16(pc);
       self.reg_pc = nn;
+
+      self.mcycle(2);
     }
   }
 
@@ -915,6 +934,8 @@ impl Cpu {
     let pc = self.reg_pc;
     self.push_u16(pc);
     self.reg_pc = nn;
+
+    self.mcycle(1);
   }
 
   // CCF
@@ -1016,6 +1037,8 @@ impl Cpu {
     let val = self.read_operand_u16(o);
     let val = val.wrapping_sub(1);
     self.write_operand_u16(o, val);
+
+    self.mcycle(1);
   }
 
   // DI
@@ -1065,6 +1088,8 @@ impl Cpu {
     let val = self.read_operand_u16(o);
     let val = val.wrapping_add(1);
     self.write_operand_u16(o, val);
+
+    self.mcycle(1);
   }
 
   // JP HL
@@ -1085,6 +1110,7 @@ impl Cpu {
     if self.read_operand_u8(o1) != 0 {
       let val = self.read_operand_u16(o2);
       self.reg_pc = val;
+      self.mcycle(1);
     }
   }
 
@@ -1096,6 +1122,7 @@ impl Cpu {
     let val = self.read_operand_u8(o) as i8;
     // signed addition (can jump back)
     self.reg_pc = ((self.reg_pc as i16) + (val as i16)) as u16;
+    self.mcycle(1);
   }
 
   // JR cc,e
@@ -1108,6 +1135,7 @@ impl Cpu {
       let val = self.read_operand_u8(o2) as i8;
       // signed addition (can jump back)
       self.reg_pc = ((self.reg_pc as i16) + (val as i16)) as u16;
+      self.mcycle(1);
     }
   }
 
@@ -1123,6 +1151,7 @@ impl Cpu {
   fn inst_LD16(&mut self, o1: Operand, o2: Operand) {
     let val = self.read_operand_u16(o2);
     self.write_operand_u16(o1, val);
+    self.mcycle(1);
   }
 
   // LDD (HL),A
@@ -1153,6 +1182,8 @@ impl Cpu {
     self.write_flag(Flag::N, false);
     self.write_flag(Flag::H, (((val1 & 0xF) + (val2 & 0xF)) & 0x10) > 0);
     self.write_flag(Flag::C, carry);
+
+    self.mcycle(1);
   }
 
   // LDI (HL),A
@@ -1212,6 +1243,7 @@ impl Cpu {
   fn inst_PUSH16(&mut self, o: Operand) {
     let val = self.read_operand_u16(o);
     self.push_u16(val);
+    self.mcycle(1);
   }
 
   // RET
@@ -1220,6 +1252,7 @@ impl Cpu {
   #[allow(non_snake_case)]
   fn inst_RET(&mut self) {
     self.reg_pc = self.pop_u16();
+    self.mcycle(1);
   }
 
   // RET cc
@@ -1229,6 +1262,7 @@ impl Cpu {
   fn inst_RET_cc(&mut self, o: Operand) {
     if self.read_operand_u8(o) != 0 {
       self.reg_pc = self.pop_u16();
+      self.mcycle(1);
     }
   }
 
