@@ -210,6 +210,8 @@ impl MemoryIo for System {
       0xff10...0xff3f => self.audio.read_u8(addr),
       // video control
       0xff40...0xff4c => self.video.read_u8(addr),
+      // GBC mode
+      0xff4d => Ok(0),
       // booting flag
       0xff50 => {
         // Err(format!("the booting flag shouldn't need to be read: {:?}", mapped))
@@ -287,6 +289,8 @@ impl MemoryIo for System {
       }
       // video control
       0xff47...0xff4b => self.video.write_u8(addr, value),
+      // GBC mode
+      0xff4d => Ok(()),
       // booting flag
       0xff50 => {
         self.booting = value == 0;
