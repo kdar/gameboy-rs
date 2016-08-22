@@ -200,39 +200,46 @@ impl MemoryIo for System {
       0xfe00...0xfe9f => self.video.read_u8(addr),
       // Unused
       0xfea0...0xfeff => Ok(0),
-      // joypad
-      0xff00 => Ok(0),
-      // link port
-      0xff01...0xff02 => self.linkport.read_u8(addr),
-      // timer
-      0xff04...0xff07 => self.timer.read_u8(addr),
-      // interrupt flags
-      0xff0f => self.pic.read_u8(addr),
-      // audio
-      0xff10...0xff3f => self.audio.read_u8(addr),
-      // video control
-      0xff40...0xff4c => self.video.read_u8(addr),
-      // GBC mode
-      0xff4d => Ok(0),
-      // booting flag
-      0xff50 => {
-        // Err(format!("the booting flag shouldn't need to be read: {:?}", mapped))
-        if self.booting { Ok((0)) } else { Ok((1)) }
+      0xff00...0xffff => {
+        match addr {
+          // joypad
+          0xff00 => Ok(0),
+          // link port
+          0xff01...0xff02 => self.linkport.read_u8(addr),
+          // timer
+          0xff04...0xff07 => self.timer.read_u8(addr),
+          // interrupt flags
+          0xff0f => self.pic.read_u8(addr),
+          // audio
+          0xff10...0xff3f => self.audio.read_u8(addr),
+          // video control
+          0xff40...0xff45 => self.video.read_u8(addr),
+          // DMA transfer
+          0xff46 => panic!("reading dma transfer register?"),
+          // video control
+          0xff47...0xff4c => self.video.read_u8(addr),
+          // GBC mode
+          0xff4d => Ok(0),
+          // booting flag
+          0xff50 => {
+            // Err(format!("the booting flag shouldn't need to be read: {:?}", mapped))
+            if self.booting { Ok((0)) } else { Ok((1)) }
+          }
+          // high ram
+          0xff80...0xfffe => {
+            self.high_ram
+              .get((addr - 0xff80) as usize)
+              .ok_or_else(|| {
+                format!("system.read_u8: could not get byte at high_ram addr {}",
+                        addr)
+              })
+              .and_then(|&x| Ok(x))
+          }
+          // interrupt enable
+          0xffff => self.pic.read_u8(addr),
+          _ => Ok(0),
+        }
       }
-      // high ram
-      0xff80...0xfffe => {
-        self.high_ram
-          .get((addr - 0xff80) as usize)
-          .ok_or_else(|| {
-            format!("system.read_u8: could not get byte at high_ram addr {}",
-                    addr)
-          })
-          .and_then(|&x| Ok(x))
-      }
-      // interrupt enable
-      0xffff => self.pic.read_u8(addr),
-      // io ports
-      // 0xff00...0xff7f => Ok((0)),
       _ => Err(format!("system.read_u8: unknown mapped addr: {:#04x}", addr)),
     }
   }
@@ -273,40 +280,45 @@ impl MemoryIo for System {
       0xfe00...0xfe9f => self.video.write_u8(addr, value),
       // Unused
       0xfea0...0xfeff => Ok(()),
-      // joypad
-      0xff00 => Ok(()),
-      // link port
-      0xff01...0xff02 => self.linkport.write_u8(addr, value),
-      // timer
-      0xff04...0xff07 => self.timer.write_u8(addr, value),
-      // interrupt flags
-      0xff0f => self.pic.write_u8(addr, value),
-      // audio
-      0xff10...0xff3f => self.audio.write_u8(addr, value),
-      // video control
-      0xff40...0xff45 => self.video.write_u8(addr, value),
-      // DMA transfer
-      0xff46 => {
-        println!("dma start!");
-        self.dma.start(value);
-        Ok(())
+      0xff00...0xffff => {
+        match addr {
+          // joypad
+          0xff00 => Ok(()),
+          // link port
+          0xff01...0xff02 => self.linkport.write_u8(addr, value),
+          // timer
+          0xff04...0xff07 => self.timer.write_u8(addr, value),
+          // interrupt flags
+          0xff0f => self.pic.write_u8(addr, value),
+          // audio
+          0xff10...0xff3f => self.audio.write_u8(addr, value),
+          // video control
+          0xff40...0xff45 => self.video.write_u8(addr, value),
+          // DMA transfer
+          0xff46 => {
+            println!("dma start!");
+            self.dma.start(value);
+            Ok(())
+          }
+          // video control
+          0xff47...0xff4b => self.video.write_u8(addr, value),
+          // GBC mode
+          0xff4d => Ok(()),
+          // booting flag
+          0xff50 => {
+            self.booting = value == 0;
+            Ok(())
+          }
+          // high ram
+          0xff80...0xfffe => {
+            self.high_ram[(addr - 0xff80) as usize] = value;
+            Ok(())
+          }
+          // interrupt enable
+          0xffff => self.pic.write_u8(addr, value),
+          _ => Ok(()),
+        }
       }
-      // video control
-      0xff47...0xff4b => self.video.write_u8(addr, value),
-      // GBC mode
-      0xff4d => Ok(()),
-      // booting flag
-      0xff50 => {
-        self.booting = value == 0;
-        Ok(())
-      }
-      // high ram
-      0xff80...0xfffe => {
-        self.high_ram[(addr - 0xff80) as usize] = value;
-        Ok(())
-      }
-      // interrupt enable
-      0xffff => self.pic.write_u8(addr, value),
       _ => Err(format!("system.write_u8: unknown mapped addr: {:#04x}", addr)),
     }
   }
