@@ -18,3 +18,6 @@ test_debugger:build
 
 build:
 	cargo rustc --lib -- -Z incremental=/tmp/gameboy-rs
+
+run:build
+	target/debug/gameboy-emu $(filter-out $@,$(MAKECMDGOALS))
