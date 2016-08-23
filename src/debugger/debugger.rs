@@ -6,11 +6,43 @@ use std::process::exit;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use ctrlc;
+use clap::{App, SubCommand, Arg, AppSettings};
 
 use super::super::cpu::{Cpu, Reg};
-use super::ast::Command;
-use super::cmd;
 use super::super::system::SystemCtrl;
+
+macro_rules! parse_num {
+  ($n:expr, $default:expr) => {
+    match $n {
+      Some(v) => {
+        if v.starts_with("0x") {
+          match usize::from_str_radix(&v[2..], 16) {
+            Ok(v) => v,
+            Err(e) => {
+              println!("hex parse: {}", e);
+              continue;
+            }
+          }
+        } else {
+          match v.parse::<usize>() {
+            Ok(v) => v,
+            Err(e) => {
+              println!("usize parse: {}", e);
+              continue;
+            }
+          }
+        }
+      }
+      None => {
+        $default
+      }
+    }
+  };
+  ($n:expr) => {
+    parse_num!($n, 0)
+  }
+}
+
 
 extern "C" {
   pub static stdout: *mut libc::FILE;
@@ -79,87 +111,64 @@ impl Debugger {
       println!("No previous history.");
     }
 
+    let mut app = App::new("Gameboy-rs debugger")
+      .usage("<SUBCOMMAND>")
+      .setting(AppSettings::VersionlessSubcommands)
+      .setting(AppSettings::SubcommandRequiredElseHelp)
+      .setting(AppSettings::NoBinaryName)
+      .subcommand(SubCommand::with_name("continue")
+        .visible_alias("c")
+        .about("Controls testing features")
+        .arg(Arg::with_name("print")
+          .short("p")
+          .help("Print assembly at each step")))
+      .subcommand(SubCommand::with_name("debug")
+        .visible_alias("d")
+        .about("Prints out debug information"))
+      .subcommand(SubCommand::with_name("set")
+        .about("Sets a variable to a value")
+        .arg(Arg::with_name("var")
+          .help("The variable to receive the value")
+          .required(true)
+          .index(1))
+        .arg(Arg::with_name("value")
+          .help("The value to set the variable to")
+          .required(true)
+          .index(2)))
+      .subcommand(SubCommand::with_name("step")
+        .visible_alias("s")
+        .about("Steps the program")
+        .arg(Arg::with_name("n")
+          .help("How many steps to perform")
+          .index(1)))
+      .subcommand(SubCommand::with_name("print")
+        .visible_alias("p")
+        .about("Prints the value of an expression")
+        .arg(Arg::with_name("expr")
+          .help("The expression (only supports numbers for now)")
+          .index(1)))
+      .subcommand(SubCommand::with_name("break")
+        .visible_alias("b")
+        .about("Breaks at the expression")
+        .arg(Arg::with_name("expr")
+          .help("The expression (only supports numbers for now)")
+          .index(1)
+          .required(true)))
+      .subcommand(SubCommand::with_name("breakpoints")
+        .visible_alias("bp")
+        .about("Prints out all the breakpoints"))
+      .subcommand(SubCommand::with_name("exit")
+        .visible_alias("quit")
+        .about("Exits the debugger"));
+
     loop {
       let readline = rl.readline("(gameboy) ");
-      match readline {
+      let line = match readline {
         Ok(line) => {
           if line.is_empty() {
             continue;
           }
-
-          rl.add_history_entry(&line);
-
-          let c = match cmd::parse_cmd(&line) {
-            Ok(c) => c,
-            Err(e) => {
-              println!("Unable to parse \"{}\": {:?}", line, e);
-              continue;
-            }
-          };
-
-          match c {
-            Command::Continue => {
-              loop {
-                if signal.load(Ordering::SeqCst) {
-                  println!("Got SIGINT. Breaking.");
-                  signal.store(false, Ordering::SeqCst);
-                  break;
-                }
-
-                if self.step(false) {
-                  break;
-                }
-              }
-            }
-            Command::Debug => {
-              println!("{:?}", self.cpu);
-            }
-            Command::Set(s, v) => {
-              match s.as_str() {
-                "a" => self.cpu.write_reg_u8(Reg::A, v as u8),
-                "f" => self.cpu.write_reg_u8(Reg::F, v as u8),
-                "b" => self.cpu.write_reg_u8(Reg::B, v as u8),
-                "c" => self.cpu.write_reg_u8(Reg::C, v as u8),
-                "d" => self.cpu.write_reg_u8(Reg::D, v as u8),
-                "e" => self.cpu.write_reg_u8(Reg::E, v as u8),
-                "h" => self.cpu.write_reg_u8(Reg::H, v as u8),
-                "l" => self.cpu.write_reg_u8(Reg::L, v as u8),
-                "af" => self.cpu.write_reg_u16(Reg::AF, v as u16),
-                "bc" => self.cpu.write_reg_u16(Reg::BC, v as u16),
-                "de" => self.cpu.write_reg_u16(Reg::DE, v as u16),
-                "hl" => self.cpu.write_reg_u16(Reg::HL, v as u16),
-                _ => {}
-              }
-            }
-            Command::Step(s) => {
-              match s {
-                Some(s) => {
-                  for _ in 0..s {
-                    if self.step(true) {
-                      break;
-                    }
-                  }
-                }
-                None => {
-                  self.step(true);
-                }
-              };
-            }
-            Command::Print(addr) => {
-              let d = self.cpu.read_u8(addr as u16);
-              println!("{:#04x}", d);
-            }
-            Command::Breakpoint(l) => {
-              self.breakpoints.push(l as usize);
-              println!("Added breakpoint @ {:#04x}", l);
-            }
-            Command::Breakpoints => {
-              for loc in &self.breakpoints {
-                println!("Breakpoint @ {:#04x}", loc);
-              }
-            }
-            Command::Exit => exit(0),
-          };
+          line
         }
         Err(ReadlineError::Interrupted) => {
           println!("CTRL-C");
@@ -173,7 +182,92 @@ impl Debugger {
           println!("Error: {:?}", err);
           break;
         }
-      }
+      };
+
+      rl.add_history_entry(&line);
+
+      let mut argv: Vec<_> = line.trim().split(" ").collect();
+      let m = match app.get_matches_from_safe_borrow(argv) {
+        Ok(matches) => matches,
+        Err(e) => {
+          println!("{}", e);
+          continue;
+        }
+      };
+
+      match m.subcommand() {
+        ("continue", Some(sub_m)) => {
+          loop {
+            if signal.load(Ordering::SeqCst) {
+              println!("Got SIGINT. Breaking.");
+              signal.store(false, Ordering::SeqCst);
+              break;
+            }
+
+            if self.step(sub_m.is_present("print")) {
+              break;
+            }
+          }
+        }
+        ("debug", Some(_)) => {
+          println!("{:?}", self.cpu);
+        }
+        ("set", Some(sub_m)) => {
+          let var = sub_m.value_of("var").unwrap();
+          let val = parse_num!(sub_m.value_of("value"));
+
+          match var {
+            "a" => self.cpu.write_reg_u8(Reg::A, val as u8),
+            "f" => self.cpu.write_reg_u8(Reg::F, val as u8),
+            "b" => self.cpu.write_reg_u8(Reg::B, val as u8),
+            "c" => self.cpu.write_reg_u8(Reg::C, val as u8),
+            "d" => self.cpu.write_reg_u8(Reg::D, val as u8),
+            "e" => self.cpu.write_reg_u8(Reg::E, val as u8),
+            "h" => self.cpu.write_reg_u8(Reg::H, val as u8),
+            "l" => self.cpu.write_reg_u8(Reg::L, val as u8),
+            "af" => self.cpu.write_reg_u16(Reg::AF, val as u16),
+            "bc" => self.cpu.write_reg_u16(Reg::BC, val as u16),
+            "de" => self.cpu.write_reg_u16(Reg::DE, val as u16),
+            "hl" => self.cpu.write_reg_u16(Reg::HL, val as u16),
+            _ => {
+              println!("Unknown variable: {}", var);
+            }
+          };
+        }
+        ("step", Some(sub_m)) => {
+          let n = parse_num!(sub_m.value_of("n"), 1);
+
+          for _ in 0..n {
+            if self.step(true) {
+              break;
+            }
+          }
+        }
+        ("print", Some(sub_m)) => {
+          let addr = parse_num!(sub_m.value_of("expr"));
+          let d = self.cpu.read_u8(addr as u16);
+          println!("{:#04x}", d);
+        }
+        ("break", Some(sub_m)) => {
+          let b = parse_num!(sub_m.value_of("expr"));
+          self.breakpoints.push(b);
+          println!("Added breakpoint @ {:#04x}", b);
+        }
+        ("breakpoints", Some(_)) => {
+          for (i, loc) in self.breakpoints.iter().enumerate() {
+            println!("{:02}: {:#06x}", i, loc);
+          }
+        }
+        ("exit", Some(_)) => {
+          exit(0);
+        }
+        (t, Some(_)) => {
+          println!("Unknown command: {}", t);
+        }
+        _ => {
+          continue;
+        }
+      };
     }
 
     rl.save_history("history.txt").unwrap();

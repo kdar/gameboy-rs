@@ -17,7 +17,8 @@ test_debugger:build
 	target/debug/gameboy-emu "res/cpu_instrs/cpu_instrs.gb" --debug
 
 build:
-	cargo rustc --lib -- -Z incremental=/tmp/gameboy-rs
+	@#cargo rustc --lib -- -Z incremental=/tmp/gameboy-rs
+	cargo build
 
 run:build
 	target/debug/gameboy-emu $(filter-out $@,$(MAKECMDGOALS))
