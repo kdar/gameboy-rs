@@ -18,7 +18,10 @@ extern crate rand;
 #[macro_use]
 extern crate bitflags;
 extern crate ctrlc;
+
 extern crate clap;
+extern crate term_grid;
+extern crate terminal_size;
 
 #[macro_use]
 pub mod macros;

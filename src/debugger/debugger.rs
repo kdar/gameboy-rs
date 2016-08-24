@@ -7,6 +7,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use ctrlc;
 use clap::{App, SubCommand, Arg, AppSettings};
+use term_grid::{Grid, GridOptions, Direction, Filling};
+use terminal_size::{Width, terminal_size};
 
 use super::super::cpu::{Cpu, Reg};
 use super::super::system::SystemCtrl;
@@ -141,10 +143,24 @@ impl Debugger {
         .arg(Arg::with_name("n")
           .help("How many steps to perform")
           .index(1)))
-      .subcommand(SubCommand::with_name("print")
-        .visible_alias("p")
-        .about("Prints the value of an expression")
-        .arg(Arg::with_name("expr")
+      .subcommand(SubCommand::with_name("x")
+        .about("Prints the value at the memory address")
+        .arg(Arg::with_name("size")
+          .short("s")
+          .possible_values(&["b", "h", "w", "g"])
+          .help("Size to print: b(byte), h(halfword), w(word), g(giant, 8 bytes)")
+          .takes_value(true))
+        .arg(Arg::with_name("count")
+          .short("c")
+          .help("Number of consecutive memory values to print")
+          .takes_value(true))
+        .arg(Arg::with_name("format")
+          .short("f")
+          .possible_values(&["x", "d", "u", "b", "f", "c"])
+          .help("Format to print: x(hex), d(decimal), u(unsigned decimal), b(binary), \
+                 f(float), c(char)")
+          .takes_value(true))
+        .arg(Arg::with_name("addr")
           .help("The expression (only supports numbers for now)")
           .index(1)))
       .subcommand(SubCommand::with_name("break")
@@ -243,10 +259,76 @@ impl Debugger {
             }
           }
         }
-        ("print", Some(sub_m)) => {
-          let addr = parse_num!(sub_m.value_of("expr"));
-          let d = self.cpu.read_u8(addr as u16);
-          println!("{:#04x}", d);
+        ("x", Some(sub_m)) => {
+          let mut grid = Grid::new(GridOptions {
+            filling: Filling::Spaces(1),
+            direction: Direction::LeftToRight,
+          });
+
+          let size = match sub_m.value_of("size").unwrap_or("b") {
+            "b" => 1, // byte
+            "h" => 2, // half word (2 bytes)
+            "w" => 4, // word (4 bytes)
+            "g" => 8, // giant (8 bytes)
+            _ => unreachable!(),
+          };
+
+          let format: Box<Fn(usize) -> String> = match sub_m.value_of("format").unwrap_or("x") {
+            "x" => Box::new(|v| format!("0x{1:00$x}", size * 2, v)),
+            "d" => Box::new(|v| format!("{}", v as isize)),
+            "u" => Box::new(|v| format!("{}", v as usize)),
+            "b" | "t" => Box::new(|v| format!("{1:00$b}", size * 8, v)),
+            "f" => Box::new(|v| format!("{}", v as f64)),
+            "c" => Box::new(|v| format!("{}", v as u8 as char)),
+            _ => unreachable!(),
+          };
+
+          let addr = parse_num!(sub_m.value_of("addr"));
+          let count = parse_num!(sub_m.value_of("count"), 1);
+          for i in 0..count {
+            let mut val = 0usize;
+
+            for s in 0..size {
+              match self.cpu.read_u8_safe(addr as u16 + s as u16 + (i as u16 * size as u16)) {
+                Ok(d) => {
+                  val |= (d as usize) << (size - 1 - s) * 8;
+                }
+                Err(_) => break,
+              }
+            }
+
+            grid.add(format(val).into());
+          }
+
+          // FIXME: fixes a bug in term_grid. Remove when fixed.
+          if count == 1 {
+            grid.add("".into());
+          }
+
+          let width = match terminal_size() {
+            Some((Width(w), _)) => w as usize,
+            None => 50,
+          };
+
+          // Fit the grid into the terminal width minus 8 for the address
+          // at the beginning of the line.
+          if let Some(grid_display) = grid.fit_into_width(width - 8) {
+            let g = format!("{}", grid_display);
+            let g: Vec<_> = g.split("\n").collect();
+            for (i, row) in g.iter().enumerate() {
+              if row.is_empty() {
+                continue;
+              }
+
+              // Find out the number of cols and calculate what the address
+              // should be for the given line.
+              let cols = row.matches(" ").count() + 1;
+              let a = addr + i * cols * size;
+              println!("{:#06x}:  {}", a, row);
+            }
+          } else {
+            println!("Couldn't fit grid!");
+          }
         }
         ("break", Some(sub_m)) => {
           let b = parse_num!(sub_m.value_of("expr"));

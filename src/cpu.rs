@@ -362,6 +362,11 @@ impl Cpu {
     }
   }
 
+  pub fn read_u8_safe(&mut self, addr: u16) -> Result<u8, String> {
+    self.mcycle(1);
+    self.system.read_u8(addr)
+  }
+
   pub fn read_u8(&mut self, addr: u16) -> u8 {
     self.mcycle(1);
     let val = self.system.read_u8(addr);
