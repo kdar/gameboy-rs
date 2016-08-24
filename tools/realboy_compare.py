@@ -17,8 +17,8 @@ def flags(value):
   	flags.append("C")
   return "".join(flags)
 
-child1 = pexpect.spawn('target/debug/gameboy-emu --debug "res/cpu_instrs/individual/02-interrupts.gb"')
-child2 = pexpect.spawn('/home/outroot/build/realboy-0.2.2/src/realboy -d "res/cpu_instrs/individual/02-interrupts.gb"')
+child1 = pexpect.spawn('target/debug/gameboy-emu --debug "res/opus5.gb"')
+child2 = pexpect.spawn('/home/outroot/build/realboy-0.2.2/src/realboy -d "res/opus5.gb"')
 
 try:
   # class logger:
@@ -31,7 +31,7 @@ try:
   # child2.logfile = logger
 
   child1.expect('(gameboy)')
-  child1.sendline('b 0xc317')
+  child1.sendline('b 0x101')
   child1.expect('(gameboy)')
   child1.sendline('c')
   child1.expect('Breakpoint hit.*?: ')
@@ -40,7 +40,7 @@ try:
   inst1 = child1.before.decode().split('\r')[0]
 
   child2.expect('gddb>')
-  child2.sendline('break 0xc317')
+  child2.sendline('break 0x101')
   child2.expect('gddb>')
   child2.sendline('step 0xFFFFFFFF')
   child2.expect('Breakpoint')

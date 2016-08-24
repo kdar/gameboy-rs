@@ -274,9 +274,6 @@ impl MemoryIo for Video {
       0xfe00...0xfe9f => {
         let offset = (addr as usize) - 0xfe00;
         let mut sprite = &mut self.sprites[offset / 4];
-        // if offset >= 0 && offset <= 3 {
-        println!("setting sprite: {:x}", offset);
-        // }
 
         match offset % 4 {
           0 => sprite.y = value,
@@ -404,14 +401,14 @@ impl Video {
       // Mode 2
       LcdMode::AccessOam => {
         // println!("access oam");
-        self.mode = LcdMode::AccessVram;
+        self.set_mode(LcdMode::AccessVram, pic);
         self.cycles += READING_VRAM_CYCLES;
       }
       // Mode 3
       LcdMode::AccessVram => {
         // println!("access vram");
         self.render_line();
-        self.mode = LcdMode::Hblank;
+        self.set_mode(LcdMode::Hblank, pic);
         self.cycles += HBLANK_CYCLES;
       }
       // Mode 0
@@ -419,10 +416,10 @@ impl Video {
         // println!("hblank");
         self.line += 1;
         if self.line < 144 {
-          self.mode = LcdMode::AccessOam;
+          self.set_mode(LcdMode::AccessOam, pic);
           self.cycles += READING_OAM_CYCLES;
         } else {
-          self.mode = LcdMode::Vblank;
+          self.set_mode(LcdMode::Vblank, pic);
           self.cycles += VBLANK_CYCLES;
           self.render_image();
         }
@@ -433,7 +430,7 @@ impl Video {
         self.line += 1;
         if self.line > 153 {
           self.line = 0;
-          self.mode = LcdMode::AccessOam;
+          self.set_mode(LcdMode::AccessOam, pic);
           self.cycles += READING_OAM_CYCLES;
         } else {
           self.cycles += VBLANK_CYCLES;

@@ -10,7 +10,7 @@ bitflags! {
   }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub enum Interrupt {
   Joypad = 1 << 4,
   Serial = 1 << 3,
@@ -94,18 +94,12 @@ impl Pic {
     let bits = bits & ((!bits).wrapping_add(1));
     self.flags = Interrupts::from_bits_truncate(!bits & self.flags.bits());
 
-    // TEST
-    // let i = Interrupt::from_u8(bits);
-    // if i.is_some() && i.unwrap() == Interrupt::Timer {
-    //  println!("{:08b}", self.flags.bits());
-    //  println!("got timer interrup[t");
-    // }
-
     Interrupt::from_u8(bits)
   }
 
   pub fn interrupt(&mut self, int: Interrupt) {
-    self.flags.insert(Interrupts::from_bits_truncate(int as u8));
+    let int = Interrupts::from_bits_truncate(int as u8);
+    self.flags.insert(int);
   }
 
   pub fn has_interrupt(&self) -> bool {

@@ -296,7 +296,6 @@ impl MemoryIo for System {
           0xff40...0xff45 => self.video.write_u8(addr, value),
           // DMA transfer
           0xff46 => {
-            println!("dma start!");
             self.dma.start(value);
             Ok(())
           }
