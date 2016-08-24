@@ -2,7 +2,7 @@ use super::mem::MemoryIo;
 
 bitflags! {
   flags Interrupts: u8 {
-    const INT_JOYPAD =   1 << 4,
+    const INT_GAMEPAD =  1 << 4,
     const INT_SERIAL =   1 << 3,
     const INT_TIMER =    1 << 2,
     const INT_LCD_STAT = 1 << 1,
@@ -12,7 +12,7 @@ bitflags! {
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum Interrupt {
-  Joypad = 1 << 4,
+  Gamepad = 1 << 4,
   Serial = 1 << 3,
   Timer = 1 << 2,
   LcdStat = 1 << 1,
@@ -22,7 +22,7 @@ pub enum Interrupt {
 impl Interrupt {
   fn from_u8(v: u8) -> Option<Interrupt> {
     match v {
-      0x10 => Some(Interrupt::Joypad),
+      0x10 => Some(Interrupt::Gamepad),
       0x8 => Some(Interrupt::Serial),
       0x4 => Some(Interrupt::Timer),
       0x2 => Some(Interrupt::LcdStat),
@@ -33,7 +33,7 @@ impl Interrupt {
 
   pub fn addr(&self) -> u16 {
     match *self {
-      Interrupt::Joypad => 0x60,
+      Interrupt::Gamepad => 0x60,
       Interrupt::Serial => 0x58,
       Interrupt::Timer => 0x50,
       Interrupt::LcdStat => 0x48,

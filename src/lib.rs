@@ -39,6 +39,7 @@ pub mod system;
 pub mod ui;
 pub mod pic;
 pub mod timer;
+pub mod gamepad;
 
 pub enum GbEvent {
   Frame(Vec<[u8; 4]>),

@@ -11,6 +11,7 @@ use super::linkport::LinkPort;
 use super::GbEvent;
 use super::pic::{Pic, Interrupt};
 use super::timer::Timer;
+use super::gamepad::{Button, Gamepad};
 
 pub const WORK_RAM_0_LEN: usize = 0xcfff - 0xc000;
 pub const WORK_RAM_1_LEN: usize = 0xdfff - 0xd000;
@@ -115,6 +116,7 @@ pub struct System {
   dma: Dma,
   pic: Pic,
   timer: Timer,
+  gamepad: Gamepad,
 
   work_ram_0: [u8; WORK_RAM_0_LEN + 1],
   work_ram_1: [u8; WORK_RAM_1_LEN + 1],
@@ -135,6 +137,7 @@ impl Default for System {
       dma: Dma::default(),
       pic: Pic::default(),
       timer: Timer::default(),
+      gamepad: Gamepad::default(),
       work_ram_0: [0; WORK_RAM_0_LEN + 1],
       work_ram_1: [0; WORK_RAM_1_LEN + 1],
       high_ram: [0; HIGH_RAM_LEN + 1],
@@ -202,8 +205,8 @@ impl MemoryIo for System {
       0xfea0...0xfeff => Ok(0),
       0xff00...0xffff => {
         match addr {
-          // joypad
-          0xff00 => Ok(0),
+          // gamepad
+          0xff00 => self.gamepad.read_u8(addr),
           // link port
           0xff01...0xff02 => self.linkport.read_u8(addr),
           // timer
@@ -278,8 +281,8 @@ impl MemoryIo for System {
       0xfea0...0xfeff => Ok(()),
       0xff00...0xffff => {
         match addr {
-          // joypad
-          0xff00 => Ok(()),
+          // gamepad
+          0xff00 => self.gamepad.write_u8(addr, value),
           // link port
           0xff01...0xff02 => self.linkport.write_u8(addr, value),
           // timer
@@ -356,6 +359,7 @@ impl SystemCtrl for System {
     self.video.step(&mut self.pic);
     self.dma_step();
     self.timer.step(&mut self.pic);
+    self.gamepad.step(&mut self.pic);
   }
 
   fn as_memoryio(&self) -> &MemoryIo {
