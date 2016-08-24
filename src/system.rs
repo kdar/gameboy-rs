@@ -245,10 +245,6 @@ impl MemoryIo for System {
   }
 
   fn write_u8(&mut self, addr: u16, value: u8) -> Result<(), String> {
-    if addr == 0xfe46 {
-      println!("uhhhh start???");
-    }
-
     match addr {
       // boot / cart rom
       0x0000...0x3fff => {
