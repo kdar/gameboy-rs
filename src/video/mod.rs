@@ -4,9 +4,12 @@ use std::sync::mpsc::Sender;
 // use time::{Duration, SteadyTime};
 use std::cmp::Ordering;
 
+mod sprite;
+
 use super::mem::MemoryIo;
 use super::GbEvent;
 use super::pic::{Pic, Interrupt};
+use self::sprite::Sprite;
 
 const VBLANK_CYCLES: isize = 114;
 const HBLANK_CYCLES: isize = 50;
@@ -62,35 +65,6 @@ impl Palette {
   }
 }
 
-#[derive(Copy, Clone, Debug)]
-struct Sprite {
-  y: u8,
-  x: u8,
-  tile: u8,
-  flags: SpriteFlags,
-}
-
-impl Default for Sprite {
-  fn default() -> Sprite {
-    Sprite {
-      y: 0,
-      x: 0,
-      tile: 0,
-      flags: SpriteFlags::empty(),
-    }
-  }
-}
-
-bitflags! {
-  flags SpriteFlags: u8 {
-     const SPRITE_PRIORITY =  0b10000000, // Bit 7
-     const SPRITE_Y_FLIP =    0b01000000, // Bit 6
-     const SPRITE_X_FLIP =    0b00100000, // Bit 5
-     const SPRITE_PALETTE =   0b00010000, // Bit 4
-     const SPRITE_TILE_BANK = 0b00001000, // Bit 3
-  }
-}
-
 bitflags! {
   flags LcdControl: u8 {
     // Bit 7 - LCD Display Enable             (0=Off, 1=On)
@@ -114,11 +88,12 @@ bitflags! {
 
 bitflags! {
   flags LcdStatus: u8 {
-    const LCD_COINCIDENCE_INTERRUPT = 0b01000000, // (1=Enable) (Read/Write)
-    const LCD_OAM_INTERRUPT =         0b00100000, // (1=Enable) (Read/Write)
-    const LCD_VBLANK_INTERRUPT =      0b00010000, // (1=Enable) (Read/Write)
-    const LCD_HBLANK_INTERRUPT =      0b00001000, // (1=Enable) (Read/Write)
-    const LCD_COINCIDENCE_FLAG =      0b00000100, // (0:LYC<>LY, 1:LYC=LY) (Read Only)
+    const STAT_UNUSED =               0b10000000,
+    const STAT_COINCIDENCE_INTERRUPT = 0b01000000, // (1=Enable) (Read/Write)
+    const STAT_OAM_INTERRUPT =         0b00100000, // (1=Enable) (Read/Write)
+    const STAT_VBLANK_INTERRUPT =      0b00010000, // (1=Enable) (Read/Write)
+    const STAT_HBLANK_INTERRUPT =      0b00001000, // (1=Enable) (Read/Write)
+    const STAT_COINCIDENCE_FLAG =      0b00000100, // (0:LYC<>LY, 1:LYC=LY) (Read Only)
   }
 }
 
@@ -224,12 +199,19 @@ impl MemoryIo for Video {
           0 => sprite.y,
           1 => sprite.x,
           2 => sprite.tile,
-          3 => sprite.flags.bits(),
+          3 => sprite.flags(),
           _ => panic!("video.read_u8: unexpected sprite attribute"),
         })
       }
       0xff40 => Ok(self.control.bits),
-      0xff41 => Ok(self.status.bits),
+      0xff41 => {
+        if self.control.contains(LCD_DISPLAY_ON) {
+          Ok(self.status.bits | STAT_UNUSED.bits)
+        } else {
+          // Bits 0-2 return 0 when lcd is off.
+          Ok(self.status.bits | STAT_UNUSED.bits & 0b11111000)
+        }
+      }
       0xff42 => Ok(self.scroll_y),
       0xff43 => Ok(self.scroll_x),
       0xff44 => Ok(self.line),
@@ -279,7 +261,7 @@ impl MemoryIo for Video {
           0 => sprite.y = value,
           1 => sprite.x = value,
           2 => sprite.tile = value,
-          3 => sprite.flags = SpriteFlags::from_bits_truncate(value),
+          3 => sprite.set_flags(value),
           _ => panic!("video.write_u8: unexpected sprite attribute"),
         };
       }
@@ -301,7 +283,7 @@ impl MemoryIo for Video {
         // previous value was off.
         if new_lcd_on && !old_lcd_on {
           self.mode = LcdMode::Hblank;
-          self.status.insert(LCD_COINCIDENCE_FLAG);
+          self.status.insert(STAT_COINCIDENCE_FLAG);
           self.cycles = READING_OAM_CYCLES;
         }
 
@@ -311,8 +293,8 @@ impl MemoryIo for Video {
 
       0xff41 => {
         // Bits 0-2 are read only.
-        self.status = LcdStatus::from_bits((value & 0b11111000) | (self.status.bits & 0b00000111))
-          .unwrap();
+        self.status = LcdStatus::from_bits_truncate((value & 0b11111000) |
+                                                    (self.status.bits & 0b00000111));
       }
 
       0xff42 => self.scroll_y = value,
@@ -370,13 +352,13 @@ impl Video {
     self.mode = mode;
     match self.mode {
       LcdMode::AccessOam => {
-        if self.status.contains(LCD_OAM_INTERRUPT) {
+        if self.status.contains(STAT_OAM_INTERRUPT) {
           pic.interrupt(Interrupt::LcdStat);
         }
       }
       LcdMode::Vblank => {
         pic.interrupt(Interrupt::Vblank);
-        if self.status.contains(LCD_VBLANK_INTERRUPT) || self.status.contains(LCD_OAM_INTERRUPT) {
+        if self.status.contains(STAT_VBLANK_INTERRUPT) || self.status.contains(STAT_OAM_INTERRUPT) {
           pic.interrupt(Interrupt::LcdStat);
         }
       }
@@ -390,9 +372,11 @@ impl Video {
     }
 
     self.cycles -= 1;
-
-    // println!("{}", self.cycles);
-
+    if self.cycles == 1 && self.mode == LcdMode::AccessVram {
+      if self.status.contains(STAT_HBLANK_INTERRUPT) {
+        pic.interrupt(Interrupt::LcdStat);
+      }
+    }
     if self.cycles > 0 {
       return;
     }
@@ -555,48 +539,32 @@ impl Video {
   }
 
   fn render_obj_line(&mut self) {
-    let sprite_size = if self.control.contains(LCD_OBJ_SIZE) {
+    let sprite_height: u8 = if self.control.contains(LCD_OBJ_SIZE) {
       16
     } else {
       8
     };
 
-    let mut sprites: Vec<(usize, &Sprite)> = self.sprites
+    let mut sprites: Vec<&Sprite> = self.sprites
       .iter()
-      .filter(|sprite| self.line.wrapping_sub(sprite.y.wrapping_sub(16)) < sprite_size)
+      .filter(|sprite| {
+        self.line >= sprite.screen_y() && self.line < sprite.screen_y().wrapping_add(sprite_height)
+      })
       .take(10)
-      .enumerate()
       .collect();
 
-    // for i in 0..self.sprites.len() {
-    //  println!("{}: {:?}", i, self.sprites[i]);
-    // }
-
-    sprites.sort_by(|a, b| {
-      match a.1.x.cmp(&b.1.x) {
-        Ordering::Equal => a.0.cmp(&b.0).reverse(),
-        Ordering::Less => Ordering::Greater,
-        Ordering::Greater => Ordering::Less,
-      }
-    });
-
-    for (_, sprite) in sprites {
-      let sprite_y = sprite.y.wrapping_sub(16);
-      let sprite_x = sprite.x.wrapping_sub(8);
-
-      // println!("{} {}", sprite_x, sprite_y);
-
-      let palette = if sprite.flags.contains(SPRITE_PALETTE) {
+    for sprite in sprites {
+      let palette = if sprite.has_palette1() {
         &self.obj_palette1
       } else {
         &self.obj_palette0
       };
 
       let mut sprite_tile = sprite.tile as usize;
-      let mut line = if sprite.flags.contains(SPRITE_Y_FLIP) {
-        sprite_size.wrapping_sub(self.line.wrapping_sub(sprite_y)).wrapping_sub(1)
+      let mut line = if sprite.has_yflip() {
+        sprite_height.wrapping_sub(self.line.wrapping_sub(sprite.screen_y())).wrapping_sub(1)
       } else {
-        self.line.wrapping_sub(sprite_y)
+        self.line.wrapping_sub(sprite.screen_y())
       };
 
       if line >= 8 {
@@ -606,7 +574,7 @@ impl Video {
 
       line *= 2;
 
-      if sprite_size == 16 {
+      if sprite_height == 16 {
         sprite_tile &= 0xFE;
       }
 
@@ -615,18 +583,13 @@ impl Video {
       let b2 = single_tile[line as usize + 1];
 
       for x in (0..8).rev() {
-        let bit = if sprite.flags.contains(SPRITE_X_FLIP) {
-          7 - x
-        } else {
-          x
-        };
+        let bit = if sprite.has_xflip() { 7 - x } else { x };
 
         let color_num = ((b1 >> bit) & 0b1) | ((b2 >> bit) & 0b1) << 1;
         let color: Color = palette.colors[color_num as usize];
-        let dest = sprite_x.wrapping_add(7 - x) as usize;
-        if (dest < SCREEN_WIDTH as usize && color != Color::White) &&
-           (sprite.flags.contains(SPRITE_PRIORITY) || !self.bg_priority[dest]) {
-          self.pixels[dest] = color.pixel();
+        let dest = sprite.x.wrapping_add(7 - x) as usize;
+        if dest < SCREEN_WIDTH as usize && (sprite.has_low_priority() || !self.bg_priority[dest]) {
+          self.pixels[(self.line as usize) * (SCREEN_WIDTH as usize) + dest] = color.pixel();
         }
       }
     }
