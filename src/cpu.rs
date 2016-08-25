@@ -1471,6 +1471,9 @@ mod tests {
     fn as_memoryio(&self) -> &MemoryIo {
       self as &MemoryIo
     }
+    fn has_interrupt(&self) -> bool {
+      false
+    }
   }
 
   impl TestSystem {
