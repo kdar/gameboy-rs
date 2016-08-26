@@ -421,7 +421,7 @@ impl Video {
   }
 
   fn render_image(&mut self) {
-    if let &Some(ref s) = &self.event_sender {
+    if let Some(ref s) = self.event_sender {
       s.send(GbEvent::Frame(self.pixels.to_vec())).unwrap();
     }
   }
