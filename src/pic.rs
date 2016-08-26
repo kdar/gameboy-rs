@@ -16,7 +16,7 @@ pub enum Interrupt {
   Serial = 1 << 3,
   Timer = 1 << 2,
   LcdStat = 1 << 1,
-  Vblank = 1 << 0,
+  Vblank = 1,
 }
 
 impl Interrupt {
