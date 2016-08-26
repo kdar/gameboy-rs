@@ -8,7 +8,7 @@ use super::video;
 
 pub struct Ui {
   win: Option<PistonWindow>,
-  scale: f64,
+  initial_scale: f64,
   width: u32,
   height: u32,
   doflush: bool,
@@ -18,10 +18,9 @@ pub struct Ui {
 impl Default for Ui {
   fn default() -> Ui {
     let (_, null_receiver) = mpsc::channel();
-    let scale = 4.0;
     Ui {
       win: None,
-      scale: scale,
+      initial_scale: 4.0,
       width: video::SCREEN_WIDTH,
       height: video::SCREEN_HEIGHT,
       doflush: false,
@@ -35,8 +34,8 @@ impl Ui {
     let mut u = Ui { event_receiver: r, ..Ui::default() };
 
     u.win = Some(WindowSettings::new("Gameboy-rs",
-                                     [((u.width as f64) * u.scale) as u32,
-                                      ((u.height as f64) * u.scale) as u32])
+                                     [((u.width as f64) * u.initial_scale) as u32,
+                                      ((u.height as f64) * u.initial_scale) as u32])
       .exit_on_esc(true)
       .build()
       .unwrap());
@@ -64,9 +63,10 @@ impl Ui {
         start = SteadyTime::now();
       }
 
-      if let Event::Render(_) = e {
+      if let Event::Render(rargs) = e {
+        let scale_x = rargs.draw_width as f64 / video::SCREEN_WIDTH as f64;
+        let scale_y = rargs.draw_height as f64 / video::SCREEN_HEIGHT as f64;
         if self.doflush {
-          let scale = self.scale;
           win.draw_2d(&e, |c, g| {
             clear([0.0; 4], g);
 
@@ -77,7 +77,7 @@ impl Ui {
                               d[1] as f32 / 255.0,
                               d[2] as f32 / 255.0,
                               d[3] as f32 / 255.0])
-                .draw([x as f64 * scale, y as f64 * scale, scale, scale],
+                .draw([x as f64 * scale_x, y as f64 * scale_y, scale_x, scale_y],
                       &c.draw_state,
                       c.transform,
                       g);
