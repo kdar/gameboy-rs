@@ -3,10 +3,10 @@ use im;
 use time::{Duration, SteadyTime};
 use std::sync::mpsc::{self, Receiver};
 
-use super::GbEvent;
-use super::video;
+use super::super::GbEvent;
+use super::super::video;
 
-pub struct Ui {
+pub struct PistonUi {
   win: Option<PistonWindow>,
   initial_scale: f64,
   width: u32,
@@ -15,10 +15,10 @@ pub struct Ui {
   event_receiver: Receiver<GbEvent>,
 }
 
-impl Default for Ui {
-  fn default() -> Ui {
+impl Default for PistonUi {
+  fn default() -> PistonUi {
     let (_, null_receiver) = mpsc::channel();
-    Ui {
+    PistonUi {
       win: None,
       initial_scale: 4.0,
       width: video::SCREEN_WIDTH,
@@ -29,9 +29,9 @@ impl Default for Ui {
   }
 }
 
-impl Ui {
-  pub fn new(r: Receiver<GbEvent>) -> Ui {
-    let mut u = Ui { event_receiver: r, ..Ui::default() };
+impl PistonUi {
+  pub fn new(r: Receiver<GbEvent>) -> PistonUi {
+    let mut u = PistonUi { event_receiver: r, ..PistonUi::default() };
 
     u.win = Some(WindowSettings::new("Gameboy-rs",
                                      [((u.width as f64) * u.initial_scale) as u32,

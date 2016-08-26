@@ -16,7 +16,7 @@ use std::sync::mpsc;
 use std::thread;
 
 use gameboy::disassembler;
-use gameboy::ui::Ui;
+use gameboy::ui::PistonUi;
 use gameboy::cpu::Cpu;
 use gameboy::system;
 use gameboy::debugger;
@@ -100,7 +100,7 @@ fn main() {
       });
     }
 
-    let mut ui = Ui::new(receiver);
+    let mut ui = PistonUi::new(receiver);
     ui.run();
   }
 }
