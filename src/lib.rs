@@ -1,15 +1,18 @@
 #![feature(non_ascii_idents)]
 #![feature(custom_derive, plugin)]
+
 #![plugin(num_macros)]
 #![feature(concat_idents)]
+
+#![feature(custom_derive, plugin)]
+#![plugin(serde_macros)]
 
 #[cfg(test)]
 extern crate difference;
 #[cfg(test)]
-extern crate yaml_rust;
+extern crate serde;
 #[cfg(test)]
-#[macro_use]
-extern crate maplit;
+extern crate serde_json;
 
 extern crate md5;
 extern crate piston_window;
