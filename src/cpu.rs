@@ -1446,8 +1446,7 @@ mod tests {
   use std::fs::File;
   use std;
 
-  use yaml_rust::YamlLoader;
-  use yaml_rust::yaml::Yaml;
+  use serde_json::{self, Map};
 
   struct TestSystem {
     ram: [u8; 0xFFFF + 1],
@@ -1501,195 +1500,164 @@ mod tests {
     }
   }
 
+  #[derive(Debug, PartialEq, Serialize, Deserialize)]
+  struct CpuData {
+    A: u8,
+    B: u8,
+    C: u8,
+    D: u8,
+    E: u8,
+    F: u8,
+    H: u8,
+    L: u8,
+    PC: u16,
+    SP: u16,
+    mem: Map<String, u8>,
+  }
+
+  #[derive(Debug, PartialEq, Serialize, Deserialize)]
+  struct CpuDataTest {
+    pre: CpuData,
+    post: CpuData,
+  }
+
   #[test]
-  fn test_runner() {
-    // let s = include_str!("../testdata/cpu.yaml");
-    let mut f = File::open("testdata/cpu.yaml").unwrap();
+  fn test_runner_json() {
+    let mut f = File::open("testdata/cpu.json").unwrap();
     let mut s = String::new();
     f.read_to_string(&mut s).unwrap();
-    let docs = YamlLoader::load_from_str(&s).unwrap();
-    let doc = &docs[0];
+    let data: Map<String, CpuDataTest> = serde_json::from_str(&s).unwrap();
 
-    for (k, _) in doc.as_hash().unwrap() {
-      let test_name = k.as_str().unwrap();
-      let unit = &doc[test_name];
-      let pre = &unit["pre"];
-      let post = &unit["post"];
+    for (k, v) in data {
+      let test_name = k;
 
       let mut c = testcpu();
-      for (pre_k, pre_v) in pre.as_hash().unwrap() {
-        match pre_k.as_str().unwrap() {
-          "A" => c.write_reg_u8(Reg::A, pre_v.as_i64().unwrap() as u8),
-          "F" => c.write_reg_u8(Reg::F, pre_v.as_i64().unwrap() as u8),
-          "B" => c.write_reg_u8(Reg::B, pre_v.as_i64().unwrap() as u8),
-          "C" => c.write_reg_u8(Reg::C, pre_v.as_i64().unwrap() as u8),
-          "D" => c.write_reg_u8(Reg::D, pre_v.as_i64().unwrap() as u8),
-          "E" => c.write_reg_u8(Reg::E, pre_v.as_i64().unwrap() as u8),
-          "H" => c.write_reg_u8(Reg::H, pre_v.as_i64().unwrap() as u8),
-          "L" => c.write_reg_u8(Reg::L, pre_v.as_i64().unwrap() as u8),
-          "SP" => c.reg_sp = pre_v.as_i64().unwrap() as u16,
-          "PC" => c.reg_pc = pre_v.as_i64().unwrap() as u16,
-          "mem" => {
-            match pre_v {
-              &Yaml::Hash(ref h) => {
-                for (hk, hv) in h {
-                  c.system
-                    .write_u8(hk.as_i64().unwrap() as u16, hv.as_i64().unwrap() as u8)
-                    .unwrap();
-                }
-              }
-              _ => panic!("unknown mem value"),
-            };
-          }
-          _ => panic!("unknown key in pre"),
-        };
+      c.write_reg_u8(Reg::A, v.pre.A);
+      c.write_reg_u8(Reg::F, v.pre.F);
+      c.write_reg_u8(Reg::B, v.pre.B);
+      c.write_reg_u8(Reg::C, v.pre.C);
+      c.write_reg_u8(Reg::D, v.pre.D);
+      c.write_reg_u8(Reg::E, v.pre.E);
+      c.write_reg_u8(Reg::H, v.pre.H);
+      c.write_reg_u8(Reg::L, v.pre.L);
+      c.reg_sp = v.pre.SP;
+      c.reg_pc = v.pre.PC;
+      for (map_k, map_v) in v.pre.mem {
+        c.system
+          .write_u8(map_k.parse::<u16>().unwrap(), map_v)
+          .unwrap();
       }
 
       c.step();
 
-      for (post_k, post_v) in post.as_hash().unwrap() {
-        match post_k.as_str().unwrap() {
-          "A" => {
-            let v1 = c.read_reg_u8(Reg::A);
-            let v2 = post_v.as_i64().unwrap() as u8;
-            assert!(v1 == v2,
-                    "\n{0}:\n A:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
-                    test_name,
-                    v1,
-                    v2);
-          }
-          "F" => {
-            let v1 = c.read_reg_u8(Reg::F);
-            let v2 = post_v.as_i64().unwrap() as u8;
-            let mut flags1 = vec![];
-            if v1 & 0b10000000 != 0 {
-              flags1.push("Z");
-            }
-            if v1 & 0b01000000 != 0 {
-              flags1.push("N");
-            }
-            if v1 & 0b00100000 != 0 {
-              flags1.push("H");
-            }
-            if v1 & 0b00010000 != 0 {
-              flags1.push("C");
-            }
-            let mut flags2 = vec![];
-            if v2 & 0b10000000 != 0 {
-              flags2.push("Z");
-            }
-            if v2 & 0b01000000 != 0 {
-              flags2.push("N");
-            }
-            if v2 & 0b00100000 != 0 {
-              flags2.push("H");
-            }
-            if v2 & 0b00010000 != 0 {
-              flags2.push("C");
-            }
-            assert!(v1 == v2,
-                    "\n{0}:\n F:\n  Got:      {1:#04x} [{2:}],\n  Expected: {3:#04x} [{4:}]",
-                    test_name,
-                    v1,
-                    flags1.join(""),
-                    v2,
-                    flags2.join(""));
-          }
-          "B" => {
-            let v1 = c.read_reg_u8(Reg::B);
-            let v2 = post_v.as_i64().unwrap() as u8;
-            assert!(v1 == v2,
-                    "\n{0}:\n B:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
-                    test_name,
-                    v1,
-                    v2);
-          }
-          "C" => {
-            let v1 = c.read_reg_u8(Reg::C);
-            let v2 = post_v.as_i64().unwrap() as u8;
-            assert!(v1 == v2,
-                    "\n{0}:\n C:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
-                    test_name,
-                    v1,
-                    v2);
-          }
-          "D" => {
-            let v1 = c.read_reg_u8(Reg::D);
-            let v2 = post_v.as_i64().unwrap() as u8;
-            assert!(v1 == v2,
-                    "\n{0}:\n D:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
-                    test_name,
-                    v1,
-                    v2);
-          }
-          "E" => {
-            let v1 = c.read_reg_u8(Reg::E);
-            let v2 = post_v.as_i64().unwrap() as u8;
-            assert!(v1 == v2,
-                    "\n{0}:\n E:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
-                    test_name,
-                    v1,
-                    v2);
-          }
-          "H" => {
-            let v1 = c.read_reg_u8(Reg::H);
-            let v2 = post_v.as_i64().unwrap() as u8;
-            assert!(v1 == v2,
-                    "\n{0}:\n H:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
-                    test_name,
-                    v1,
-                    v2);
-          }
-          "L" => {
-            let v1 = c.read_reg_u8(Reg::L);
-            let v2 = post_v.as_i64().unwrap() as u8;
-            assert!(v1 == v2,
-                    "\n{0}:\n L:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
-                    test_name,
-                    v1,
-                    v2);
-          }
-          "SP" => {
-            let v1 = c.reg_sp;
-            let v2 = post_v.as_i64().unwrap() as u16;
-            assert!(v1 == v2,
-                    "\n{0}:\n SP:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} \
-                     [{2:08b}]",
-                    test_name,
-                    v1,
-                    v2);
-          }
-          "PC" => {
-            let v1 = c.reg_pc;
-            let v2 = post_v.as_i64().unwrap() as u16;
-            assert!(v1 == v2,
-                    "\n{0}:\n PC:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} \
-                     [{2:08b}]",
-                    test_name,
-                    v1,
-                    v2);
-          }
-          "mem" => {
-            match post_v {
-              &Yaml::Hash(ref h) => {
-                for (hk, hv) in h {
-                  let k = hk.as_i64().unwrap() as u16;
-                  let v1 = c.system.read_u8(k).unwrap();
-                  let v2 = hv.as_i64().unwrap() as u8;
+      let (v1, v2) = (c.read_reg_u8(Reg::A), v.post.A);
+      assert!(v1 == v2,
+              "\n{0}:\n A:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
+              test_name,
+              v1,
+              v2);
 
-                  assert!(v1 == v2,
-                          "\n{0}\nmem {1}:\n  Got:      {2:#04x},\n  Expected: {3:#04x}",
-                          test_name,
-                          k,
-                          v1,
-                          v2);
-                }
-              }
-              _ => panic!("unknown mem value"),
-            };
-          }
-          _ => panic!("unknown key in pre"),
-        }
+      let (v1, v2) = (c.read_reg_u8(Reg::F), v.post.F);
+      let mut flags1 = vec![];
+      if v1 & 0b10000000 != 0 {
+        flags1.push("Z");
+      }
+      if v1 & 0b01000000 != 0 {
+        flags1.push("N");
+      }
+      if v1 & 0b00100000 != 0 {
+        flags1.push("H");
+      }
+      if v1 & 0b00010000 != 0 {
+        flags1.push("C");
+      }
+      let mut flags2 = vec![];
+      if v2 & 0b10000000 != 0 {
+        flags2.push("Z");
+      }
+      if v2 & 0b01000000 != 0 {
+        flags2.push("N");
+      }
+      if v2 & 0b00100000 != 0 {
+        flags2.push("H");
+      }
+      if v2 & 0b00010000 != 0 {
+        flags2.push("C");
+      }
+      assert!(v1 == v2,
+              "\n{0}:\n F:\n  Got:      {1:#04x} [{2:}],\n  Expected: {3:#04x} [{4:}]",
+              test_name,
+              v1,
+              flags1.join(""),
+              v2,
+              flags2.join(""));
+
+
+      let (v1, v2) = (c.read_reg_u8(Reg::B), v.post.B);
+      assert!(v1 == v2,
+              "\n{0}:\n B:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
+              test_name,
+              v1,
+              v2);
+
+
+      let (v1, v2) = (c.read_reg_u8(Reg::C), v.post.C);
+      assert!(v1 == v2,
+              "\n{0}:\n C:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
+              test_name,
+              v1,
+              v2);
+
+
+      let (v1, v2) = (c.read_reg_u8(Reg::D), v.post.D);
+      assert!(v1 == v2,
+              "\n{0}:\n D:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
+              test_name,
+              v1,
+              v2);
+
+      let (v1, v2) = (c.read_reg_u8(Reg::E), v.post.E);
+      assert!(v1 == v2,
+              "\n{0}:\n E:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
+              test_name,
+              v1,
+              v2);
+
+      let (v1, v2) = (c.read_reg_u8(Reg::H), v.post.H);
+      assert!(v1 == v2,
+              "\n{0}:\n H:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
+              test_name,
+              v1,
+              v2);
+      let (v1, v2) = (c.read_reg_u8(Reg::L), v.post.L);
+      assert!(v1 == v2,
+              "\n{0}:\n L:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
+              test_name,
+              v1,
+              v2);
+
+      let (v1, v2) = (c.read_reg_u16(Reg::SP), v.post.SP);
+      assert!(v1 == v2,
+              "\n{0}:\n SP:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
+              test_name,
+              v1,
+              v2);
+      let (v1, v2) = (c.read_reg_u16(Reg::PC), v.post.PC);
+      assert!(v1 == v2,
+              "\n{0}:\n PC:\n  Got:      {1:#04x} [{1:08b}],\n  Expected: {2:#04x} [{2:08b}]",
+              test_name,
+              v1,
+              v2);
+
+      for (map_k, map_v) in v.post.mem {
+        let k = map_k.parse::<u16>().unwrap();
+        let (v1, v2) = (c.system.read_u8(k).unwrap(), map_v);
+        assert!(v1 == v2,
+                "\n{0}\nmem {1}:\n  Got:      {2:#04x},\n  Expected: {3:#04x}",
+                test_name,
+                k,
+                v1,
+                v2);
       }
     }
   }

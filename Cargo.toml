@@ -17,12 +17,15 @@ time = "0.1"
 num = "0.1"
 num-macros = "0.1"
 libc = "0.2"
-yaml-rust = "0.3"
 rand = "0.3"
 bitflags = "0.7"
 ctrlc = "2.0"
 term_grid = "0.1"
 terminal_size = "0.1"
+
+serde = "0.8"
+serde_json = "0.8"
+serde_macros = "0.8"
 
 [lib]
 name = "gameboy"
