@@ -1,8 +1,6 @@
 use std::fmt;
 use num::FromPrimitive;
 use std::sync::mpsc::Sender;
-// use time::{Duration, SteadyTime};
-use std::cmp::Ordering;
 
 mod sprite;
 
@@ -544,7 +542,7 @@ impl Video {
       8
     };
 
-    let mut sprites: Vec<&Sprite> = self.sprites
+    let sprites: Vec<&Sprite> = self.sprites
       .iter()
       .filter(|sprite| {
         self.line >= sprite.screen_y() && self.line < sprite.screen_y().wrapping_add(sprite_height)
@@ -586,7 +584,7 @@ impl Video {
 
         let color_num = ((b1 >> bit) & 0b1) | ((b2 >> bit) & 0b1) << 1;
         let color: Color = palette.colors[color_num as usize];
-        let dest = sprite.x.wrapping_add(7 - x) as usize;
+        let dest = sprite.screen_x().wrapping_add(7 - x) as usize;
         if dest < SCREEN_WIDTH as usize && (sprite.has_low_priority() || !self.bg_priority[dest]) {
           self.pixels[(self.line as usize) * (SCREEN_WIDTH as usize) + dest] = color.pixel();
         }
