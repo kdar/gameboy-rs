@@ -63,11 +63,8 @@ impl Default for Ime {
 
 impl Ime {
   fn step(&mut self) {
-    match self.state {
-      ImeState::Enabling => {
-        self.state = ImeState::Enabled;
-      }
-      _ => (),
+    if self.state == ImeState::Enabling {
+      self.state = ImeState::Enabled;
     }
   }
 
@@ -492,16 +489,13 @@ impl Cpu {
 
   fn handle_interrupts(&mut self) {
     if self.ime.enabled() {
-      match self.system.next_interrupt() {
-        Some(int) => {
-          self.halt = false;
-          self.ime.set_enabled(false);
-          let pc = self.reg_pc;
-          self.push_u16(pc);
-          self.mcycle(6);
-          self.reg_pc = int.addr();
-        }
-        None => (),
+      if let Some(int) = self.system.next_interrupt() {
+        self.halt = false;
+        self.ime.set_enabled(false);
+        let pc = self.reg_pc;
+        self.push_u16(pc);
+        self.mcycle(6);
+        self.reg_pc = int.addr();
       };
     }
   }
