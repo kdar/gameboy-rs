@@ -220,7 +220,7 @@ impl MemoryIo for Video {
       0xff48 => Ok(self.obj_palette0.value),
       0xff49 => Ok(self.obj_palette1.value),
       0xff4a => Ok(self.win_y),
-      0xff4B => Ok(self.win_x),
+      0xff4b => Ok(self.win_x),
       _ => panic!("video.read_u8: non implemented range: {:#04x}", addr),
     }
   }
@@ -372,10 +372,9 @@ impl Video {
     }
 
     self.cycles -= 1;
-    if self.cycles == 1 && self.mode == LcdMode::AccessVram {
-      if self.status.contains(STAT_HBLANK_INTERRUPT) {
-        pic.interrupt(Interrupt::LcdStat);
-      }
+    if self.cycles == 1 && self.mode == LcdMode::AccessVram &&
+       self.status.contains(STAT_HBLANK_INTERRUPT) {
+      pic.interrupt(Interrupt::LcdStat);
     }
     if self.cycles > 0 {
       return;
