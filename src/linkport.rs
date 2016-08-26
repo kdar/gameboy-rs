@@ -19,7 +19,7 @@ impl LinkPort {
 }
 
 impl MemoryIo for LinkPort {
-  fn read_u8(&self, addr: u16) -> Result<u8, String> {
+  fn read_u8(&self, _: u16) -> Result<u8, String> {
     Ok(self.last_byte)
   }
 
@@ -33,7 +33,7 @@ impl MemoryIo for LinkPort {
       0xff02 => {
         // if value == 0x81 {
         print!("{}", self.last_byte as char);
-        io::stdout().flush();
+        io::stdout().flush().unwrap();
         // }
         Ok(())
       }
