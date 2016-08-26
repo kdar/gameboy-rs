@@ -3,17 +3,13 @@
 #![plugin(num_macros)]
 #![feature(concat_idents)]
 
-#![feature(custom_derive, plugin)]
-#![plugin(serde_macros)]
-
 #[cfg(test)]
 extern crate difference;
 #[cfg(test)]
 extern crate yaml_rust;
 #[cfg(test)]
-extern crate serde;
-#[cfg(test)]
-extern crate serde_json;
+#[macro_use]
+extern crate maplit;
 
 extern crate md5;
 extern crate piston_window;
