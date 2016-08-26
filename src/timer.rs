@@ -2,6 +2,7 @@ use super::mem::MemoryIo;
 use super::pic::{Pic, Interrupt};
 
 #[derive(Copy, Clone)]
+#[allow(enum_variant_names)]
 enum ClockSpeed {
   Clock4096hz = 0,
   Clock262144z = 1,
