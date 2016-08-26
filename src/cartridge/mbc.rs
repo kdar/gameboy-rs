@@ -125,7 +125,8 @@ impl MemoryIo for Mbc {
           }
           0xA000...0xBFFF => {
             if !self.ram_enabled {
-              return Err("mbc.write_u8: tried to write to Mbc1 ram when it wasn't enabled".to_owned());
+              return Err("mbc.write_u8: tried to write to Mbc1 ram when it wasn't enabled"
+                .to_owned());
             }
 
             let mut loc = addr as usize - 0xA000;
