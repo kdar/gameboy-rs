@@ -23,10 +23,10 @@ extern crate rand;
 #[macro_use]
 extern crate bitflags;
 extern crate ctrlc;
-#[macro_use]
-extern crate glium;
-#[macro_use]
-extern crate imgui;
+// #[macro_use]
+// extern crate glium;
+// #[macro_use]
+// extern crate imgui;
 
 extern crate clap;
 extern crate term_grid;
