@@ -121,7 +121,7 @@ pub struct Video {
   tile_map1: [u8; TILE_MAP_SIZE],
   tile_map2: [u8; TILE_MAP_SIZE],
   sprites: [Sprite; 40],
-  event_sender: Option<Sender<GbEvent>>,
+  frame_sender: Option<Sender<Vec<[u8; 4]>>>,
   pixels: [[u8; 4]; SCREEN_WIDTH as usize * SCREEN_HEIGHT as usize],
   bg_priority: [bool; SCREEN_WIDTH as usize],
 }
@@ -146,7 +146,7 @@ impl Default for Video {
       tile_map1: [0; TILE_MAP_SIZE],
       tile_map2: [0; TILE_MAP_SIZE],
       sprites: [Sprite::default(); 40],
-      event_sender: None,
+      frame_sender: None,
       pixels: [Color::White.pixel(); SCREEN_WIDTH as usize * SCREEN_HEIGHT as usize],
       bg_priority: [false; SCREEN_WIDTH as usize],
     }
@@ -334,8 +334,8 @@ impl Video {
     Video::default()
   }
 
-  pub fn set_event_sender(&mut self, s: Sender<GbEvent>) {
-    self.event_sender = Some(s);
+  pub fn set_frame_sender(&mut self, s: Sender<Vec<[u8; 4]>>) {
+    self.frame_sender = Some(s);
   }
 
   pub fn debug(&self) {
@@ -402,7 +402,6 @@ impl Video {
         } else {
           self.set_mode(LcdMode::Vblank, pic);
           self.cycles += VBLANK_CYCLES;
-          self.render_image();
         }
       }
       // Mode 1
@@ -413,6 +412,7 @@ impl Video {
           self.line = 0;
           self.set_mode(LcdMode::AccessOam, pic);
           self.cycles += READING_OAM_CYCLES;
+          self.render_image();
         } else {
           self.cycles += VBLANK_CYCLES;
         }
@@ -421,8 +421,8 @@ impl Video {
   }
 
   fn render_image(&mut self) {
-    if let Some(ref s) = self.event_sender {
-      s.send(GbEvent::Frame(self.pixels.to_vec())).unwrap();
+    if let Some(ref s) = self.frame_sender {
+      s.send(self.pixels.to_vec()).unwrap();
     }
   }
 

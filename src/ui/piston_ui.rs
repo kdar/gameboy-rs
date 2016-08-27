@@ -11,7 +11,7 @@ pub struct PistonUi {
   width: u32,
   height: u32,
   doflush: bool,
-  event_receiver: Receiver<GbEvent>,
+  frame_receiver: Receiver<Vec<[u8; 4]>>,
 }
 
 impl Default for PistonUi {
@@ -23,14 +23,14 @@ impl Default for PistonUi {
       width: video::SCREEN_WIDTH,
       height: video::SCREEN_HEIGHT,
       doflush: false,
-      event_receiver: null_receiver,
+      frame_receiver: null_receiver,
     }
   }
 }
 
 impl PistonUi {
-  pub fn new(r: Receiver<GbEvent>) -> PistonUi {
-    let mut u = PistonUi { event_receiver: r, ..PistonUi::default() };
+  pub fn new(r: Receiver<Vec<[u8; 4]>>) -> PistonUi {
+    let mut u = PistonUi { frame_receiver: r, ..PistonUi::default() };
 
     u.win = Some(WindowSettings::new("Gameboy-rs",
                                      [((u.width as f64) * u.initial_scale) as u32,
@@ -50,8 +50,7 @@ impl PistonUi {
     while let Some(e) = win.next() {
       frame_count += 1;
 
-      if let Ok(evt) = self.event_receiver.try_recv() {
-        let GbEvent::Frame(d) = evt;
+      if let Ok(d) = self.frame_receiver.try_recv() {
         data = d;
         self.doflush = true;
       }
@@ -61,6 +60,19 @@ impl PistonUi {
         frame_count = 0;
         start = SteadyTime::now();
       }
+
+      // if let Some(button) = e.press_args() {
+      //      if button == Button::Mouse(MouseButton::Left) {
+      //          draw = true;
+      //          last_pos = e.mouse_cursor_args()
+      //      }
+      //  };
+      //  if let Some(button) = e.release_args() {
+      //      if button == Button::Mouse(MouseButton::Left) {
+      //          draw = false;
+      //          last_pos = None
+      //      }
+      //  };
 
       if let Event::Render(rargs) = e {
         let scale_x = rargs.draw_width as f64 / video::SCREEN_WIDTH as f64;

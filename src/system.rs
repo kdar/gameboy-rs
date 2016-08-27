@@ -49,7 +49,7 @@ enum DmaState {
 pub struct Config {
   cfg_boot_rom: Option<Box<[u8]>>,
   cfg_cart_rom: Box<[u8]>,
-  cfg_event_sender: Option<Sender<GbEvent>>,
+  cfg_frame_sender: Option<Sender<Vec<[u8; 4]>>>,
 }
 
 impl Default for Config {
@@ -57,7 +57,7 @@ impl Default for Config {
     Config {
       cfg_boot_rom: None,
       cfg_cart_rom: Box::new([]),
-      cfg_event_sender: None,
+      cfg_frame_sender: None,
     }
   }
 }
@@ -77,8 +77,8 @@ impl Config {
     self
   }
 
-  pub fn event_sender(mut self, s: Sender<GbEvent>) -> Config {
-    self.cfg_event_sender = Some(s);
+  pub fn frame_sender(mut self, s: Sender<Vec<[u8; 4]>>) -> Config {
+    self.cfg_frame_sender = Some(s);
     self
   }
 
@@ -89,8 +89,8 @@ impl Config {
     try!(s.cartridge.load(self.cfg_cart_rom));
     // self.cfg_cart_rom = Box::new([]);
 
-    if self.cfg_event_sender.is_some() {
-      s.video.set_event_sender(self.cfg_event_sender.unwrap());
+    if self.cfg_frame_sender.is_some() {
+      s.video.set_frame_sender(self.cfg_frame_sender.unwrap());
     }
 
     Ok(Box::new(s))
