@@ -16,7 +16,6 @@ extern crate serde_json;
 
 extern crate md5;
 extern crate piston_window;
-extern crate image as im;
 extern crate time;
 extern crate num;
 extern crate libc;
@@ -24,6 +23,10 @@ extern crate rand;
 #[macro_use]
 extern crate bitflags;
 extern crate ctrlc;
+#[macro_use]
+extern crate glium;
+#[macro_use]
+extern crate imgui;
 
 extern crate clap;
 extern crate term_grid;

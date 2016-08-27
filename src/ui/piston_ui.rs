@@ -1,5 +1,4 @@
 use piston_window::*;
-use im;
 use time::{Duration, SteadyTime};
 use std::sync::mpsc::{self, Receiver};
 
