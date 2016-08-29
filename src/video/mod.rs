@@ -1,11 +1,11 @@
 use std::fmt;
 use num::FromPrimitive;
 use std::sync::mpsc::Sender;
+use std::cmp::Ordering;
 
 mod sprite;
 
 use super::mem::MemoryIo;
-use super::GbEvent;
 use super::pic::{Pic, Interrupt};
 use self::sprite::Sprite;
 
@@ -542,15 +542,27 @@ impl Video {
       8
     };
 
-    let sprites: Vec<&Sprite> = self.sprites
+    // Filter out sprites that shouldn't appear on this line. Also, because of
+    // a limitation in the hardware, only 10 sprites can be displayed per scan
+    // line.
+    let mut sprites: Vec<(usize, &Sprite)> = self.sprites
       .iter()
       .filter(|sprite| {
         self.line >= sprite.screen_y() && self.line < sprite.screen_y().wrapping_add(sprite_height)
       })
       .take(10)
+      .enumerate()
       .collect();
 
-    for sprite in sprites {
+    sprites.sort_by(|a, b| {
+      match a.1.x.cmp(&b.1.x) {
+          Ordering::Equal => a.0.cmp(&b.0),
+          x => x,
+        }
+        .reverse()
+    });
+
+    for (_, sprite) in sprites {
       let palette = if sprite.has_palette1() {
         &self.obj_palette1
       } else {
@@ -571,6 +583,8 @@ impl Video {
 
       line *= 2;
 
+      // When sprites are 8x16, the least significant bit of the sprite tiles
+      // is ignored and treated as 0.
       if sprite_height == 16 {
         sprite_tile &= 0xFE;
       }
@@ -580,12 +594,19 @@ impl Video {
       let b2 = single_tile[line as usize + 1];
 
       for x in (0..8).rev() {
-        let bit = if sprite.has_xflip() { 7 - x } else { x };
-
-        let color_num = ((b1 >> bit) & 0b1) | ((b2 >> bit) & 0b1) << 1;
-        let color: Color = palette.colors[color_num as usize];
         let dest = sprite.screen_x().wrapping_add(7 - x) as usize;
-        if dest < SCREEN_WIDTH as usize && (sprite.has_low_priority() || !self.bg_priority[dest]) {
+        if dest >= SCREEN_WIDTH as usize {
+          continue;
+        }
+
+        let bit = if sprite.has_xflip() { 7 - x } else { x };
+        let color_num = ((b1 >> bit) & 0b1) | ((b2 >> bit) & 0b1) << 1;
+        if color_num == 0 {
+          continue;
+        }
+        let color: Color = palette.colors[color_num as usize];
+
+        if sprite.has_low_priority() && self.bg_priority[dest] {
           self.pixels[(self.line as usize) * (SCREEN_WIDTH as usize) + dest] = color.pixel();
         }
       }
