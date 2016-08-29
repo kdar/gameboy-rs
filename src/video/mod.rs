@@ -601,6 +601,7 @@ impl Video {
 
         let bit = if sprite.has_xflip() { 7 - x } else { x };
         let color_num = ((b1 >> bit) & 0b1) | ((b2 >> bit) & 0b1) << 1;
+        // Sprites do not support the color number 0. So just skip it.
         if color_num == 0 {
           continue;
         }
