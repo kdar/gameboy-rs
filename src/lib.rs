@@ -50,8 +50,10 @@ pub mod pic;
 pub mod timer;
 pub mod gamepad;
 
+#[derive(Debug)]
 pub enum GbEvent {
-
+  ButtonUp(gamepad::Button),
+  ButtonDown(gamepad::Button),
 }
 
 #[cfg(test)]

@@ -1,6 +1,6 @@
 use std::fmt;
 use md5;
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{Sender, Receiver};
 
 use super::bios::Bios;
 use super::cartridge::Cartridge;
@@ -49,6 +49,7 @@ enum DmaState {
 pub struct Config {
   cfg_boot_rom: Option<Box<[u8]>>,
   cfg_cart_rom: Box<[u8]>,
+  cfg_event_receiver: Option<Receiver<GbEvent>>,
   cfg_frame_sender: Option<Sender<Vec<[u8; 4]>>>,
 }
 
@@ -57,6 +58,7 @@ impl Default for Config {
     Config {
       cfg_boot_rom: None,
       cfg_cart_rom: Box::new([]),
+      cfg_event_receiver: None,
       cfg_frame_sender: None,
     }
   }
@@ -77,6 +79,11 @@ impl Config {
     self
   }
 
+  pub fn event_receiver(mut self, r: Receiver<GbEvent>) -> Config {
+    self.cfg_event_receiver = Some(r);
+    self
+  }
+
   pub fn frame_sender(mut self, s: Sender<Vec<[u8; 4]>>) -> Config {
     self.cfg_frame_sender = Some(s);
     self
@@ -88,6 +95,10 @@ impl Config {
     // self.cfg_boot_rom = None;
     try!(s.cartridge.load(self.cfg_cart_rom));
     // self.cfg_cart_rom = Box::new([]);
+
+    if self.cfg_event_receiver.is_some() {
+      s.set_event_receiver(self.cfg_event_receiver.unwrap());
+    }
 
     if self.cfg_frame_sender.is_some() {
       s.video.set_frame_sender(self.cfg_frame_sender.unwrap());
@@ -124,6 +135,7 @@ pub struct System {
   high_ram: [u8; HIGH_RAM_LEN + 1],
 
   booting: bool,
+  event_receiver: Option<Receiver<GbEvent>>,
 }
 
 impl Default for System {
@@ -142,6 +154,7 @@ impl Default for System {
       work_ram_1: [0; WORK_RAM_1_LEN + 1],
       high_ram: [0; HIGH_RAM_LEN + 1],
       booting: true,
+      event_receiver: None,
     }
   }
 }
@@ -311,6 +324,10 @@ impl System {
     System::default()
   }
 
+  pub fn set_event_receiver(&mut self, r: Receiver<GbEvent>) {
+    self.event_receiver = Some(r);
+  }
+
   pub fn dma_step(&mut self) {
     match self.dma.state {
       DmaState::Starting => {
@@ -343,6 +360,20 @@ impl SystemCtrl for System {
     self.video.step(&mut self.pic);
     self.dma_step();
     self.timer.step(&mut self.pic);
+
+    if let Some(ref r) = self.event_receiver {
+      while let Ok(event) = r.try_recv() {
+        match event {
+          GbEvent::ButtonUp(b) => {
+            self.gamepad.button_up(b);
+          }
+          GbEvent::ButtonDown(b) => {
+            self.gamepad.button_down(b);
+          }
+        }
+      }
+    }
+
     self.gamepad.step(&mut self.pic);
   }
 

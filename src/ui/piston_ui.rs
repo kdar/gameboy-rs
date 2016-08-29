@@ -1,9 +1,10 @@
 use piston_window::*;
 use time::{Duration, SteadyTime};
-use std::sync::mpsc::{self, Receiver};
+use std::sync::mpsc::{self, Sender, Receiver};
 
 use super::super::GbEvent;
 use super::super::video;
+use super::super::gamepad::Button as GButton;
 
 pub struct PistonUi {
   win: Option<PistonWindow>,
@@ -11,26 +12,33 @@ pub struct PistonUi {
   width: u32,
   height: u32,
   doflush: bool,
+  event_sender: Sender<GbEvent>,
   frame_receiver: Receiver<Vec<[u8; 4]>>,
 }
 
 impl Default for PistonUi {
   fn default() -> PistonUi {
     let (_, null_receiver) = mpsc::channel();
+    let (null_sender, _) = mpsc::channel();
     PistonUi {
       win: None,
       initial_scale: 4.0,
       width: video::SCREEN_WIDTH,
       height: video::SCREEN_HEIGHT,
       doflush: false,
+      event_sender: null_sender,
       frame_receiver: null_receiver,
     }
   }
 }
 
 impl PistonUi {
-  pub fn new(r: Receiver<Vec<[u8; 4]>>) -> PistonUi {
-    let mut u = PistonUi { frame_receiver: r, ..PistonUi::default() };
+  pub fn new(s: Sender<GbEvent>, r: Receiver<Vec<[u8; 4]>>) -> PistonUi {
+    let mut u = PistonUi {
+      event_sender: s,
+      frame_receiver: r,
+      ..PistonUi::default()
+    };
 
     u.win = Some(WindowSettings::new("Gameboy-rs",
                                      [((u.width as f64) * u.initial_scale) as u32,
@@ -61,18 +69,49 @@ impl PistonUi {
         start = SteadyTime::now();
       }
 
-      // if let Some(button) = e.press_args() {
-      //      if button == Button::Mouse(MouseButton::Left) {
-      //          draw = true;
-      //          last_pos = e.mouse_cursor_args()
-      //      }
-      //  };
-      //  if let Some(button) = e.release_args() {
-      //      if button == Button::Mouse(MouseButton::Left) {
-      //          draw = false;
-      //          last_pos = None
-      //      }
-      //  };
+      if let Some(button) = e.press_args() {
+        match button {
+          Button::Keyboard(Key::A) |
+          Button::Keyboard(Key::Left) => {
+            self.event_sender.send(GbEvent::ButtonDown(GButton::Left)).unwrap();
+          }
+          Button::Keyboard(Key::S) |
+          Button::Keyboard(Key::Down) => {
+            self.event_sender.send(GbEvent::ButtonDown(GButton::Down)).unwrap();
+          }
+          Button::Keyboard(Key::D) |
+          Button::Keyboard(Key::Right) => {
+            self.event_sender.send(GbEvent::ButtonDown(GButton::Right)).unwrap();
+          }
+          Button::Keyboard(Key::W) |
+          Button::Keyboard(Key::Up) => {
+            self.event_sender.send(GbEvent::ButtonDown(GButton::Up)).unwrap();
+          }
+          _ => (),
+        };
+      }
+
+      if let Some(button) = e.release_args() {
+        match button {
+          Button::Keyboard(Key::A) |
+          Button::Keyboard(Key::Left) => {
+            self.event_sender.send(GbEvent::ButtonUp(GButton::Left)).unwrap();
+          }
+          Button::Keyboard(Key::S) |
+          Button::Keyboard(Key::Down) => {
+            self.event_sender.send(GbEvent::ButtonUp(GButton::Down)).unwrap();
+          }
+          Button::Keyboard(Key::D) |
+          Button::Keyboard(Key::Right) => {
+            self.event_sender.send(GbEvent::ButtonUp(GButton::Right)).unwrap();
+          }
+          Button::Keyboard(Key::W) |
+          Button::Keyboard(Key::Up) => {
+            self.event_sender.send(GbEvent::ButtonUp(GButton::Up)).unwrap();
+          }
+          _ => (),
+        };
+      }
 
       if let Event::Render(rargs) = e {
         let scale_x = rargs.draw_width as f64 / video::SCREEN_WIDTH as f64;

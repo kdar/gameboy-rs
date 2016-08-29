@@ -8,6 +8,7 @@ bitflags! {
   }
 }
 
+#[derive(Debug)]
 pub enum Button {
   Right = 0b00000001,
   Left = 0b00000010,
@@ -75,7 +76,7 @@ impl Gamepad {
     }
   }
 
-  pub fn keydown(&mut self, btn: Button) {
+  pub fn button_down(&mut self, btn: Button) {
     match btn {
       Button::Right | Button::Left | Button::Up | Button::Down => self.buttons1 &= !(btn as u8),
       Button::A | Button::B | Button::Select | Button::Start => {
@@ -86,7 +87,7 @@ impl Gamepad {
     self.interrupt = true;
   }
 
-  pub fn keyup(&mut self, btn: Button) {
+  pub fn button_up(&mut self, btn: Button) {
     match btn {
       Button::Right | Button::Left | Button::Up | Button::Down => self.buttons1 |= btn as u8,
       Button::A | Button::B | Button::Select | Button::Start => {

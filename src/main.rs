@@ -75,10 +75,12 @@ fn main() {
     };
 
     let (frame_sender, frame_receiver) = mpsc::channel();
+    let (event_sender, event_receiver) = mpsc::channel();
 
     let system = try_log!(system::Config::new()
       .boot_rom(boot_rom)
       .cart_rom(cart_rom)
+      .event_receiver(event_receiver)
       .frame_sender(frame_sender.clone())
       .create());
     let mut cpu = Cpu::new(system);
@@ -100,7 +102,7 @@ fn main() {
       });
     }
 
-    let mut ui = PistonUi::new(frame_receiver);
+    let mut ui = PistonUi::new(event_sender, frame_receiver);
     ui.run();
   }
 }
