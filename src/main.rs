@@ -105,7 +105,7 @@ fn main() {
       });
     }
 
-    let mut ui = ui::GliumUi::new(event_sender, frame_receiver);
+    let mut ui = ui::Ui::new(event_sender, frame_receiver);
     ui.run();
   }
 }
