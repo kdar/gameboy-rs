@@ -16,7 +16,7 @@ use std::sync::mpsc;
 use std::thread;
 
 use gameboy::disassembler;
-use gameboy::ui::PistonUi;
+use gameboy::ui;
 use gameboy::cpu::Cpu;
 use gameboy::system;
 use gameboy::debugger;
@@ -96,13 +96,16 @@ fn main() {
       exit(0);
     } else {
       thread::spawn(move || {
+        // use std::time::Instant;
         loop {
+          // let n = Instant::now();
           cpu.step();
+          // println!("{:?}", n.elapsed());
         }
       });
     }
 
-    let mut ui = PistonUi::new(event_sender, frame_receiver);
+    let mut ui = ui::GliumUi::new(event_sender, frame_receiver);
     ui.run();
   }
 }

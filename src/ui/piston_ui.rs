@@ -73,19 +73,19 @@ impl PistonUi {
         match button {
           Button::Keyboard(Key::A) |
           Button::Keyboard(Key::Left) => {
-            self.event_sender.send(GbEvent::ButtonDown(GButton::Left)).unwrap();
+            self.event_sender.send(GbEvent::Button(GButton::Left, true)).unwrap();
           }
           Button::Keyboard(Key::S) |
           Button::Keyboard(Key::Down) => {
-            self.event_sender.send(GbEvent::ButtonDown(GButton::Down)).unwrap();
+            self.event_sender.send(GbEvent::Button(GButton::Down, true)).unwrap();
           }
           Button::Keyboard(Key::D) |
           Button::Keyboard(Key::Right) => {
-            self.event_sender.send(GbEvent::ButtonDown(GButton::Right)).unwrap();
+            self.event_sender.send(GbEvent::Button(GButton::Right, true)).unwrap();
           }
           Button::Keyboard(Key::W) |
           Button::Keyboard(Key::Up) => {
-            self.event_sender.send(GbEvent::ButtonDown(GButton::Up)).unwrap();
+            self.event_sender.send(GbEvent::Button(GButton::Up, true)).unwrap();
           }
           _ => (),
         };
@@ -95,19 +95,19 @@ impl PistonUi {
         match button {
           Button::Keyboard(Key::A) |
           Button::Keyboard(Key::Left) => {
-            self.event_sender.send(GbEvent::ButtonUp(GButton::Left)).unwrap();
+            self.event_sender.send(GbEvent::Button(GButton::Left, false)).unwrap();
           }
           Button::Keyboard(Key::S) |
           Button::Keyboard(Key::Down) => {
-            self.event_sender.send(GbEvent::ButtonUp(GButton::Down)).unwrap();
+            self.event_sender.send(GbEvent::Button(GButton::Down, false)).unwrap();
           }
           Button::Keyboard(Key::D) |
           Button::Keyboard(Key::Right) => {
-            self.event_sender.send(GbEvent::ButtonUp(GButton::Right)).unwrap();
+            self.event_sender.send(GbEvent::Button(GButton::Right, false)).unwrap();
           }
           Button::Keyboard(Key::W) |
           Button::Keyboard(Key::Up) => {
-            self.event_sender.send(GbEvent::ButtonUp(GButton::Up)).unwrap();
+            self.event_sender.send(GbEvent::Button(GButton::Up, false)).unwrap();
           }
           _ => (),
         };

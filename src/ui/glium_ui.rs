@@ -1,14 +1,16 @@
-use std::sync::mpsc::{self, Receiver};
+use std::sync::mpsc::{self, Sender, Receiver};
 use std::time::Instant;
 
-use glium::{glutin, DisplayBuild, Surface};
+use glium::{glutin, Rect, DisplayBuild, BlitTarget, Surface, texture, uniforms};
 use glium::backend::glutin_backend::GlutinFacade;
 use glium::glutin::{ElementState, Event, MouseButton, MouseScrollDelta, VirtualKeyCode, TouchPhase};
 use imgui::{ImGui, Ui, ImGuiSetCond_FirstUseEver, ImVec4};
 use imgui::glium_renderer::Renderer;
+use time::{Duration, SteadyTime};
 
 use super::super::GbEvent;
 use super::super::video;
+use super::super::gamepad::Button as GButton;
 
 const CLEAR_COLOR: (f32, f32, f32, f32) = (1.0, 1.0, 1.0, 1.0);
 
@@ -63,7 +65,8 @@ pub struct GliumUi {
   imgui: Option<ImGui>,
   renderer: Option<Renderer>,
   last_frame: Instant,
-  event_receiver: Receiver<GbEvent>,
+  event_sender: Sender<GbEvent>,
+  frame_receiver: Receiver<Vec<[u8; 4]>>,
   mouse_pos: (i32, i32),
   mouse_pressed: (bool, bool, bool),
   mouse_wheel: f32,
@@ -72,12 +75,14 @@ pub struct GliumUi {
 impl Default for GliumUi {
   fn default() -> GliumUi {
     let (_, null_receiver) = mpsc::channel();
+    let (null_sender, _) = mpsc::channel();
     GliumUi {
       display: None,
       imgui: None,
       renderer: None,
       last_frame: Instant::now(),
-      event_receiver: null_receiver,
+      event_sender: null_sender,
+      frame_receiver: null_receiver,
       mouse_pos: (0, 0),
       mouse_pressed: (false, false, false),
       mouse_wheel: 0.0,
@@ -86,7 +91,7 @@ impl Default for GliumUi {
 }
 
 impl GliumUi {
-  pub fn new(r: Receiver<GbEvent>) -> GliumUi {
+  pub fn new(s: Sender<GbEvent>, r: Receiver<Vec<[u8; 4]>>) -> GliumUi {
     let display = glutin::WindowBuilder::new()
       .build_glium()
       .unwrap();
@@ -145,14 +150,36 @@ impl GliumUi {
       display: Some(display),
       imgui: Some(imgui),
       renderer: Some(renderer),
-      event_receiver: r,
+      event_sender: s,
+      frame_receiver: r,
       ..GliumUi::default()
     }
   }
 
   pub fn run(&mut self) {
+    let mut frame_count = 0;
+    let mut start = SteadyTime::now();
+
+    let mut texture = {
+      let display = self.display.as_mut().unwrap();
+      texture::texture2d::Texture2d::empty_with_format(display,
+                                                       texture::UncompressedFloatFormat::U8U8U8,
+                                                       texture::MipmapsOption::NoMipmap,
+                                                       video::SCREEN_WIDTH as u32,
+                                                       video::SCREEN_HEIGHT as u32)
+        .unwrap()
+    };
+
     loop {
-      self.render(hello_world);
+      self.render(&mut texture, hello_world);
+      frame_count += 1;
+
+      if SteadyTime::now() - start >= Duration::seconds(1) {
+        println!("Gameboy-rs: {} fps", frame_count);
+        frame_count = 0;
+        start = SteadyTime::now();
+      }
+
       let active = self.update_events();
       if !active {
         break;
@@ -184,33 +211,30 @@ impl GliumUi {
         Event::KeyboardInput(state, _, code) => {
           let pressed = state == ElementState::Pressed;
           match code {
-            Some(VirtualKeyCode::Tab) => imgui.set_key(0, pressed),
-            Some(VirtualKeyCode::Left) => imgui.set_key(1, pressed),
-            Some(VirtualKeyCode::Right) => imgui.set_key(2, pressed),
-            Some(VirtualKeyCode::Up) => imgui.set_key(3, pressed),
-            Some(VirtualKeyCode::Down) => imgui.set_key(4, pressed),
-            Some(VirtualKeyCode::PageUp) => imgui.set_key(5, pressed),
-            Some(VirtualKeyCode::PageDown) => imgui.set_key(6, pressed),
-            Some(VirtualKeyCode::Home) => imgui.set_key(7, pressed),
-            Some(VirtualKeyCode::End) => imgui.set_key(8, pressed),
-            Some(VirtualKeyCode::Delete) => imgui.set_key(9, pressed),
-            Some(VirtualKeyCode::Back) => imgui.set_key(10, pressed),
-            Some(VirtualKeyCode::Return) => imgui.set_key(11, pressed),
-            Some(VirtualKeyCode::Escape) => imgui.set_key(12, pressed),
-            Some(VirtualKeyCode::A) => imgui.set_key(13, pressed),
-            Some(VirtualKeyCode::C) => imgui.set_key(14, pressed),
-            Some(VirtualKeyCode::V) => imgui.set_key(15, pressed),
-            Some(VirtualKeyCode::X) => imgui.set_key(16, pressed),
-            Some(VirtualKeyCode::Y) => imgui.set_key(17, pressed),
-            Some(VirtualKeyCode::Z) => imgui.set_key(18, pressed),
-            Some(VirtualKeyCode::LControl) |
-            Some(VirtualKeyCode::RControl) => imgui.set_key_ctrl(pressed),
-            Some(VirtualKeyCode::LShift) |
-            Some(VirtualKeyCode::RShift) => imgui.set_key_shift(pressed),
-            Some(VirtualKeyCode::LAlt) |
-            Some(VirtualKeyCode::RAlt) => imgui.set_key_alt(pressed),
-            Some(VirtualKeyCode::LWin) |
-            Some(VirtualKeyCode::RWin) => imgui.set_key_super(pressed),
+            Some(VirtualKeyCode::Left) |
+            Some(VirtualKeyCode::A) => {
+              self.event_sender.send(GbEvent::Button(GButton::Left, pressed)).unwrap()
+            }
+            Some(VirtualKeyCode::Right) |
+            Some(VirtualKeyCode::D) => {
+              self.event_sender.send(GbEvent::Button(GButton::Right, pressed)).unwrap()
+            }
+            Some(VirtualKeyCode::Up) |
+            Some(VirtualKeyCode::W) => {
+              self.event_sender.send(GbEvent::Button(GButton::Up, pressed)).unwrap()
+            }
+            Some(VirtualKeyCode::Down) |
+            Some(VirtualKeyCode::S) => {
+              self.event_sender.send(GbEvent::Button(GButton::Down, pressed)).unwrap()
+            }
+            // Some(VirtualKeyCode::LControl) |
+            // Some(VirtualKeyCode::RControl) => imgui.set_key_ctrl(pressed),
+            // Some(VirtualKeyCode::LShift) |
+            // Some(VirtualKeyCode::RShift) => imgui.set_key_shift(pressed),
+            // Some(VirtualKeyCode::LAlt) |
+            // Some(VirtualKeyCode::RAlt) => imgui.set_key_alt(pressed),
+            // Some(VirtualKeyCode::LWin) |
+            // Some(VirtualKeyCode::RWin) => imgui.set_key_super(pressed),
             _ => {}
           }
         }
@@ -235,10 +259,9 @@ impl GliumUi {
     true
   }
 
-  fn render<F: FnMut(&Ui)>(&mut self, mut run_ui: F) {
+  fn render<F: FnMut(&Ui)>(&mut self, texture: &mut texture::texture2d::Texture2d, mut run_ui: F) {
     let mut data = vec![];
-    if let Ok(evt) = self.event_receiver.try_recv() {
-      let GbEvent::Frame(d) = evt;
+    if let Ok(d) = self.frame_receiver.try_recv() {
       data = d;
     }
 
@@ -249,6 +272,10 @@ impl GliumUi {
 
     self.update_mouse();
 
+    if data.is_empty() {
+      return;
+    }
+
     let display = self.display.as_mut().unwrap();
     let imgui = self.imgui.as_mut().unwrap();
     let renderer = self.renderer.as_mut().unwrap();
@@ -256,15 +283,49 @@ impl GliumUi {
     let mut target = display.draw();
     target.clear_color(CLEAR_COLOR.0, CLEAR_COLOR.1, CLEAR_COLOR.2, CLEAR_COLOR.3);
 
+    use std;
+    let tmp: Vec<u8> = data.iter()
+      .flat_map(|v| v.iter().map(|&r| r))
+      .collect();
+    let rawimage2d = texture::RawImage2d {
+      data: std::borrow::Cow::Borrowed(tmp.as_slice()),
+      width: video::SCREEN_WIDTH as u32,
+      height: video::SCREEN_HEIGHT as u32,
+      format: texture::ClientFormat::U8U8U8U8,
+    };
+    texture.write(Rect {
+                    left: 0,
+                    bottom: 0,
+                    width: video::SCREEN_WIDTH as u32,
+                    height: video::SCREEN_HEIGHT as u32,
+                  },
+                  rawimage2d);
+
+    let (target_w, target_h) = target.get_dimensions();
+    texture.as_surface().blit_whole_color_to(&target,
+                                             &BlitTarget {
+                                               left: 0,
+                                               bottom: target_h,
+                                               width: target_w as i32,
+                                               height: -(target_h as i32),
+                                             },
+                                             uniforms::MagnifySamplerFilter::Nearest);
+
+
+
+
+    // let mut target = display.draw();
+
+
     let window = display.get_window().unwrap();
     let size_points = window.get_inner_size_points().unwrap();
     let size_pixels = window.get_inner_size_pixels().unwrap();
 
-    let ui = imgui.frame(size_points, size_pixels, delta_s);
-
-    run_ui(&ui);
-
-    renderer.render(&mut target, ui).unwrap();
+    // let ui = imgui.frame(size_points, size_pixels, delta_s);
+    //
+    // run_ui(&ui);
+    //
+    // renderer.render(&mut target, ui).unwrap();
 
     target.finish().unwrap();
   }

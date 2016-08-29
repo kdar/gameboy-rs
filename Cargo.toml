@@ -22,9 +22,9 @@ ctrlc = "2.0"
 term_grid = "0.1"
 terminal_size = "0.1"
 serde_macros = "0.8"
-# glium = "0.15"
-# glutin = "0.6"
-# imgui = "0.0"
+glium = "0.15"
+glutin = "0.6"
+imgui = "0.0"
 
 [dev-dependencies]
 serde = "0.8"
