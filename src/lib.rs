@@ -23,10 +23,10 @@ extern crate rand;
 #[macro_use]
 extern crate bitflags;
 extern crate ctrlc;
-// #[macro_use]
-// extern crate glium;
-// #[macro_use]
-// extern crate imgui;
+#[macro_use]
+extern crate glium;
+#[macro_use]
+extern crate imgui;
 
 extern crate clap;
 extern crate term_grid;
@@ -52,8 +52,7 @@ pub mod gamepad;
 
 #[derive(Debug)]
 pub enum GbEvent {
-  ButtonUp(gamepad::Button),
-  ButtonDown(gamepad::Button),
+  Button(gamepad::Button, bool),
 }
 
 #[cfg(test)]

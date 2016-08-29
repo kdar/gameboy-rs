@@ -76,24 +76,24 @@ impl Gamepad {
     }
   }
 
-  pub fn button_down(&mut self, btn: Button) {
+  pub fn set_button(&mut self, btn: Button, pressed: bool) {
     match btn {
-      Button::Right | Button::Left | Button::Up | Button::Down => self.buttons1 &= !(btn as u8),
+      Button::Right | Button::Left | Button::Up | Button::Down => {
+        if pressed {
+          self.buttons1 &= !(btn as u8);
+        } else {
+          self.buttons1 |= btn as u8;
+        }
+      }
       Button::A | Button::B | Button::Select | Button::Start => {
         // Shift it 4 places so it lines up where it needs to be.
-        self.buttons2 &= (!(btn as u8)) >> 4;
+        if pressed {
+          self.buttons2 &= (!(btn as u8)) >> 4;
+        } else {
+          self.buttons2 |= btn as u8 >> 4;
+        }
       }
     }
     self.interrupt = true;
-  }
-
-  pub fn button_up(&mut self, btn: Button) {
-    match btn {
-      Button::Right | Button::Left | Button::Up | Button::Down => self.buttons1 |= btn as u8,
-      Button::A | Button::B | Button::Select | Button::Start => {
-        // Shift it 4 places so it lines up where it needs to be.
-        self.buttons2 |= btn as u8 >> 4;
-      }
-    }
   }
 }
