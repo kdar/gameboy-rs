@@ -607,7 +607,7 @@ impl Video {
         }
         let color: Color = palette.colors[color_num as usize];
 
-        if sprite.has_low_priority() && self.bg_priority[dest] {
+        if sprite.has_low_priority() || self.bg_priority[dest] {
           self.pixels[(self.line as usize) * (SCREEN_WIDTH as usize) + dest] = color.pixel();
         }
       }
