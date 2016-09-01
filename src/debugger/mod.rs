@@ -1,9 +1,4 @@
-extern crate rustyline;
-
 use libc;
-
-use self::rustyline::error::ReadlineError;
-use self::rustyline::Editor;
 use std::process::exit;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -11,6 +6,10 @@ use ctrlc;
 use clap::{App, SubCommand, Arg, AppSettings, ArgMatches};
 use term_grid::{Grid, GridOptions, Direction, Filling};
 use terminal_size::{Width, terminal_size};
+use linefeed::Reader;
+use linefeed::complete::{Completer, Completion};
+use linefeed::terminal::Terminal;
+use std::rc::Rc;
 
 use super::cpu::{Cpu, Reg};
 
@@ -173,37 +172,19 @@ impl Debugger {
       signal_clone.store(true, Ordering::SeqCst);
     });
 
-    let mut rl = Editor::<()>::new();
-    if let Err(_) = rl.load_history("history.txt") {
-      println!("No previous history.");
-    }
-
+    let mut reader = Reader::new("debugger").unwrap();
     let mut app = debugger_app();
 
-    loop {
-      let readline = rl.readline("(gameboy) ");
-      let line = match readline {
-        Ok(line) => {
-          if line.is_empty() {
-            continue;
-          }
-          line
-        }
-        Err(ReadlineError::Interrupted) => {
-          println!("CTRL-C");
-          break;
-        }
-        Err(ReadlineError::Eof) => {
-          println!("CTRL-D");
-          break;
-        }
-        Err(err) => {
-          println!("Error: {:?}", err);
-          break;
-        }
-      };
+    reader.set_completer(Rc::new(CmdCompleter));
+    reader.set_prompt("(gameboy) ");
 
-      rl.add_history_entry(&line);
+    while let Some(line) = reader.read_line().unwrap() {
+      let line = line.trim();
+      if line.is_empty() {
+        continue;
+      }
+
+      reader.add_history(line.to_owned());
 
       let argv: Vec<_> = line.trim().split(' ').collect();
       let m = match app.get_matches_from_safe_borrow(argv) {
@@ -257,8 +238,6 @@ impl Debugger {
         }
       };
     }
-
-    rl.save_history("history.txt").unwrap();
   }
 
   fn cmd_continue<'a>(&mut self, sub_m: &ArgMatches<'a>) {
@@ -367,6 +346,61 @@ impl Debugger {
       }
     } else {
       println!("Couldn't fit grid!");
+    }
+  }
+}
+
+struct CmdCompleter;
+
+impl<Term: Terminal> Completer<Term> for CmdCompleter {
+  fn complete(&self,
+              word: &str,
+              reader: &Reader<Term>,
+              start: usize,
+              _end: usize)
+              -> Option<Vec<Completion>> {
+    let line = reader.buffer();
+
+    let mut words = line[..start].split_whitespace();
+
+    let cmds = vec!["break",
+    "breakpoints",
+    "continue",
+    "debug",
+    "exit",
+    "help",
+    "set",
+    "step",
+    "x",];
+
+    match words.next() {
+      None => {
+        let mut compls = Vec::new();
+
+        for cmd in cmds {
+          if cmd.starts_with(word) {
+            compls.push(Completion::simple(cmd.to_owned()));
+          }
+        }
+
+        Some(compls)
+      }
+      // Some("set") => {
+      //  if words.count() == 0 {
+      //    let mut res = Vec::new();
+      //
+      //    for (name, _) in reader.variables() {
+      //      if name.starts_with(word) {
+      //        res.push(Completion::simple(name.to_owned()));
+      //      }
+      //    }
+      //
+      //    Some(res)
+      //  } else {
+      //    None
+      //  }
+      // }
+      _ => None,
     }
   }
 }
