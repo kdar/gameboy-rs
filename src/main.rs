@@ -96,10 +96,18 @@ fn main() {
       exit(0);
     } else {
       thread::spawn(move || {
-        // use std::time::Instant;
+        // use std::time::{Instant, Duration};
+        // let mut hz = 0;
+        // let mut now = Instant::now();
         loop {
           // let n = Instant::now();
           cpu.step();
+          // hz += 1;
+          // if Instant::now().duration_since(now).as_secs() >= 1 {
+          //  println!("{} hz", hz);
+          //  hz = 0;
+          //  now = Instant::now();
+          // }
           // println!("{:?}", n.elapsed());
         }
       });

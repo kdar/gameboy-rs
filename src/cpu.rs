@@ -7,10 +7,12 @@ use super::disassembler::Instruction;
 use super::disassembler::Disassembler;
 use super::system::{System, SystemCtrl};
 
+#[inline]
 fn high_byte(value: u16) -> u8 {
   (value >> 8) as u8
 }
 
+#[inline]
 fn low_byte(value: u16) -> u8 {
   value as u8 & 0b11111111
 }
@@ -473,8 +475,11 @@ impl Cpu {
       Ok((inst, inc)) => {
         let pc_at_inst = self.reg_pc;
         self.reg_pc += inc;
-        self.execute_instruction(inst);
 
+        // use std::time::Instant;
+        // let n = Instant::now();
+        self.execute_instruction(inst);
+        // println!("{:?}", n.elapsed());
         self.handle_interrupts();
         self.ime.step();
         self.system.step();
