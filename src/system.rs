@@ -357,10 +357,6 @@ impl SystemCtrl for System {
   }
 
   fn step(&mut self) {
-    self.video.step(&mut self.pic);
-    self.dma_step();
-    self.timer.step(&mut self.pic);
-
     if let Some(ref r) = self.event_receiver {
       while let Ok(event) = r.try_recv() {
         match event {
@@ -373,6 +369,9 @@ impl SystemCtrl for System {
     }
 
     self.gamepad.step(&mut self.pic);
+    self.video.step(&mut self.pic);
+    self.dma_step();
+    self.timer.step(&mut self.pic);
   }
 
   fn as_memoryio(&self) -> &MemoryIo {
