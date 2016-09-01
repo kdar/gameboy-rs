@@ -71,23 +71,23 @@ impl Disassembler {
     Disassembler::default()
   }
 
+  fn imm8(&self, m: &MemoryIo, pc: &mut u16, addr: u16) -> Result<u8, String> {
+    let n = try!(m.read_u8(addr + *pc));
+    *pc += 1;
+    Ok(n)
+  }
+
+  fn imm16(&self, m: &MemoryIo, pc: &mut u16, addr: u16) -> Result<u16, String> {
+    let nn = try!(m.read_u16(addr + *pc));
+    *pc += 2;
+    Ok(nn)
+  }
+
   pub fn at(&self, m: &MemoryIo, addr: u16) -> Result<(Instruction, u16), String> {
     let mut pc = 0u16;
 
     use self::instruction::Instruction as I;
     use super::operand::Operand as O;
-
-    let imm8 = move |pc: &mut u16| -> Result<u8, String> {
-      let n = try!(m.read_u8(addr + *pc));
-      *pc += 1;
-      Ok(n)
-    };
-
-    let imm16 = move |pc: &mut u16| -> Result<u16, String> {
-      let nn = try!(m.read_u16(addr + *pc));
-      *pc += 2;
-      Ok(nn)
-    };
 
     let op = try!(m.read_u8(addr + pc));
     pc += 1;
@@ -380,7 +380,7 @@ impl Disassembler {
         0x8c => I::ADC(O::RegA, O::RegH),
         0x8d => I::ADC(O::RegA, O::RegL),
         0x8e => I::ADC(O::RegA, O::AddrHL),
-        0xce => I::ADC(O::RegA, O::Imm8(try!(imm8(&mut pc)))),
+        0xce => I::ADC(O::RegA, O::Imm8(try!(self.imm8(m, &mut pc, addr)))),
 
         0x87 => I::ADD8(O::RegA, O::RegA),
         0x80 => I::ADD8(O::RegA, O::RegB),
@@ -390,12 +390,12 @@ impl Disassembler {
         0x84 => I::ADD8(O::RegA, O::RegH),
         0x85 => I::ADD8(O::RegA, O::RegL),
         0x86 => I::ADD8(O::RegA, O::AddrHL),
-        0xc6 => I::ADD8(O::RegA, O::Imm8(try!(imm8(&mut pc)))),
+        0xc6 => I::ADD8(O::RegA, O::Imm8(try!(self.imm8(m, &mut pc, addr)))),
         0x09 => I::ADD_HL(O::RegBC),
         0x19 => I::ADD_HL(O::RegDE),
         0x29 => I::ADD_HL(O::RegHL),
         0x39 => I::ADD_HL(O::RegSP),
-        0xe8 => I::ADD_SP(O::Imm8(try!(imm8(&mut pc)))),
+        0xe8 => I::ADD_SP(O::Imm8(try!(self.imm8(m, &mut pc, addr)))),
 
         0xa7 => I::AND(O::RegA),
         0xa0 => I::AND(O::RegB),
@@ -405,13 +405,13 @@ impl Disassembler {
         0xa4 => I::AND(O::RegH),
         0xa5 => I::AND(O::RegL),
         0xa6 => I::AND(O::AddrHL),
-        0xe6 => I::AND(O::Imm8(try!(imm8(&mut pc)))),
+        0xe6 => I::AND(O::Imm8(try!(self.imm8(m, &mut pc, addr)))),
 
-        0xc4 => I::CALL_cc(O::FlagNZ, O::Imm16(try!(imm16(&mut pc)))),
-        0xcc => I::CALL_cc(O::FlagZ, O::Imm16(try!(imm16(&mut pc)))),
-        0xd4 => I::CALL_cc(O::FlagNC, O::Imm16(try!(imm16(&mut pc)))),
-        0xdc => I::CALL_cc(O::FlagC, O::Imm16(try!(imm16(&mut pc)))),
-        0xcd => I::CALL(O::Imm16(try!(imm16(&mut pc)))),
+        0xc4 => I::CALL_cc(O::FlagNZ, O::Imm16(try!(self.imm16(m, &mut pc, addr)))),
+        0xcc => I::CALL_cc(O::FlagZ, O::Imm16(try!(self.imm16(m, &mut pc, addr)))),
+        0xd4 => I::CALL_cc(O::FlagNC, O::Imm16(try!(self.imm16(m, &mut pc, addr)))),
+        0xdc => I::CALL_cc(O::FlagC, O::Imm16(try!(self.imm16(m, &mut pc, addr)))),
+        0xcd => I::CALL(O::Imm16(try!(self.imm16(m, &mut pc, addr)))),
 
         0x3f => I::CCF,
 
@@ -423,7 +423,7 @@ impl Disassembler {
         0xbc => I::CP(O::RegH),
         0xbd => I::CP(O::RegL),
         0xbe => I::CP(O::AddrHL),
-        0xfe => I::CP(O::Imm8(((try!(imm8(&mut pc)))))),
+        0xfe => I::CP(O::Imm8(((try!(self.imm8(m, &mut pc, addr)))))),
 
         0x2f => I::CPL,
 
@@ -461,18 +461,18 @@ impl Disassembler {
         0x23 => I::INC16(O::RegHL),
         0x33 => I::INC16(O::RegSP),
 
-        0xc2 => I::JP_cc(O::FlagNZ, O::Imm16(try!(imm16(&mut pc)))),
-        0xca => I::JP_cc(O::FlagZ, O::Imm16(try!(imm16(&mut pc)))),
-        0xd2 => I::JP_cc(O::FlagNC, O::Imm16(try!(imm16(&mut pc)))),
-        0xda => I::JP_cc(O::FlagC, O::Imm16(try!(imm16(&mut pc)))),
+        0xc2 => I::JP_cc(O::FlagNZ, O::Imm16(try!(self.imm16(m, &mut pc, addr)))),
+        0xca => I::JP_cc(O::FlagZ, O::Imm16(try!(self.imm16(m, &mut pc, addr)))),
+        0xd2 => I::JP_cc(O::FlagNC, O::Imm16(try!(self.imm16(m, &mut pc, addr)))),
+        0xda => I::JP_cc(O::FlagC, O::Imm16(try!(self.imm16(m, &mut pc, addr)))),
         0xe9 => I::JP(O::RegHL),
-        0xc3 => I::JP(O::Imm16(try!(imm16(&mut pc)))),
+        0xc3 => I::JP(O::Imm16(try!(self.imm16(m, &mut pc, addr)))),
 
-        0x20 => I::JR_cc(O::FlagNZ, O::Imm8(try!(imm8(&mut pc)))),
-        0x28 => I::JR_cc(O::FlagZ, O::Imm8(try!(imm8(&mut pc)))),
-        0x30 => I::JR_cc(O::FlagNC, O::Imm8(try!(imm8(&mut pc)))),
-        0x38 => I::JR_cc(O::FlagC, O::Imm8(try!(imm8(&mut pc)))),
-        0x18 => I::JR(O::Imm8(try!(imm8(&mut pc)))),
+        0x20 => I::JR_cc(O::FlagNZ, O::Imm8(try!(self.imm8(m, &mut pc, addr)))),
+        0x28 => I::JR_cc(O::FlagZ, O::Imm8(try!(self.imm8(m, &mut pc, addr)))),
+        0x30 => I::JR_cc(O::FlagNC, O::Imm8(try!(self.imm8(m, &mut pc, addr)))),
+        0x38 => I::JR_cc(O::FlagC, O::Imm8(try!(self.imm8(m, &mut pc, addr)))),
+        0x18 => I::JR(O::Imm8(try!(self.imm8(m, &mut pc, addr)))),
 
         0x7f => I::LD8(O::RegA, O::RegA),
         0x78 => I::LD8(O::RegA, O::RegB),
@@ -530,14 +530,14 @@ impl Disassembler {
         0x6c => I::LD8(O::RegL, O::RegH),
         0x6d => I::LD8(O::RegL, O::RegL),
         0x6e => I::LD8(O::RegL, O::AddrHL),
-        0x3e => I::LD8(O::RegA, O::Imm8(try!(imm8(&mut pc)))),
-        0x06 => I::LD8(O::RegB, O::Imm8(try!(imm8(&mut pc)))),
-        0x0e => I::LD8(O::RegC, O::Imm8(try!(imm8(&mut pc)))),
-        0x16 => I::LD8(O::RegD, O::Imm8(try!(imm8(&mut pc)))),
-        0x1e => I::LD8(O::RegE, O::Imm8(try!(imm8(&mut pc)))),
-        0x26 => I::LD8(O::RegH, O::Imm8(try!(imm8(&mut pc)))),
-        0x2e => I::LD8(O::RegL, O::Imm8(try!(imm8(&mut pc)))),
-        0x36 => I::LD8(O::AddrHL, O::Imm8(try!(imm8(&mut pc)))),
+        0x3e => I::LD8(O::RegA, O::Imm8(try!(self.imm8(m, &mut pc, addr)))),
+        0x06 => I::LD8(O::RegB, O::Imm8(try!(self.imm8(m, &mut pc, addr)))),
+        0x0e => I::LD8(O::RegC, O::Imm8(try!(self.imm8(m, &mut pc, addr)))),
+        0x16 => I::LD8(O::RegD, O::Imm8(try!(self.imm8(m, &mut pc, addr)))),
+        0x1e => I::LD8(O::RegE, O::Imm8(try!(self.imm8(m, &mut pc, addr)))),
+        0x26 => I::LD8(O::RegH, O::Imm8(try!(self.imm8(m, &mut pc, addr)))),
+        0x2e => I::LD8(O::RegL, O::Imm8(try!(self.imm8(m, &mut pc, addr)))),
+        0x36 => I::LD8(O::AddrHL, O::Imm8(try!(self.imm8(m, &mut pc, addr)))),
         0x77 => I::LD8(O::AddrHL, O::RegA),
         0x70 => I::LD8(O::AddrHL, O::RegB),
         0x71 => I::LD8(O::AddrHL, O::RegC),
@@ -549,19 +549,25 @@ impl Disassembler {
         0x02 => I::LD8(O::AddrBC, O::RegA),
         0x1a => I::LD8(O::RegA, O::AddrDE),
         0x12 => I::LD8(O::AddrDE, O::RegA),
-        0xfa => I::LD8(O::RegA, O::AddrImm16(try!(imm16(&mut pc)))),
-        0xea => I::LD8(O::AddrImm16(try!(imm16(&mut pc))), O::RegA),
-        0xe0 => I::LD8(O::AddrImm16(0xff00 + try!(imm8(&mut pc)) as u16), O::RegA),
-        0xf0 => I::LD8(O::RegA, O::AddrImm16(0xff00 + try!(imm8(&mut pc)) as u16)),
+        0xfa => I::LD8(O::RegA, O::AddrImm16(try!(self.imm16(m, &mut pc, addr)))),
+        0xea => I::LD8(O::AddrImm16(try!(self.imm16(m, &mut pc, addr))), O::RegA),
+        0xe0 => {
+          I::LD8(O::AddrImm16(0xff00 + try!(self.imm8(m, &mut pc, addr)) as u16),
+                 O::RegA)
+        }
+        0xf0 => {
+          I::LD8(O::RegA,
+                 O::AddrImm16(0xff00 + try!(self.imm8(m, &mut pc, addr)) as u16))
+        }
         0xe2 => I::LD8(O::AddrIoPortC, O::RegA),
         0xf2 => I::LD8(O::RegA, O::AddrIoPortC),
-        0x01 => I::LD16(O::RegBC, O::Imm16(try!(imm16(&mut pc)))),
-        0x11 => I::LD16(O::RegDE, O::Imm16(try!(imm16(&mut pc)))),
-        0x21 => I::LD16(O::RegHL, O::Imm16(try!(imm16(&mut pc)))),
-        0x31 => I::LD16(O::RegSP, O::Imm16(try!(imm16(&mut pc)))),
+        0x01 => I::LD16(O::RegBC, O::Imm16(try!(self.imm16(m, &mut pc, addr)))),
+        0x11 => I::LD16(O::RegDE, O::Imm16(try!(self.imm16(m, &mut pc, addr)))),
+        0x21 => I::LD16(O::RegHL, O::Imm16(try!(self.imm16(m, &mut pc, addr)))),
+        0x31 => I::LD16(O::RegSP, O::Imm16(try!(self.imm16(m, &mut pc, addr)))),
         0xf9 => I::LD16(O::RegSP, O::RegHL),
-        0xf8 => I::LD_HL(O::RegSP, O::Imm8(try!(imm8(&mut pc)))),
-        0x08 => I::LD16(O::AddrImm16(try!(imm16(&mut pc))), O::RegSP),
+        0xf8 => I::LD_HL(O::RegSP, O::Imm8(try!(self.imm8(m, &mut pc, addr)))),
+        0x08 => I::LD16(O::AddrImm16(try!(self.imm16(m, &mut pc, addr))), O::RegSP),
 
         0x22 => I::LDI(O::AddrHL, O::RegA),
         0x2a => I::LDI(O::RegA, O::AddrHL),
@@ -576,7 +582,7 @@ impl Disassembler {
         0xb4 => I::OR(O::RegA, O::RegH),
         0xb5 => I::OR(O::RegA, O::RegL),
         0xb6 => I::OR(O::RegA, O::AddrHL),
-        0xf6 => I::OR(O::RegA, O::Imm8(try!(imm8(&mut pc)))),
+        0xf6 => I::OR(O::RegA, O::Imm8(try!(self.imm8(m, &mut pc, addr)))),
 
         0xc1 => I::POP16(O::RegBC),
         0xd1 => I::POP16(O::RegDE),
@@ -616,7 +622,7 @@ impl Disassembler {
         0x9c => I::SBC(O::RegH),
         0x9d => I::SBC(O::RegL),
         0x9e => I::SBC(O::AddrHL),
-        0xde => I::SBC(O::Imm8(try!(imm8(&mut pc)))),
+        0xde => I::SBC(O::Imm8(try!(self.imm8(m, &mut pc, addr)))),
 
         0x37 => I::SCF,
 
@@ -630,7 +636,7 @@ impl Disassembler {
         0x94 => I::SUB(O::RegA, O::RegH),
         0x95 => I::SUB(O::RegA, O::RegL),
         0x96 => I::SUB(O::RegA, O::AddrHL),
-        0xd6 => I::SUB(O::RegA, O::Imm8(try!(imm8(&mut pc)))),
+        0xd6 => I::SUB(O::RegA, O::Imm8(try!(self.imm8(m, &mut pc, addr)))),
 
         0x00 => I::NOP,
 
@@ -642,7 +648,7 @@ impl Disassembler {
         0xac => I::XOR(O::RegA, O::RegH),
         0xad => I::XOR(O::RegA, O::RegL),
         0xae => I::XOR(O::RegA, O::AddrHL),
-        0xee => I::XOR(O::RegA, O::Imm8(try!(imm8(&mut pc)))),
+        0xee => I::XOR(O::RegA, O::Imm8(try!(self.imm8(m, &mut pc, addr)))),
 
         _ => I::Invalid(op),
         // _ => panic!("instruction_at: instruction not implemented: 0x{:02x}", op),
