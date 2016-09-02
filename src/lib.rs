@@ -23,17 +23,6 @@ extern crate rand;
 extern crate bitflags;
 extern crate ctrlc;
 extern crate linefeed;
-
-#[cfg(feature = "uipiston")]
-extern crate piston_window;
-
-#[cfg(feature = "uiglium")]
-#[macro_use]
-extern crate glium;
-#[cfg(feature = "uiglium")]
-#[macro_use]
-extern crate imgui;
-
 extern crate clap;
 extern crate term_grid;
 extern crate terminal_size;
@@ -51,7 +40,6 @@ pub mod linkport;
 pub mod operand;
 pub mod bios;
 pub mod system;
-pub mod ui;
 pub mod pic;
 pub mod timer;
 pub mod gamepad;
