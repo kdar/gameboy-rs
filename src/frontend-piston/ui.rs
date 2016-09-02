@@ -2,8 +2,6 @@ use piston_window::*;
 use time::{Duration, SteadyTime};
 use std::sync::mpsc::{self, Sender, Receiver};
 
-use gameboy;
-
 use gameboy::GbEvent;
 use gameboy::video;
 use gameboy::gamepad::Button as GButton;
