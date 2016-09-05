@@ -361,7 +361,7 @@ impl SystemCtrl for System {
       while let Ok(event) = r.try_recv() {
         match event {
           GbEvent::Button(b, pressed) => {
-            println!("{:?} {}", b, pressed);
+            // println!("{:?} {}", b, pressed);
             self.gamepad.set_button(b, pressed);
           }
         }

@@ -43,6 +43,7 @@ pub mod system;
 pub mod pic;
 pub mod timer;
 pub mod gamepad;
+pub mod capi;
 
 #[derive(Debug)]
 pub enum GbEvent {

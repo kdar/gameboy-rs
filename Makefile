@@ -1,25 +1,27 @@
 test_disassembler:build
-	frontend-piston/target/debug/frontend-piston --disassemble "res/DMG_ROM.bin"
+	target/debug/gameboy-emu --disassemble "res/DMG_ROM.bin"
 
 test_cpu:build
-	frontend-piston/target/debug/frontend-piston "res/cpu_instrs/cpu_instrs.gb"
+	target/debug/gameboy-emu "res/cpu_instrs/cpu_instrs.gb"
 
 test_boot:build
-	frontend-piston/target/debug/frontend-piston -b "res/DMG_ROM.bin" "res/Tetris.gb"
+	target/debug/gameboy-emu -b "res/DMG_ROM.bin" "res/Tetris.gb"
 
 test_game:build
-	frontend-piston/target/debug/frontend-piston "res/Tetris.gb"
+	target/debug/gameboy-emu "res/Tetris.gb"
 
 test_opus5:build
-	frontend-piston/target/debug/frontend-piston "res/opus5.gb"
+	target/debug/gameboy-emu "res/opus5.gb"
 
 test_debugger:build
-	frontend-piston/target/debug/frontend-piston "res/cpu_instrs/cpu_instrs.gb" --debug
+	target/debug/gameboy-emu "res/cpu_instrs/cpu_instrs.gb" --debug
+
+test_node:build
+	node src/frontend-electron/main.js
 
 build:
 	@#cargo rustc --lib -- -Z incremental=/tmp/gameboy-rs
 	cargo build
-	cargo build --manifest-path ./frontend-piston/Cargo.toml
 
 run:build
-	frontend-piston/target/debug/frontend-piston $(filter-out $@,$(MAKECMDGOALS))
+	target/debug/gameboy-emu $(filter-out $@,$(MAKECMDGOALS))

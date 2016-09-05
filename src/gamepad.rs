@@ -8,7 +8,7 @@ bitflags! {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum Button {
   Right = 0b00000001,
   Left = 0b00000010,
@@ -21,6 +21,22 @@ pub enum Button {
   B = 0b00100000,
   Select = 0b01000000,
   Start = 0b10000000,
+}
+
+impl Button {
+  pub fn from_u8(v: u8) -> Button {
+    match v {
+      0b00000001 => Button::Right,
+      0b00000010 => Button::Left,
+      0b00000100 => Button::Up,
+      0b00001000 => Button::Down,
+      0b00010000 => Button::A,
+      0b00100000 => Button::B,
+      0b01000000 => Button::Select,
+      0b10000000 => Button::Start,
+      _ => Button::Start,
+    }
+  }
 }
 
 pub struct Gamepad {
@@ -48,6 +64,7 @@ impl MemoryIo for Gamepad {
       0xff00 => {
         // We negate the buttons because 1 = not pressed and 0 = pressed.
         if self.port_select.contains(PORT_14) {
+          // println!("{}", 0b11000000 | PORT_14.bits | self.buttons2);
           // println!("port14: {:08b}", 0b11000000 | PORT_14.bits | self.buttons1);
           Ok(0b11000000 | PORT_14.bits | self.buttons2)
         } else {

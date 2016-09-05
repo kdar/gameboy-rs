@@ -1,0 +1,17 @@
+{
+  "name": "frontend-electron",
+  "version": "1.0.0",
+  "description": "Frontend to gameboy-rs",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [],
+  "author": "Kevin Darlington",
+  "license": "MIT",
+  "devDependencies": {
+  },
+  "dependencies": {
+    "ffi": "^2.1.0"
+  }
+}
