@@ -45,11 +45,6 @@ pub mod timer;
 pub mod gamepad;
 pub mod capi;
 
-#[derive(Debug)]
-pub enum GbEvent {
-  Button(gamepad::Button, bool),
-}
-
 #[cfg(test)]
 mod test {
   use super::mem;

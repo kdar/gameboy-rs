@@ -6,6 +6,8 @@ use super::operand::Operand;
 use super::disassembler::Instruction;
 use super::disassembler::Disassembler;
 use super::system::{System, SystemCtrl};
+use super::gamepad::Button;
+use super::video::Pixels;
 
 #[inline]
 fn high_byte(value: u16) -> u8 {
@@ -161,6 +163,14 @@ impl Cpu {
     let mut c = Cpu::default();
     c.system = system;
     c
+  }
+
+  pub fn set_button(&mut self, btn: Button, pressed: bool) {
+    self.system.set_button(btn, pressed);
+  }
+
+  pub fn updated_frame(&mut self) -> Option<Pixels> {
+    self.system.updated_frame()
   }
 
   // Sets the system state as if the bootloader was run.

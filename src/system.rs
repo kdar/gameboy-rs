@@ -5,13 +5,12 @@ use std::sync::mpsc::{Sender, Receiver};
 use super::bios::Bios;
 use super::cartridge::Cartridge;
 use super::mem::MemoryIo;
-use super::video::Video;
+use super::video::{Video, Pixels};
 use super::audio::Audio;
 use super::linkport::LinkPort;
-use super::GbEvent;
 use super::pic::{Pic, Interrupt};
 use super::timer::Timer;
-use super::gamepad::Gamepad;
+use super::gamepad::{Button, Gamepad};
 
 pub const WORK_RAM_0_LEN: usize = 0xcfff - 0xc000;
 pub const WORK_RAM_1_LEN: usize = 0xdfff - 0xd000;
@@ -49,8 +48,6 @@ enum DmaState {
 pub struct Config {
   cfg_boot_rom: Option<Box<[u8]>>,
   cfg_cart_rom: Box<[u8]>,
-  cfg_event_receiver: Option<Receiver<GbEvent>>,
-  cfg_frame_sender: Option<Sender<Vec<[u8; 4]>>>,
 }
 
 impl Default for Config {
@@ -58,8 +55,6 @@ impl Default for Config {
     Config {
       cfg_boot_rom: None,
       cfg_cart_rom: Box::new([]),
-      cfg_event_receiver: None,
-      cfg_frame_sender: None,
     }
   }
 }
@@ -79,30 +74,12 @@ impl Config {
     self
   }
 
-  pub fn event_receiver(mut self, r: Receiver<GbEvent>) -> Config {
-    self.cfg_event_receiver = Some(r);
-    self
-  }
-
-  pub fn frame_sender(mut self, s: Sender<Vec<[u8; 4]>>) -> Config {
-    self.cfg_frame_sender = Some(s);
-    self
-  }
-
   pub fn create(self) -> Result<Box<SystemCtrl + Send>, String> {
     let mut s = System::new();
     try!(s.bios.load(self.cfg_boot_rom));
     // self.cfg_boot_rom = None;
     try!(s.cartridge.load(self.cfg_cart_rom));
     // self.cfg_cart_rom = Box::new([]);
-
-    if self.cfg_event_receiver.is_some() {
-      s.set_event_receiver(self.cfg_event_receiver.unwrap());
-    }
-
-    if self.cfg_frame_sender.is_some() {
-      s.video.set_frame_sender(self.cfg_frame_sender.unwrap());
-    }
 
     Ok(Box::new(s))
   }
@@ -111,7 +88,10 @@ impl Config {
 pub trait SystemCtrl: MemoryIo {
   fn step(&mut self) {}
   fn as_memoryio(&self) -> &MemoryIo;
-  fn debug(&self) {}
+  fn set_button(&mut self, btn: Button, pressed: bool) {}
+  fn updated_frame(&mut self) -> Option<Pixels> {
+    None
+  }
   fn next_interrupt(&mut self) -> Option<Interrupt> {
     None
   }
@@ -131,11 +111,9 @@ pub struct System {
 
   work_ram_0: [u8; WORK_RAM_0_LEN + 1],
   work_ram_1: [u8; WORK_RAM_1_LEN + 1],
-
   high_ram: [u8; HIGH_RAM_LEN + 1],
 
   booting: bool,
-  event_receiver: Option<Receiver<GbEvent>>,
 }
 
 impl Default for System {
@@ -154,7 +132,6 @@ impl Default for System {
       work_ram_1: [0; WORK_RAM_1_LEN + 1],
       high_ram: [0; HIGH_RAM_LEN + 1],
       booting: true,
-      event_receiver: None,
     }
   }
 }
@@ -324,10 +301,6 @@ impl System {
     System::default()
   }
 
-  pub fn set_event_receiver(&mut self, r: Receiver<GbEvent>) {
-    self.event_receiver = Some(r);
-  }
-
   pub fn dma_step(&mut self) {
     match self.dma.state {
       DmaState::Starting => {
@@ -352,26 +325,19 @@ impl System {
 }
 
 impl SystemCtrl for System {
-  fn debug(&self) {
-    self.video.debug();
-  }
-
   fn step(&mut self) {
-    if let Some(ref r) = self.event_receiver {
-      while let Ok(event) = r.try_recv() {
-        match event {
-          GbEvent::Button(b, pressed) => {
-            // println!("{:?} {}", b, pressed);
-            self.gamepad.set_button(b, pressed);
-          }
-        }
-      }
-    }
-
     self.gamepad.step(&mut self.pic);
     self.video.step(&mut self.pic);
     self.dma_step();
     self.timer.step(&mut self.pic);
+  }
+
+  fn set_button(&mut self, btn: Button, pressed: bool) {
+    self.gamepad.set_button(btn, pressed);
+  }
+
+  fn updated_frame(&mut self) -> Option<Pixels> {
+    self.video.updated_frame()
   }
 
   fn as_memoryio(&self) -> &MemoryIo {

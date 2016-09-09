@@ -1,4 +1,3 @@
-use std::sync::mpsc::{self, Sender, Receiver};
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -8,15 +7,12 @@ use std::thread;
 
 use super::cpu::Cpu;
 use super::system::{self, System};
-use super::GbEvent;
 use super::gamepad::Button;
 
 #[repr(C)]
 #[derive(Debug)]
 pub struct Gameboy {
   cpu: Cpu,
-  frame_receiver: Receiver<Vec<[u8; 4]>>,
-  event_sender: Sender<GbEvent>,
 }
 
 impl Gameboy {
@@ -34,25 +30,16 @@ fn load_rom<P: AsRef<Path>>(path: P) -> Box<[u8]> {
 
 #[no_mangle]
 pub extern "C" fn gameboy_new() -> *mut Gameboy {
-  let (frame_sender, frame_receiver) = mpsc::channel();
-  let (event_sender, event_receiver) = mpsc::channel();
-
   let system = system::Config::new()
     //.boot_rom(Some(load_rom("./res/DMG_ROM.bin")))
     .cart_rom(load_rom("../../../res/opus5.gb"))
-    .event_receiver(event_receiver)
-    .frame_sender(frame_sender.clone())
     .create()
     .unwrap();
 
   let mut cpu = Cpu::new(system);
   cpu.bootstrap();
 
-  Box::into_raw(Box::new(Gameboy {
-    cpu: cpu,
-    frame_receiver: frame_receiver,
-    event_sender: event_sender,
-  }))
+  Box::into_raw(Box::new(Gameboy { cpu: cpu }))
 }
 
 // #[no_mangle]
@@ -95,14 +82,14 @@ pub unsafe extern "C" fn gameboy_video_data(gb: *const Gameboy, dst: *mut uint8_
     &*gb
   };
 
-  if let Ok(d) = gb.frame_receiver.try_recv() {
-    for (i, v) in d.iter().enumerate() {
-      *dst.offset(i as isize * 4) = v[0];
-      *dst.offset(i as isize * 4 + 1) = v[1];
-      *dst.offset(i as isize * 4 + 2) = v[2];
-      *dst.offset(i as isize * 4 + 3) = v[3];
-    }
-  }
+  // if let Ok(d) = gb.frame_receiver.try_recv() {
+  //   for (i, v) in d.iter().enumerate() {
+  //     *dst.offset(i as isize * 4) = v[0];
+  //     *dst.offset(i as isize * 4 + 1) = v[1];
+  //     *dst.offset(i as isize * 4 + 2) = v[2];
+  //     *dst.offset(i as isize * 4 + 3) = v[3];
+  //   }
+  // }
 }
 
 #[no_mangle]
@@ -112,7 +99,7 @@ pub unsafe extern "C" fn gameboy_button(gb: *const Gameboy, btn: uint8_t, presse
     &*gb
   };
 
-  gb.event_sender.send(GbEvent::Button(Button::from_u8(btn as u8), pressed)).unwrap();
+  // gb.event_sender.send(GbEvent::Button(Button::from_u8(btn as u8), pressed)).unwrap();
 }
 
 #[no_mangle]

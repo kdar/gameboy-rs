@@ -1,6 +1,5 @@
 use std::fmt;
 use num::FromPrimitive;
-use std::sync::mpsc::Sender;
 use std::cmp::Ordering;
 
 mod sprite;
@@ -17,6 +16,8 @@ const TILE_DATA_SIZE: usize = 192 * 2;
 const TILE_MAP_SIZE: usize = 1024;
 pub const SCREEN_WIDTH: u32 = 160;
 pub const SCREEN_HEIGHT: u32 = 144;
+
+pub type Pixels = [[u8; 4]; SCREEN_WIDTH as usize * SCREEN_HEIGHT as usize];
 
 #[derive(Copy, Clone, Debug, PartialEq, NumFromPrimitive)]
 enum Color {
@@ -121,8 +122,8 @@ pub struct Video {
   tile_map1: [u8; TILE_MAP_SIZE],
   tile_map2: [u8; TILE_MAP_SIZE],
   sprites: [Sprite; 40],
-  frame_sender: Option<Sender<Vec<[u8; 4]>>>,
-  pixels: [[u8; 4]; SCREEN_WIDTH as usize * SCREEN_HEIGHT as usize],
+  pub pixels: Pixels,
+  dirty: bool,
   bg_priority: [bool; SCREEN_WIDTH as usize],
 }
 
@@ -146,8 +147,8 @@ impl Default for Video {
       tile_map1: [0; TILE_MAP_SIZE],
       tile_map2: [0; TILE_MAP_SIZE],
       sprites: [Sprite::default(); 40],
-      frame_sender: None,
       pixels: [Color::White.pixel(); SCREEN_WIDTH as usize * SCREEN_HEIGHT as usize],
+      dirty: false,
       bg_priority: [false; SCREEN_WIDTH as usize],
     }
   }
@@ -274,7 +275,6 @@ impl MemoryIo for Video {
             panic!("The LCD should not be turned off while not in VBlank. This action can cause \
                     damage in a real Gameboy.");
           }
-          self.line = 0;
         }
 
         // The value coming in tells us to turn on the LCD, while the
@@ -285,7 +285,7 @@ impl MemoryIo for Video {
           self.cycles = READING_OAM_CYCLES;
         }
 
-        // self.line = 153;
+        self.line = 153;
         self.control = LcdControl::from_bits(value).unwrap();
       }
 
@@ -334,17 +334,21 @@ impl Video {
     Video::default()
   }
 
-  pub fn set_frame_sender(&mut self, s: Sender<Vec<[u8; 4]>>) {
-    self.frame_sender = Some(s);
+  pub fn updated_frame(&mut self) -> Option<Pixels> {
+    if self.dirty {
+      self.dirty = false;
+      return Some(self.pixels);
+    }
+    None
   }
 
-  pub fn debug(&self) {
-    for x in 0..16 {
-      println!("{:08b} ", self.tile_data[0][x]);
-    }
-    println!("");
-    panic!("");
-  }
+  // pub fn is_dirty(&self) -> bool {
+  //   self.dirty
+  // }
+
+  // pub fn set_dirty(&mut self, dirty: bool) {
+  //   self.dirty = dirty;
+  // }
 
   fn set_mode(&mut self, mode: LcdMode, pic: &mut Pic) {
     self.mode = mode;
@@ -412,17 +416,11 @@ impl Video {
           self.line = 0;
           self.set_mode(LcdMode::AccessOam, pic);
           self.cycles += READING_OAM_CYCLES;
-          self.render_image();
+          self.dirty = true;
         } else {
           self.cycles += VBLANK_CYCLES;
         }
       }
-    }
-  }
-
-  fn render_image(&mut self) {
-    if let Some(ref s) = self.frame_sender {
-      s.send(self.pixels.to_vec()).unwrap();
     }
   }
 
