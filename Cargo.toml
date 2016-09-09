@@ -22,13 +22,8 @@ serde_macros = "0.8"
 
 # Frontend sdl2 dependencies
 sdl2 = "0.22"
-
-# Frontend piston dependencies
-# clap = "2.10"
-# time = "0.1"
-# piston_window = "0.51"
-# simplelog = "0.2"
-# log = "0.3"
+simplelog = "0.2"
+log = "0.3"
 
 # Frontend glium dependencies
 # glium = "0.15"

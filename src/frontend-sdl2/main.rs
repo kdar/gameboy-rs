@@ -1,53 +1,131 @@
 extern crate sdl2;
 extern crate gameboy;
+extern crate clap;
+#[macro_use]
+extern crate log;
+extern crate simplelog;
 
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use std::time::{Duration, Instant};
+use std::process::exit;
+
 use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::rect::{Rect, Point};
-use std::time::{Duration, Instant};
+use clap::{Arg, App};
+use simplelog::{TermLogger, LogLevelFilter};
 
 use gameboy::cpu::Cpu;
 use gameboy::system;
 use gameboy::video::{self, Pixels};
 use gameboy::gamepad::Button;
+use gameboy::debugger;
+use gameboy::disassembler;
+
+macro_rules! try_log {
+  ($expr:expr) => (match $expr {
+    std::result::Result::Ok(val) => val,
+    std::result::Result::Err(err) => {
+      error!("{}", err.to_string());
+      exit(1);
+    }
+  })
+}
 
 fn load_rom<P: AsRef<Path>>(path: P) -> Box<[u8]> {
-  let mut file = File::open(path).unwrap();
+  let mut file = try_log!(File::open(path));
   let mut file_buf = Vec::new();
-  file.read_to_end(&mut file_buf).unwrap();
+  try_log!(file.read_to_end(&mut file_buf));
   file_buf.into_boxed_slice()
 }
 
 fn main() {
-  let system = system::Config::new()
-    .cart_rom(load_rom("res/Tetris.gb"))
-    .create()
-    .unwrap();
-  let mut cpu = Cpu::new(system);
-  cpu.bootstrap();
+  TermLogger::init(LogLevelFilter::Info).unwrap();
 
-  let scale = 4.0;
+  let matches = App::new("gameboy-rs")
+    .version("0.1.0")
+    .author("Kevin Darlington <kevin@outroot.com>")
+    .about("Emulates GameBoy DMG")
+    .arg(Arg::with_name("cart-rom")
+      .help("The cartridge rom to load.")
+      .value_name("FILE")
+      .use_delimiter(false)
+      .required(true)
+      .index(1))
+    .arg(Arg::with_name("debug")
+      .long("debug")
+      .use_delimiter(false)
+      .help("Go into debug mode"))
+    .arg(Arg::with_name("disassemble")
+      .long("disassemble")
+      .use_delimiter(false)
+      .help("Disassemble the file"))
+    .arg(Arg::with_name("boot-rom")
+      .short("b")
+      .long("boot-rom")
+      .use_delimiter(false)
+      .value_name("FILE")
+      .help("The boot rom to load.")
+      .takes_value(true))
+    .get_matches();
 
-  let sdl_context = sdl2::init().unwrap();
-  let video_subsystem = sdl_context.video().unwrap();
 
-  let mut window = video_subsystem.window("Gameboy-rs", 160 * scale as u32, 144 * scale as u32)
-    .position_centered()
-    .opengl()
-    .build()
-    .unwrap();
+  let cart_rom = load_rom(matches.value_of("cart-rom").unwrap());
 
-  let mut renderer = window.renderer().build().unwrap();
+  if matches.is_present("disassemble") {
+    disassembler::dump_all(cart_rom);
+  } else {
+    let mut bootstrap = false;
+    let boot_rom = if let Some(boot_rom_path) = matches.value_of("boot-rom") {
+      Some(load_rom(boot_rom_path))
+    } else {
+      bootstrap = true;
+      None
+    };
+
+    let system = try_log!(system::Config::new()
+      .boot_rom(boot_rom)
+      .cart_rom(cart_rom)
+      .create());
+    let mut cpu = Cpu::new(system);
+
+    if bootstrap {
+      cpu.bootstrap();
+    }
+
+    if matches.is_present("debug") {
+      // TODO: this doesn't work with the UI just yet.
+      let mut gb = debugger::Debugger::new(cpu);
+      gb.run();
+      exit(0);
+    } else {
+      run(cpu);
+    }
+  }
+}
+
+fn run(mut cpu: Cpu) {
+  let scale = 4.0f64;
+
+  let sdl_context = try_log!(sdl2::init());
+  let video_subsystem = try_log!(sdl_context.video());
+
+  let mut window =
+    try_log!(video_subsystem.window("Gameboy-rs", 160 * scale as u32, 144 * scale as u32)
+      .position_centered()
+      .opengl()
+      .build());
+
+  let mut renderer = try_log!(window.renderer().build());
   //   renderer.set_scale(scale, scale);
-  let mut texture = renderer.create_texture_streaming(PixelFormatEnum::RGBA8888, 160, 144)
-    .unwrap();
+  let mut texture =
+    try_log!(renderer.create_texture_streaming(PixelFormatEnum::RGBA8888, 160, 144));
 
-  let mut event_pump = sdl_context.event_pump().unwrap();
+  let mut event_pump = try_log!(sdl_context.event_pump());
 
   let mut frame_count = 0;
   let mut start = Instant::now();
@@ -98,15 +176,14 @@ fn main() {
         start = Instant::now();
       }
 
-      texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-          for (i, d) in pixels.iter().enumerate() {
-            buffer[i * 4] = d[3];
-            buffer[i * 4 + 1] = d[2];
-            buffer[i * 4 + 2] = d[1];
-            buffer[i * 4 + 3] = d[0];
-          }
-        })
-        .unwrap();
+      try_log!(texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
+        for (i, d) in pixels.iter().enumerate() {
+          buffer[i * 4] = d[3];
+          buffer[i * 4 + 1] = d[2];
+          buffer[i * 4 + 2] = d[1];
+          buffer[i * 4 + 3] = d[0];
+        }
+      }));
 
       renderer.set_draw_color(Color::RGB(255, 255, 255));
       renderer.clear();
