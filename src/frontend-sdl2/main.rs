@@ -73,7 +73,6 @@ fn main() {
       .takes_value(true))
     .get_matches();
 
-
   let cart_rom = load_rom(matches.value_of("cart-rom").unwrap());
 
   if matches.is_present("disassemble") {
@@ -114,11 +113,11 @@ fn run(mut cpu: Cpu) {
   let sdl_context = try_log!(sdl2::init());
   let video_subsystem = try_log!(sdl_context.video());
 
-  let mut window =
-    try_log!(video_subsystem.window("Gameboy-rs", 160 * scale as u32, 144 * scale as u32)
-      .position_centered()
-      .opengl()
-      .build());
+  let window = try_log!(video_subsystem.window("Gameboy-rs", 160 * scale as u32, 144 * scale as u32)
+    .position_centered()
+    .resizable()
+    .opengl()
+    .build());
 
   let mut renderer = try_log!(window.renderer().build());
   //   renderer.set_scale(scale, scale);
@@ -169,14 +168,7 @@ fn run(mut cpu: Cpu) {
     if let Some(pixels) = cpu.updated_frame() {
       frame_count += 1;
 
-      if Instant::now() - start >= Duration::from_secs(1) {
-        // window.set_title(format!("Gameboy-rs: {} fps", frame_count).as_str());
-        println!("Gameboy-rs: {} fps", frame_count);
-        frame_count = 0;
-        start = Instant::now();
-      }
-
-      try_log!(texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
+      try_log!(texture.with_lock(None, |buffer: &mut [u8], _: usize| {
         for (i, d) in pixels.iter().enumerate() {
           buffer[i * 4] = d[3];
           buffer[i * 4 + 1] = d[2];
@@ -187,9 +179,16 @@ fn run(mut cpu: Cpu) {
 
       renderer.set_draw_color(Color::RGB(255, 255, 255));
       renderer.clear();
-      renderer.copy(&texture,
-                    None,
-                    Some(Rect::new(0, 0, 160 * scale as u32, 144 * scale as u32)));
+      let size = {
+        let mut window = renderer.window_mut().unwrap();
+        if Instant::now() - start >= Duration::from_secs(1) {
+          window.set_title(format!("Gameboy-rs: {} fps", frame_count).as_str());
+          frame_count = 0;
+          start = Instant::now();
+        }
+        window.size()
+      };
+      renderer.copy(&texture, None, Some(Rect::new(0, 0, size.0, size.1)));
       renderer.present();
     }
   }
