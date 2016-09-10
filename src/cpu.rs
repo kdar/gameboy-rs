@@ -212,7 +212,7 @@ impl Cpu {
       self.system.step();
     }
 
-    self.machine_cycles += machine_cycles;
+    self.machine_cycles = self.machine_cycles.wrapping_add(machine_cycles);
   }
 
   pub fn read_operand_u8(&mut self, operand: Operand) -> u8 {
