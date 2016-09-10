@@ -599,13 +599,13 @@ impl Video {
 
         let bit = if sprite.has_xflip() { 7 - x } else { x };
         let color_num = ((b1 >> bit) & 0b1) | ((b2 >> bit) & 0b1) << 1;
-        // Sprites do not support the color number 0. So just skip it.
+        // Sprites do not support the color number 0 (transparent). So just skip it.
         if color_num == 0 {
           continue;
         }
         let color: Color = palette.colors[color_num as usize];
 
-        if sprite.has_low_priority() || self.bg_priority[dest] {
+        if sprite.has_low_priority() || !self.bg_priority[dest] {
           self.pixels[(self.line as usize) * (SCREEN_WIDTH as usize) + dest] = color.pixel();
         }
       }
