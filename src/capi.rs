@@ -40,16 +40,6 @@ pub extern "C" fn gameboy_new(cart_path: *const c_char) -> *mut Gameboy {
   Box::into_raw(Box::new(Gameboy { cpu: cpu }))
 }
 
-// #[no_mangle]
-// pub unsafe extern "C" fn gameboy_step(gb: *mut Gameboy) {
-//   let mut gb = {
-//     assert!(!gb.is_null());
-//     &mut *gb
-//   };
-
-//   gb.step();
-// }
-
 #[no_mangle]
 pub unsafe extern "C" fn gameboy_run_threaded(gb: *mut Gameboy) {
   let mut gb = {
@@ -58,17 +48,8 @@ pub unsafe extern "C" fn gameboy_run_threaded(gb: *mut Gameboy) {
   };
 
   thread::spawn(move || {
-    // use std::time::{Instant, Duration};
-    // let mut hz = 0;
-    // let mut now = Instant::now();
     loop {
       gb.cpu.step();
-      // hz += 1;
-      // if Instant::now().duration_since(now).as_secs() >= 1 {
-      //   println!("{} hz", hz);
-      //   hz = 0;
-      //   now = Instant::now();
-      // }
     }
   });
 }
