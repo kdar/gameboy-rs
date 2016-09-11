@@ -1,7 +1,6 @@
 pub const RAM_BANK_SIZE: usize = 0x2000;
 
 #[derive(Debug, PartialEq, NumFromPrimitive)]
-#[allow(enum_variant_names)]
 pub enum RamSize {
   None = 0x00,
   Ram2KB = 0x01,

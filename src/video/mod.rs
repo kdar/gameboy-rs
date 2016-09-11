@@ -270,11 +270,9 @@ impl MemoryIo for Video {
 
         // The value coming in tells us to turn off the LCD, while the
         // previous value was on.
-        if !new_lcd_on && !old_lcd_on {
-          if self.mode == LcdMode::Vblank {
-            panic!("The LCD should not be turned off while not in VBlank. This action can cause \
-                    damage in a real Gameboy.");
-          }
+        if !new_lcd_on && !old_lcd_on && self.mode == LcdMode::Vblank {
+          panic!("The LCD should not be turned off while not in VBlank. This action can cause \
+                  damage in a real Gameboy.");
         }
 
         // The value coming in tells us to turn on the LCD, while the

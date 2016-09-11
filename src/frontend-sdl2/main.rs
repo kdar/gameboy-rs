@@ -15,13 +15,12 @@ use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::PixelFormatEnum;
-use sdl2::rect::{Rect, Point};
+use sdl2::rect::Rect;
 use clap::{Arg, App};
 use simplelog::{TermLogger, LogLevelFilter};
 
 use gameboy::cpu::Cpu;
 use gameboy::system;
-use gameboy::video::{self, Pixels};
 use gameboy::gamepad::Button;
 use gameboy::debugger;
 use gameboy::disassembler;
@@ -182,7 +181,7 @@ fn run(mut cpu: Cpu) {
       let size = {
         let mut window = renderer.window_mut().unwrap();
         if Instant::now() - start >= Duration::from_secs(1) {
-          window.set_title(format!("Gameboy-rs: {} fps", frame_count).as_str());
+          try_log!(window.set_title(format!("Gameboy-rs: {} fps", frame_count).as_str()));
           frame_count = 0;
           start = Instant::now();
         }

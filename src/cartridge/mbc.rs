@@ -1,3 +1,6 @@
+#![allow(unknown_lints)]
+#![allow(enum_variant_names)]
+
 use num;
 
 use super::super::mem::MemoryIo;
@@ -5,14 +8,12 @@ use super::ram;
 use super::rom;
 
 #[derive(Debug, PartialEq, NumFromPrimitive)]
-#[allow(enum_variant_names)]
 enum Mode {
   RomBank = 0x00,
   RamBank = 0x01,
 }
 
 #[derive(Debug)]
-#[allow(enum_variant_names)]
 pub enum MbcType {
   None,
   Mbc1,

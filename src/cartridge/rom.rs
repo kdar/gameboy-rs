@@ -1,7 +1,9 @@
+#![allow(unknown_lints)]
+
 pub const ROM_BANK_SIZE: usize = 0x4000;
 
 #[derive(Debug, PartialEq, NumFromPrimitive)]
-#[allow(enum_variant_names, non_camel_case_types)]
+#[allow(non_camel_case_types, enum_variant_names)]
 pub enum RomSize {
   Rom32KB = 0x00, // 256kbit
   Rom64KB = 0x01, // 512kbit

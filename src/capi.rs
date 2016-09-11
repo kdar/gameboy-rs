@@ -1,13 +1,12 @@
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
-use std::mem;
 use libc::{int8_t, uint8_t, c_char};
 use std::thread;
 use std::ffi::CStr;
 
 use super::cpu::Cpu;
-use super::system::{self, System};
+use super::system;
 use super::gamepad::Button;
 
 #[repr(C)]
@@ -24,8 +23,8 @@ fn load_rom<P: AsRef<Path>>(path: P) -> Box<[u8]> {
 }
 
 #[no_mangle]
-pub extern "C" fn gameboy_new(cart_path: *const c_char) -> *mut Gameboy {
-  let cart_path = unsafe { CStr::from_ptr(cart_path).to_str().unwrap() };
+pub unsafe extern "C" fn gameboy_new(cart_path: *const c_char) -> *mut Gameboy {
+  let cart_path = CStr::from_ptr(cart_path).to_str().unwrap();
 
   let system = system::Config::new()
     //.boot_rom(Some(load_rom("./res/DMG_ROM.bin")))
@@ -71,7 +70,7 @@ pub unsafe extern "C" fn gameboy_updated_frame(gb: *mut Gameboy, dst: *mut uint8
     return 1;
   }
 
-  return 0;
+  0
 }
 
 #[no_mangle]

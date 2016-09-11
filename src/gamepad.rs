@@ -33,8 +33,7 @@ impl Button {
       0b00010000 => Button::A,
       0b00100000 => Button::B,
       0b01000000 => Button::Select,
-      0b10000000 => Button::Start,
-      _ => Button::Start,
+      0b10000000 | _ => Button::Start,
     }
   }
 }

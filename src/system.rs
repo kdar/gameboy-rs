@@ -1,6 +1,5 @@
 use std::fmt;
 use md5;
-use std::sync::mpsc::{Sender, Receiver};
 
 use super::bios::Bios;
 use super::cartridge::Cartridge;
@@ -85,6 +84,7 @@ impl Config {
   }
 }
 
+#[allow(unused_variables)]
 pub trait SystemCtrl: MemoryIo {
   fn step(&mut self) {}
   fn as_memoryio(&self) -> &MemoryIo;
