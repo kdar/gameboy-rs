@@ -23,12 +23,10 @@ fn load_rom<P: AsRef<Path>>(path: P) -> Box<[u8]> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn gameboy_new(cart_path: *const c_char) -> *mut Gameboy {
+pub unsafe extern "C" fn gb_new(cart_path: *const c_char) -> *mut Gameboy {
   let cart_path = CStr::from_ptr(cart_path).to_str().unwrap();
 
   let system = system::Config::new()
-    //.boot_rom(Some(load_rom("./res/DMG_ROM.bin")))
-    //.cart_rom(load_rom("../../../res/opus5.gb"))
     .cart_rom(load_rom(cart_path))
     .create()
     .unwrap();
@@ -40,7 +38,7 @@ pub unsafe extern "C" fn gameboy_new(cart_path: *const c_char) -> *mut Gameboy {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn gameboy_run_threaded(gb: *mut Gameboy) {
+pub unsafe extern "C" fn gb_run_threaded(gb: *mut Gameboy) {
   let mut gb = {
     assert!(!gb.is_null());
     &mut *gb
@@ -54,7 +52,7 @@ pub unsafe extern "C" fn gameboy_run_threaded(gb: *mut Gameboy) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn gameboy_updated_frame(gb: *mut Gameboy, dst: *mut uint8_t) -> int8_t {
+pub unsafe extern "C" fn gb_updated_frame(gb: *mut Gameboy, dst: *mut uint8_t) -> int8_t {
   let mut gb = {
     assert!(!gb.is_null());
     &mut *gb
@@ -74,7 +72,7 @@ pub unsafe extern "C" fn gameboy_updated_frame(gb: *mut Gameboy, dst: *mut uint8
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn gameboy_set_button(gb: *mut Gameboy, btn: uint8_t, pressed: bool) {
+pub unsafe extern "C" fn gb_set_button(gb: *mut Gameboy, btn: uint8_t, pressed: bool) {
   let mut gb = {
     assert!(!gb.is_null());
     &mut *gb
@@ -84,7 +82,7 @@ pub unsafe extern "C" fn gameboy_set_button(gb: *mut Gameboy, btn: uint8_t, pres
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn gameboy_drop(gb: *mut Gameboy) {
+pub unsafe extern "C" fn gb_drop(gb: *mut Gameboy) {
   if gb.is_null() {
     return;
   }

@@ -7,23 +7,23 @@ var Gameboy = ref.types.void;
 var GameboyPtr = ref.refType(Gameboy);
 
 var lib = ffi.Library(path.join(__dirname, '../../target/debug/libgameboy.so'), {
-  gameboy_new: [GameboyPtr, ["char*"]],
-  gameboy_run_threaded: ["void", [GameboyPtr]],
-  gameboy_set_button: ["void", [GameboyPtr, "uint8", "bool"]],
-  gameboy_updated_frame: ["int", [GameboyPtr, ref.refType(ref.types.char)]],
-  gameboy_drop: ["void", [GameboyPtr]],
+  gb_new: [GameboyPtr, ["char*"]],
+  gb_run_threaded: ["void", [GameboyPtr]],
+  gb_set_button: ["void", [GameboyPtr, "uint8", "bool"]],
+  gb_updated_frame: ["int", [GameboyPtr, ref.refType(ref.types.char)]],
+  gb_drop: ["void", [GameboyPtr]],
 });
 
 function Capi(cart_path) {
   var buffer = new Buffer(cart_path.length);
   buffer.write(cart_path, 0, "utf-8");
-  this.gb = lib.gameboy_new(buffer);
-  
+  this.gb = lib.gb_new(buffer);
+
   this.vid_buffer = new Buffer(160*144*4);
 }
 
 Capi.prototype.run_threaded = function run_threaded() {
-  lib.gameboy_run_threaded(this.gb);
+  lib.gb_run_threaded(this.gb);
 };
 
 Capi.prototype.set_button = function set_button(btn, pressed) {
@@ -39,18 +39,18 @@ Capi.prototype.set_button = function set_button(btn, pressed) {
     case "start": case 13: btn_i = 128; break;
   }
 
-  lib.gameboy_set_button(this.gb, btn_i, pressed);
+  lib.gb_set_button(this.gb, btn_i, pressed);
 };
 
 Capi.prototype.updated_frame = function updated_frame() {
-  if (lib.gameboy_updated_frame(this.gb, this.vid_buffer) == 1) {
+  if (lib.gb_updated_frame(this.gb, this.vid_buffer) == 1) {
     return this.vid_buffer;
   }
   return null;
 };
 
 Capi.prototype.drop = function drop() {
-  lib.gameboy_drop(this.gb);
+  lib.gb_drop(this.gb);
 };
 
 module.exports = Capi;
