@@ -1,15 +1,11 @@
-use libc;
-use std::process::exit;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use ctrlc;
+use std::process::exit;
+
 use clap::{App, SubCommand, Arg, AppSettings, ArgMatches};
 use term_grid::{Grid, GridOptions, Direction, Filling};
 use terminal_size::{Width, terminal_size};
-use linefeed::Reader;
-use linefeed::complete::{Completer, Completion};
-use linefeed::terminal::Terminal;
-use std::rc::Rc;
 
 use super::cpu::{Cpu, Reg};
 
@@ -111,139 +107,135 @@ fn debugger_app<'a, 'b>() -> App<'a, 'b> {
       .about("Exits the debugger"))
 }
 
-extern "C" {
-  pub static stdout: *mut libc::FILE;
-  pub static stderr: *mut libc::FILE;
-  pub static stdin: *mut libc::FILE;
-}
-
-pub struct Debugger {
+pub struct Debugger<'a, 'b>
+  where 'a: 'b
+{
   cpu: Cpu,
   breakpoints: Vec<usize>,
+  app: App<'a, 'b>,
   signal: Arc<AtomicBool>,
+  print_callback: Box<Fn(String)>,
 }
 
-impl Default for Debugger {
-  fn default() -> Debugger {
+impl<'a, 'b> Default for Debugger<'a, 'b> {
+  fn default() -> Debugger<'a, 'b> {
     Debugger {
       cpu: Cpu::default(),
       breakpoints: vec![],
+      app: debugger_app(),
       signal: Arc::new(AtomicBool::new(false)),
+      print_callback: Box::new(|s| {
+        println!("{}", s);
+      }),
     }
   }
 }
 
-impl Debugger {
-  pub fn new(cpu: Cpu) -> Debugger {
-    Debugger { cpu: cpu, ..Debugger::default() }
+impl<'a, 'b> Debugger<'a, 'b> {
+  pub fn new(cpu: Cpu) -> Debugger<'a, 'b> {
+    let d = Debugger { cpu: cpu, ..Debugger::default() };
+
+    let signal_clone = d.signal.clone();
+    ctrlc::set_handler(move || {
+      signal_clone.store(true, Ordering::SeqCst);
+    });
+
+    d
   }
 
   fn step(&mut self, display_instructions: bool) -> bool {
     self.cpu.step();
 
     if display_instructions {
-      println!("{:#04x}: {:?}",
-               self.cpu.pc(),
-               self.cpu.peek_at(self.cpu.pc()));
+      self.print(format!("{:#04x}: {:?}",
+                         self.cpu.pc(),
+                         self.cpu.peek_at(self.cpu.pc())));
     }
 
     for &b in &self.breakpoints {
       if self.cpu.pc() as usize == b {
-        println!("Breakpoint hit @ {:#04x}: {:?}",
-                 self.cpu.pc(),
-                 self.cpu.peek_at(self.cpu.pc()));
+        self.print(format!("Breakpoint hit @ {:#04x}: {:?}",
+                           self.cpu.pc(),
+                           self.cpu.peek_at(self.cpu.pc())));
         return true;
       }
     }
-    // }
 
     false
   }
 
-  pub fn run(&mut self) {
-    unsafe {
-      libc::setbuf(stdout as *mut libc::FILE, 0 as *mut i8);
-      libc::setbuf(stderr as *mut libc::FILE, 0 as *mut i8);
-      libc::setbuf(stdin as *mut libc::FILE, 0 as *mut i8);
-    }
-
-    let signal_clone = self.signal.clone();
-    ctrlc::set_handler(move || {
-      signal_clone.store(true, Ordering::SeqCst);
-    });
-
-    let mut reader = Reader::new("debugger").unwrap();
-    let mut app = debugger_app();
-
-    reader.set_completer(Rc::new(CmdCompleter));
-    reader.set_prompt("(gameboy) ");
-
-    while let Some(line) = reader.read_line().unwrap() {
-      let line = line.trim();
-      if line.is_empty() {
-        continue;
-      }
-
-      reader.add_history(line.to_owned());
-
-      let argv: Vec<_> = line.trim().split(' ').collect();
-      let m = match app.get_matches_from_safe_borrow(argv) {
-        Ok(matches) => matches,
-        Err(e) => {
-          println!("{}", e);
-          continue;
-        }
-      };
-
-      match m.subcommand() {
-        ("continue", Some(sub_m)) => {
-          self.cmd_continue(sub_m);
-        }
-        ("debug", Some(_)) => {
-          println!("{:?}", self.cpu);
-        }
-        ("set", Some(sub_m)) => {
-          self.cmd_set(sub_m);
-        }
-        ("step", Some(sub_m)) => {
-          let n = parse_num!(sub_m.value_of("n"), 1);
-
-          for _ in 0..n {
-            if self.step(true) {
-              break;
-            }
-          }
-        }
-        ("x", Some(sub_m)) => {
-          self.cmd_x(sub_m);
-        }
-        ("break", Some(sub_m)) => {
-          let b = parse_num!(sub_m.value_of("expr"));
-          self.breakpoints.push(b);
-          println!("Added breakpoint @ {:#04x}", b);
-        }
-        ("breakpoints", Some(_)) => {
-          for (i, loc) in self.breakpoints.iter().enumerate() {
-            println!("{:02}: {:#06x}", i, loc);
-          }
-        }
-        ("exit", Some(_)) => {
-          exit(0);
-        }
-        (t, Some(_)) => {
-          println!("Unknown command: {}", t);
-        }
-        _ => {
-          continue;
-        }
-      };
-    }
+  fn print(&self, string: String) {
+    (self.print_callback)(string);
   }
 
-  fn cmd_continue<'a>(&mut self, sub_m: &ArgMatches<'a>) {
+  pub fn set_print_callback<F>(&mut self, func: F)
+    where F: Fn(String) + 'static
+  {
+    self.print_callback = Box::new(func);
+  }
+
+  pub fn stop(&mut self) {
+    self.signal.store(true, Ordering::SeqCst);
+  }
+
+  pub fn run_cmd(&mut self, cmd: String) {
+    let argv: Vec<_> = cmd.trim().split(' ').collect();
+    let m = match self.app.get_matches_from_safe_borrow(argv) {
+      Ok(matches) => matches,
+      Err(e) => {
+        self.print(format!("{}", e));
+        return;
+      }
+    };
+
+    match m.subcommand() {
+      ("continue", Some(sub_m)) => {
+        self.cmd_continue(sub_m);
+      }
+      ("debug", Some(_)) => {
+        self.print(format!("{:?}", self.cpu));
+      }
+      ("set", Some(sub_m)) => {
+        self.cmd_set(sub_m);
+      }
+      ("step", Some(sub_m)) => {
+        let n = parse_num!(sub_m.value_of("n"), 1);
+
+        for _ in 0..n {
+          if self.step(true) {
+            break;
+          }
+        }
+      }
+      ("x", Some(sub_m)) => {
+        self.cmd_x(sub_m);
+      }
+      ("break", Some(sub_m)) => {
+        let b = parse_num!(sub_m.value_of("expr"));
+        self.breakpoints.push(b);
+        self.print(format!("Added breakpoint @ {:#04x}", b));
+      }
+      ("breakpoints", Some(_)) => {
+        for (i, loc) in self.breakpoints.iter().enumerate() {
+          self.print(format!("{:02}: {:#06x}", i, loc));
+        }
+      }
+      ("exit", Some(_)) => {
+        exit(0);
+      }
+      (t, Some(_)) => {
+        self.print(format!("Unknown command: {}", t));
+      }
+      _ => {
+        return;
+      }
+    };
+  }
+
+  fn cmd_continue<'c>(&mut self, sub_m: &ArgMatches<'c>) {
     loop {
       if self.signal.load(Ordering::SeqCst) {
-        println!("Got SIGINT. Breaking.");
+        self.print("Got SIGINT. Breaking.".to_owned());
         self.signal.store(false, Ordering::SeqCst);
         break;
       }
@@ -254,7 +246,7 @@ impl Debugger {
     }
   }
 
-  fn cmd_set<'a>(&mut self, sub_m: &ArgMatches<'a>) {
+  fn cmd_set<'c>(&mut self, sub_m: &ArgMatches<'c>) {
     let var = sub_m.value_of("var").unwrap();
     let val = parse_num!(sub_m.value_of("value"));
 
@@ -272,12 +264,12 @@ impl Debugger {
       "de" => self.cpu.write_reg_u16(Reg::DE, val as u16),
       "hl" => self.cpu.write_reg_u16(Reg::HL, val as u16),
       _ => {
-        println!("Unknown variable: {}", var);
+        self.print(format!("Unknown variable: {}", var));
       }
     };
   }
 
-  fn cmd_x<'a>(&mut self, sub_m: &ArgMatches<'a>) {
+  fn cmd_x<'c>(&mut self, sub_m: &ArgMatches<'c>) {
     let mut grid = Grid::new(GridOptions {
       filling: Filling::Spaces(1),
       direction: Direction::LeftToRight,
@@ -342,71 +334,10 @@ impl Debugger {
         // should be for the given line.
         let cols = row.matches(' ').count() + 1;
         let a = addr + i * cols * size;
-        println!("{:#06x}:  {}", a, row);
+        self.print(format!("{:#06x}:  {}", a, row));
       }
     } else {
-      println!("Couldn't fit grid!");
+      self.print("Couldn't fit grid!".to_owned());
     }
   }
-}
-
-struct CmdCompleter;
-
-impl<Term: Terminal> Completer<Term> for CmdCompleter {
-  fn complete(&self,
-              word: &str,
-              reader: &Reader<Term>,
-              start: usize,
-              _end: usize)
-              -> Option<Vec<Completion>> {
-    let line = reader.buffer();
-
-    let mut words = line[..start].split_whitespace();
-
-    let cmds = vec!["break",
-    "breakpoints",
-    "continue",
-    "debug",
-    "exit",
-    "help",
-    "set",
-    "step",
-    "x",];
-
-    match words.next() {
-      None => {
-        let mut compls = Vec::new();
-
-        for cmd in cmds {
-          if cmd.starts_with(word) {
-            compls.push(Completion::simple(cmd.to_owned()));
-          }
-        }
-
-        Some(compls)
-      }
-      // Some("set") => {
-      //  if words.count() == 0 {
-      //    let mut res = Vec::new();
-      //
-      //    for (name, _) in reader.variables() {
-      //      if name.starts_with(word) {
-      //        res.push(Completion::simple(name.to_owned()));
-      //      }
-      //    }
-      //
-      //    Some(res)
-      //  } else {
-      //    None
-      //  }
-      // }
-      _ => None,
-    }
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  #[test]
-  fn it_works() {}
 }

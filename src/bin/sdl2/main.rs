@@ -4,6 +4,9 @@ extern crate clap;
 #[macro_use]
 extern crate log;
 extern crate simplelog;
+extern crate libc;
+extern crate ctrlc;
+extern crate linefeed;
 
 use std::fs::File;
 use std::io::Read;
@@ -22,8 +25,9 @@ use simplelog::{TermLogger, LogLevelFilter};
 use gameboy::cpu::Cpu;
 use gameboy::system;
 use gameboy::gamepad::Button;
-use gameboy::debugger;
 use gameboy::disassembler;
+
+mod debugger;
 
 macro_rules! try_log {
   ($expr:expr) => (match $expr {
@@ -97,8 +101,7 @@ fn main() {
 
     if matches.is_present("debug") {
       // TODO: this doesn't work with the UI just yet.
-      let mut gb = debugger::Debugger::new(cpu);
-      gb.run();
+      debugger::run_debugger(cpu);
       exit(0);
     } else {
       run(cpu);
@@ -157,7 +160,7 @@ fn run(mut cpu: Cpu) {
             Keycode::LCtrl => cpu.set_button(Button::B, false),
             _ => {}
           };
-        }    
+        }
         _ => {}
       };
     }

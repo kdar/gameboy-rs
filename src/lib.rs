@@ -21,11 +21,10 @@ extern crate libc;
 extern crate rand;
 #[macro_use]
 extern crate bitflags;
-extern crate ctrlc;
-extern crate linefeed;
 extern crate clap;
 extern crate term_grid;
 extern crate terminal_size;
+extern crate ctrlc;
 
 #[macro_use]
 pub mod macros;
