@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
-use libc::{int8_t, uint8_t, c_char};
+use libc::{int8_t, uint8_t, c_char, c_void};
 use std::thread;
 use std::ffi::CStr;
 use std::ptr;
@@ -149,11 +149,11 @@ pub struct CApiDebugger<'a, 'b>
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn gb_dbg_new<'a, 'b>() -> *mut CApiDebugger<'a, 'b> {
+pub unsafe extern "C" fn gb_dbg_new() -> *mut c_void {
   let system = system::System::new();
   let cpu = Cpu::new(Box::new(system));
 
-  Box::into_raw(Box::new(CApiDebugger { debugger: Debugger::new(cpu) }))
+  Box::into_raw(Box::new(CApiDebugger { debugger: Debugger::new(cpu) })) as *mut c_void
 }
 
 #[no_mangle]
