@@ -16,7 +16,7 @@ use super::debugger::Debugger;
 const MAX_ERROR_SIZE: usize = 1024;
 
 enum CApiErrors {
-  Generic = 0,
+  Generic = 1,
 }
 
 macro_rules! try_api {

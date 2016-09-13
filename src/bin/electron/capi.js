@@ -25,28 +25,41 @@ Error.prototype.toString = function toString() {
   return string;
 };
 
+Error.prototype.hasError = function hasError() {
+  return this.code != 0;
+};
+
+Error.prototype.ref = function ref() {
+  this.code = 0;
+  return this.__proto__.__proto__.ref.call(this);
+};
+
 var lib = ffi.Library(path.join(__dirname, '../../../target/debug/libgameboy.so'), {
-  gb_new: ['uint64', ["char*", ErrorPtr]],
-  gb_run_threaded: ["void", [GameboyPtr]],
-  gb_set_button: ["void", [GameboyPtr, "uint8", "bool"]],
-  gb_updated_frame: ["int", [GameboyPtr, ref.refType(ref.types.char)]],
-  gb_drop: ["void", [GameboyPtr]],
+  gb_new: [GameboyPtr, []],
+  gb_load_cartridge: ['void', [GameboyPtr, 'char*', ErrorPtr]],
+  gb_run_threaded: ['void', [GameboyPtr]],
+  gb_set_button: ['void', [GameboyPtr, 'uint8', 'bool']],
+  gb_updated_frame: ['int', [GameboyPtr, ref.refType(ref.types.char)]],
+  gb_drop: ['void', [GameboyPtr]],
 });
 
-function Capi(cart_path) {
+function Capi() {
   this.api_error = new Error();
   this.api_error.error = new Buffer(1024);
+  this.vid_buffer = new Buffer(160*144*4);
 
+  this.gb = lib.gb_new();
+}
+
+Capi.prototype.load_cartridge = function load_cartridge(cart_path) {
   var cart_buffer = new Buffer(cart_path.length);
   cart_buffer.write(cart_path, 0, "utf-8");
 
-  this.gb = lib.gb_new(cart_buffer, this.api_error.ref());
-  if (this.gb == 0) {
+  lib.gb_load_cartridge(this.gb, cart_buffer, this.api_error.ref());
+  if (this.api_error.hasError()) {
     return this.api_error.toString();
   }
-
-  this.vid_buffer = new Buffer(160*144*4);
-}
+};
 
 Capi.prototype.run_threaded = function run_threaded() {
   lib.gb_run_threaded(this.gb);
