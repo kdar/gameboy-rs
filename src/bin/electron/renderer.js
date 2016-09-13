@@ -7,7 +7,7 @@ capi.run_threaded();
 const back_canvas = document.createElement("canvas");
 back_canvas.width = 160;
 back_canvas.height = 144;
-// document.body.appendChild(back_canvas);   
+// document.body.appendChild(back_canvas);
 const back_context = back_canvas.getContext("2d");
 const back_screen = back_context.createImageData(160, 144);
 back_context.putImageData(back_screen, 0, 0);

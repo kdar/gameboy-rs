@@ -4,41 +4,88 @@ use std::path::Path;
 use libc::{int8_t, uint8_t, c_char};
 use std::thread;
 use std::ffi::CStr;
+use std::mem;
+use std::ptr;
+use std::cmp;
+use std::result;
 
 use super::cpu::Cpu;
 use super::system;
 use super::gamepad::Button;
+use super::debugger::Debugger;
+
+const MAX_ERROR_SIZE: usize = 1024;
+
+enum CApiErrors {
+  Generic = 0,
+}
+
+macro_rules! try_api {
+  ($err:expr, $err_ret:expr, $expr:expr) => (match $expr {
+    result::Result::Ok(val) => val,
+    result::Result::Err(err) => {
+      println!("{}", err);
+      //let s = err.to_string();
+      //let p = s.as_ptr();
+      //mem::forget(s);
+      //return p;
+      let mut e = {
+        assert!(!$err.is_null());
+        &mut *$err
+      };
+      e.code = CApiErrors::Generic as uint8_t;
+      let s = err.to_string();
+      let p = s.as_ptr() as *mut u8;
+      ptr::copy_nonoverlapping(p, e.error, cmp::max(s.len(), MAX_ERROR_SIZE));
+      return mem::transmute($err_ret as *const u64);
+    }
+  })
+}
+
+#[repr(C)]
+pub struct CApiError {
+  code: uint8_t,
+  error: *mut u8,
+}
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct Gameboy {
+pub struct CApiGameboy {
   cpu: Cpu,
 }
 
-fn load_rom<P: AsRef<Path>>(path: P) -> Box<[u8]> {
-  let mut file = File::open(path).unwrap();
+fn load_rom<P: AsRef<Path>>(path: P) -> Result<Box<[u8]>, String> {
+  let mut file = match File::open(path) {
+    Ok(f) => f,
+    Err(e) => return Err(format!("{}", e)),
+  };
   let mut file_buf = Vec::new();
-  file.read_to_end(&mut file_buf).unwrap();
-  file_buf.into_boxed_slice()
+  match file.read_to_end(&mut file_buf) {
+    Ok(_) => (),
+    Err(e) => return Err(format!("{}", e)),
+  };
+  Ok(file_buf.into_boxed_slice())
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn gb_new(cart_path: *const c_char) -> *mut Gameboy {
-  let cart_path = CStr::from_ptr(cart_path).to_str().unwrap();
+pub unsafe extern "C" fn gb_new(cart_path: *const c_char,
+                                err_out: *mut CApiError)
+                                -> *mut CApiGameboy {
+  let cart_path = try_api!(err_out, 0, CStr::from_ptr(cart_path).to_str());
 
   let system = system::Config::new()
-    .cart_rom(load_rom(cart_path))
+    .cart_rom(try_api!(err_out, 0, load_rom(cart_path)))
     .create()
     .unwrap();
 
   let mut cpu = Cpu::new(system);
   cpu.bootstrap();
 
-  Box::into_raw(Box::new(Gameboy { cpu: cpu }))
+  Box::into_raw(Box::new(CApiGameboy { cpu: cpu }))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn gb_run_threaded(gb: *mut Gameboy) {
+pub unsafe extern "C" fn gb_run_threaded(gb: *mut CApiGameboy) {
   let mut gb = {
     assert!(!gb.is_null());
     &mut *gb
@@ -52,7 +99,7 @@ pub unsafe extern "C" fn gb_run_threaded(gb: *mut Gameboy) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn gb_updated_frame(gb: *mut Gameboy, dst: *mut uint8_t) -> int8_t {
+pub unsafe extern "C" fn gb_updated_frame(gb: *mut CApiGameboy, dst: *mut uint8_t) -> int8_t {
   let mut gb = {
     assert!(!gb.is_null());
     &mut *gb
@@ -72,7 +119,7 @@ pub unsafe extern "C" fn gb_updated_frame(gb: *mut Gameboy, dst: *mut uint8_t) -
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn gb_set_button(gb: *mut Gameboy, btn: uint8_t, pressed: bool) {
+pub unsafe extern "C" fn gb_set_button(gb: *mut CApiGameboy, btn: uint8_t, pressed: bool) {
   let mut gb = {
     assert!(!gb.is_null());
     &mut *gb
@@ -82,9 +129,40 @@ pub unsafe extern "C" fn gb_set_button(gb: *mut Gameboy, btn: uint8_t, pressed: 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn gb_drop(gb: *mut Gameboy) {
+pub unsafe extern "C" fn gb_drop(gb: *mut CApiGameboy) {
   if gb.is_null() {
     return;
   }
   Box::from_raw(gb);
+}
+
+pub struct CApiDebugger<'a, 'b>
+  where 'a: 'b
+{
+  debugger: Debugger<'a, 'b>,
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn gb_dbg_new<'a, 'b>(cart_path: *const c_char,
+                                            err_out: *mut CApiError)
+                                            -> *mut CApiDebugger<'a, 'b> {
+  let cart_path = try_api!(err_out, 0, CStr::from_ptr(cart_path).to_str());
+
+  let system = system::Config::new()
+    .cart_rom(try_api!(err_out, 0, load_rom(cart_path)))
+    .create()
+    .unwrap();
+
+  let mut cpu = Cpu::new(system);
+  cpu.bootstrap();
+
+  Box::into_raw(Box::new(CApiDebugger { debugger: Debugger::new(cpu) }))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn gb_dbg_drop(dbg: *mut CApiDebugger) {
+  if dbg.is_null() {
+    return;
+  }
+  Box::from_raw(dbg);
 }

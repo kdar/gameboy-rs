@@ -1,13 +1,32 @@
 var ffi = require('ffi');
 var path = require('path');
 var ref = require('ref');
-var ArrayType = require('ref-array')
+var ArrayType = require('ref-array');
+var Struct = require('ref-struct');
 
 var Gameboy = ref.types.void;
 var GameboyPtr = ref.refType(Gameboy);
 
-var lib = ffi.Library(path.join(__dirname, '../../target/debug/libgameboy.so'), {
-  gb_new: [GameboyPtr, ["char*"]],
+var Error = Struct({
+  'code': 'int8',
+  'error': ArrayType('char'),
+});
+var ErrorPtr = ref.refType(Error);
+
+Error.prototype.toString = function toString() {
+  var string = "";
+  for (var x = 0; x < 1024; x++) {
+    if (this.error[x] == 0) {
+      break;
+    }
+    string += String.fromCharCode(this.error[x]);
+  }
+
+  return string;
+};
+
+var lib = ffi.Library(path.join(__dirname, '../../../target/debug/libgameboy.so'), {
+  gb_new: ['uint64', ["char*", ErrorPtr]],
   gb_run_threaded: ["void", [GameboyPtr]],
   gb_set_button: ["void", [GameboyPtr, "uint8", "bool"]],
   gb_updated_frame: ["int", [GameboyPtr, ref.refType(ref.types.char)]],
@@ -15,9 +34,16 @@ var lib = ffi.Library(path.join(__dirname, '../../target/debug/libgameboy.so'), 
 });
 
 function Capi(cart_path) {
-  var buffer = new Buffer(cart_path.length);
-  buffer.write(cart_path, 0, "utf-8");
-  this.gb = lib.gb_new(buffer);
+  this.api_error = new Error();
+  this.api_error.error = new Buffer(1024);
+
+  var cart_buffer = new Buffer(cart_path.length);
+  cart_buffer.write(cart_path, 0, "utf-8");
+
+  this.gb = lib.gb_new(cart_buffer, this.api_error.ref());
+  if (this.gb == 0) {
+    return this.api_error.toString();
+  }
 
   this.vid_buffer = new Buffer(160*144*4);
 }
