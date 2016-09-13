@@ -110,7 +110,7 @@ fn debugger_app<'a, 'b>() -> App<'a, 'b> {
 pub struct Debugger<'a, 'b>
   where 'a: 'b
 {
-  cpu: Cpu,
+  pub cpu: Cpu,
   breakpoints: Vec<usize>,
   app: App<'a, 'b>,
   signal: Arc<AtomicBool>,

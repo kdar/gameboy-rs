@@ -81,23 +81,17 @@ fn main() {
   if matches.is_present("disassemble") {
     disassembler::dump_all(cart_rom);
   } else {
-    let mut system = system::System::new();
-
-    let bootstrap = if let Some(boot_rom_path) = matches.value_of("boot-rom") {
-      let rom = load_rom(boot_rom_path);
-      try_log!(system.load_bios(rom));
-      false
-    } else {
-      true
-    };
-
-    try_log!(system.load_cartridge(cart_rom));
-
+    let system = system::System::new();
     let mut cpu = Cpu::new(Box::new(system));
 
-    if bootstrap {
+    if let Some(boot_rom_path) = matches.value_of("boot-rom") {
+      let rom = load_rom(boot_rom_path);
+      try_log!(cpu.system.load_bios(rom));
+    } else {
       cpu.bootstrap();
-    }
+    };
+
+    try_log!(cpu.system.load_cartridge(cart_rom));
 
     if matches.is_present("debug") {
       // TODO: this doesn't work with the UI just yet.

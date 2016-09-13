@@ -46,6 +46,12 @@ enum DmaState {
 
 #[allow(unused_variables)]
 pub trait SystemCtrl: MemoryIo {
+  fn load_bios(&mut self, rom: Box<[u8]>) -> Result<(), String> {
+    Ok(())
+  }
+  fn load_cartridge(&mut self, rom: Box<[u8]>) -> Result<(), String> {
+    Ok(())
+  }
   fn step(&mut self) {}
   fn as_memoryio(&self) -> &MemoryIo;
   fn set_button(&mut self, btn: Button, pressed: bool) {}
@@ -261,14 +267,6 @@ impl System {
     System::default()
   }
 
-  pub fn load_bios(&mut self, rom: Box<[u8]>) -> Result<(), String> {
-    self.bios.load(rom)
-  }
-
-  pub fn load_cartridge(&mut self, rom: Box<[u8]>) -> Result<(), String> {
-    self.cartridge.load(rom)
-  }
-
   pub fn dma_step(&mut self) {
     match self.dma.state {
       DmaState::Starting => {
@@ -293,6 +291,14 @@ impl System {
 }
 
 impl SystemCtrl for System {
+  fn load_bios(&mut self, rom: Box<[u8]>) -> Result<(), String> {
+    self.bios.load(rom)
+  }
+
+  fn load_cartridge(&mut self, rom: Box<[u8]>) -> Result<(), String> {
+    self.cartridge.load(rom)
+  }
+
   fn step(&mut self) {
     self.gamepad.step(&mut self.pic);
     self.video.step(&mut self.pic);

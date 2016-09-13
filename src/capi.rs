@@ -4,7 +4,6 @@ use std::path::Path;
 use libc::{int8_t, uint8_t, c_char};
 use std::thread;
 use std::ffi::CStr;
-use std::mem;
 use std::ptr;
 use std::cmp;
 use std::result;
@@ -37,7 +36,8 @@ macro_rules! try_api {
       let s = err.to_string();
       let p = s.as_ptr() as *mut u8;
       ptr::copy_nonoverlapping(p, e.error, cmp::max(s.len(), MAX_ERROR_SIZE));
-      return mem::transmute($err_ret as *const u64);
+      //return mem::transmute($err_ret as *const u64);
+      $err_ret;
     }
   })
 }
@@ -68,19 +68,26 @@ fn load_rom<P: AsRef<Path>>(path: P) -> Result<Box<[u8]>, String> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn gb_new(cart_path: *const c_char,
-                                err_out: *mut CApiError)
-                                -> *mut CApiGameboy {
-  let cart_path = try_api!(err_out, 0, CStr::from_ptr(cart_path).to_str());
+pub unsafe extern "C" fn gb_new() -> *mut CApiGameboy {
 
-  let mut system = system::System::new();
-  let rom = try_api!(err_out, 0, load_rom(cart_path));
-  try_api!(err_out, 0, system.load_cartridge(rom));
-
-  let mut cpu = Cpu::new(Box::new(system));
-  cpu.bootstrap();
+  let system = system::System::new();
+  let cpu = Cpu::new(Box::new(system));
 
   Box::into_raw(Box::new(CApiGameboy { cpu: cpu }))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn gb_load_cartridge(gb: *mut CApiGameboy,
+                                           cart_path: *const c_char,
+                                           err_out: *mut CApiError) {
+  let mut gb = {
+    assert!(!gb.is_null());
+    &mut *gb
+  };
+  let cart_path = try_api!(err_out, return, CStr::from_ptr(cart_path).to_str());
+  let rom = try_api!(err_out, return, load_rom(cart_path));
+  try_api!(err_out, return, gb.cpu.system.load_cartridge(rom));
+  gb.cpu.bootstrap();
 }
 
 #[no_mangle]
@@ -104,7 +111,7 @@ pub unsafe extern "C" fn gb_updated_frame(gb: *mut CApiGameboy, dst: *mut uint8_
     &mut *gb
   };
 
-  if let Some(d) = gb.cpu.updated_frame() {
+  if let Some(d) = gb.cpu.system.updated_frame() {
     for (i, v) in d.iter().enumerate() {
       *dst.offset(i as isize * 4) = v[0];
       *dst.offset(i as isize * 4 + 1) = v[1];
@@ -124,7 +131,7 @@ pub unsafe extern "C" fn gb_set_button(gb: *mut CApiGameboy, btn: uint8_t, press
     &mut *gb
   };
 
-  gb.cpu.set_button(Button::from_u8(btn as u8), pressed);
+  gb.cpu.system.set_button(Button::from_u8(btn as u8), pressed);
 }
 
 #[no_mangle]
@@ -142,19 +149,26 @@ pub struct CApiDebugger<'a, 'b>
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn gb_dbg_new<'a, 'b>(cart_path: *const c_char,
-                                            err_out: *mut CApiError)
-                                            -> *mut CApiDebugger<'a, 'b> {
-  let cart_path = try_api!(err_out, 0, CStr::from_ptr(cart_path).to_str());
-
-  let mut system = system::System::new();
-  let rom = try_api!(err_out, 0, load_rom(cart_path));
-  try_api!(err_out, 0, system.load_cartridge(rom));
-
-  let mut cpu = Cpu::new(Box::new(system));
-  cpu.bootstrap();
+pub unsafe extern "C" fn gb_dbg_new<'a, 'b>() -> *mut CApiDebugger<'a, 'b> {
+  let system = system::System::new();
+  let cpu = Cpu::new(Box::new(system));
 
   Box::into_raw(Box::new(CApiDebugger { debugger: Debugger::new(cpu) }))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn gb_dbg_load_cartridge(dbg: *mut CApiDebugger,
+                                               cart_path: *const c_char,
+                                               err_out: *mut CApiError) {
+  let mut dbg = {
+    assert!(!dbg.is_null());
+    &mut *dbg
+  };
+
+  let cart_path = try_api!(err_out, return, CStr::from_ptr(cart_path).to_str());
+  let rom = try_api!(err_out, return, load_rom(cart_path));
+  try_api!(err_out, return, dbg.debugger.cpu.system.load_cartridge(rom));
+  dbg.debugger.cpu.bootstrap();
 }
 
 #[no_mangle]
