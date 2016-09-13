@@ -137,27 +137,27 @@ fn run(mut cpu: Cpu) {
         Event::KeyDown { keycode: Some(keycode), .. } => {
           match keycode {
             Keycode::Escape => break 'running,
-            Keycode::A | Keycode::Left => cpu.set_button(Button::Left, true),
-            Keycode::W | Keycode::Up => cpu.set_button(Button::Up, true),
-            Keycode::S | Keycode::Down => cpu.set_button(Button::Down, true),
-            Keycode::D | Keycode::Right => cpu.set_button(Button::Right, true),
-            Keycode::Return => cpu.set_button(Button::Start, true),
-            Keycode::RShift => cpu.set_button(Button::Select, true),
-            Keycode::Space => cpu.set_button(Button::A, true),
-            Keycode::LCtrl => cpu.set_button(Button::B, true),
+            Keycode::A | Keycode::Left => cpu.system.set_button(Button::Left, true),
+            Keycode::W | Keycode::Up => cpu.system.set_button(Button::Up, true),
+            Keycode::S | Keycode::Down => cpu.system.set_button(Button::Down, true),
+            Keycode::D | Keycode::Right => cpu.system.set_button(Button::Right, true),
+            Keycode::Return => cpu.system.set_button(Button::Start, true),
+            Keycode::RShift => cpu.system.set_button(Button::Select, true),
+            Keycode::Space => cpu.system.set_button(Button::A, true),
+            Keycode::LCtrl => cpu.system.set_button(Button::B, true),
             _ => {}
           };
         }
         Event::KeyUp { keycode: Some(keycode), .. } => {
           match keycode {
-            Keycode::A | Keycode::Left => cpu.set_button(Button::Left, false),
-            Keycode::W | Keycode::Up => cpu.set_button(Button::Up, false),
-            Keycode::S | Keycode::Down => cpu.set_button(Button::Down, false),
-            Keycode::D | Keycode::Right => cpu.set_button(Button::Right, false),
-            Keycode::Return => cpu.set_button(Button::Start, false),
-            Keycode::RShift => cpu.set_button(Button::Select, false),
-            Keycode::Space => cpu.set_button(Button::A, false),
-            Keycode::LCtrl => cpu.set_button(Button::B, false),
+            Keycode::A | Keycode::Left => cpu.system.set_button(Button::Left, false),
+            Keycode::W | Keycode::Up => cpu.system.set_button(Button::Up, false),
+            Keycode::S | Keycode::Down => cpu.system.set_button(Button::Down, false),
+            Keycode::D | Keycode::Right => cpu.system.set_button(Button::Right, false),
+            Keycode::Return => cpu.system.set_button(Button::Start, false),
+            Keycode::RShift => cpu.system.set_button(Button::Select, false),
+            Keycode::Space => cpu.system.set_button(Button::A, false),
+            Keycode::LCtrl => cpu.system.set_button(Button::B, false),
             _ => {}
           };
         }
@@ -167,7 +167,7 @@ fn run(mut cpu: Cpu) {
 
     cpu.step();
 
-    if let Some(pixels) = cpu.updated_frame() {
+    if let Some(pixels) = cpu.system.updated_frame() {
       frame_count += 1;
 
       try_log!(texture.with_lock(None, |buffer: &mut [u8], _: usize| {
