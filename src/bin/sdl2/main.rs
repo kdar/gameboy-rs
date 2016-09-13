@@ -81,19 +81,19 @@ fn main() {
   if matches.is_present("disassemble") {
     disassembler::dump_all(cart_rom);
   } else {
-    let mut bootstrap = false;
-    let boot_rom = if let Some(boot_rom_path) = matches.value_of("boot-rom") {
-      Some(load_rom(boot_rom_path))
+    let mut system = system::System::new();
+
+    let bootstrap = if let Some(boot_rom_path) = matches.value_of("boot-rom") {
+      let rom = load_rom(boot_rom_path);
+      try_log!(system.load_bios(rom));
+      false
     } else {
-      bootstrap = true;
-      None
+      true
     };
 
-    let system = try_log!(system::Config::new()
-      .boot_rom(boot_rom)
-      .cart_rom(cart_rom)
-      .create());
-    let mut cpu = Cpu::new(system);
+    try_log!(system.load_cartridge(cart_rom));
+
+    let mut cpu = Cpu::new(Box::new(system));
 
     if bootstrap {
       cpu.bootstrap();

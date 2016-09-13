@@ -22,11 +22,9 @@ impl Bios {
     Bios::default()
   }
 
-  pub fn load(&mut self, rom: Option<Box<[u8]>>) -> Result<(), String> {
-    if let Some(r) = rom {
-      self.enabled = true;
-      self.rom = r;
-    }
+  pub fn load(&mut self, rom: Box<[u8]>) -> Result<(), String> {
+    self.enabled = true;
+    self.rom = rom;
 
     Ok(())
   }

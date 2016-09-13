@@ -73,12 +73,11 @@ pub unsafe extern "C" fn gb_new(cart_path: *const c_char,
                                 -> *mut CApiGameboy {
   let cart_path = try_api!(err_out, 0, CStr::from_ptr(cart_path).to_str());
 
-  let system = system::Config::new()
-    .cart_rom(try_api!(err_out, 0, load_rom(cart_path)))
-    .create()
-    .unwrap();
+  let mut system = system::System::new();
+  let rom = try_api!(err_out, 0, load_rom(cart_path));
+  try_api!(err_out, 0, system.load_cartridge(rom));
 
-  let mut cpu = Cpu::new(system);
+  let mut cpu = Cpu::new(Box::new(system));
   cpu.bootstrap();
 
   Box::into_raw(Box::new(CApiGameboy { cpu: cpu }))
@@ -148,12 +147,11 @@ pub unsafe extern "C" fn gb_dbg_new<'a, 'b>(cart_path: *const c_char,
                                             -> *mut CApiDebugger<'a, 'b> {
   let cart_path = try_api!(err_out, 0, CStr::from_ptr(cart_path).to_str());
 
-  let system = system::Config::new()
-    .cart_rom(try_api!(err_out, 0, load_rom(cart_path)))
-    .create()
-    .unwrap();
+  let mut system = system::System::new();
+  let rom = try_api!(err_out, 0, load_rom(cart_path));
+  try_api!(err_out, 0, system.load_cartridge(rom));
 
-  let mut cpu = Cpu::new(system);
+  let mut cpu = Cpu::new(Box::new(system));
   cpu.bootstrap();
 
   Box::into_raw(Box::new(CApiDebugger { debugger: Debugger::new(cpu) }))

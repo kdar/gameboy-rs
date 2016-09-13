@@ -44,46 +44,6 @@ enum DmaState {
   Starting,
 }
 
-pub struct Config {
-  cfg_boot_rom: Option<Box<[u8]>>,
-  cfg_cart_rom: Box<[u8]>,
-}
-
-impl Default for Config {
-  fn default() -> Config {
-    Config {
-      cfg_boot_rom: None,
-      cfg_cart_rom: Box::new([]),
-    }
-  }
-}
-
-impl Config {
-  pub fn new() -> Config {
-    Config::default()
-  }
-
-  pub fn boot_rom(mut self, boot_rom: Option<Box<[u8]>>) -> Config {
-    self.cfg_boot_rom = boot_rom;
-    self
-  }
-
-  pub fn cart_rom(mut self, cart_rom: Box<[u8]>) -> Config {
-    self.cfg_cart_rom = cart_rom;
-    self
-  }
-
-  pub fn create(self) -> Result<Box<SystemCtrl + Send>, String> {
-    let mut s = System::new();
-    try!(s.bios.load(self.cfg_boot_rom));
-    // self.cfg_boot_rom = None;
-    try!(s.cartridge.load(self.cfg_cart_rom));
-    // self.cfg_cart_rom = Box::new([]);
-
-    Ok(Box::new(s))
-  }
-}
-
 #[allow(unused_variables)]
 pub trait SystemCtrl: MemoryIo {
   fn step(&mut self) {}
@@ -299,6 +259,14 @@ impl MemoryIo for System {
 impl System {
   pub fn new() -> System {
     System::default()
+  }
+
+  pub fn load_bios(&mut self, rom: Box<[u8]>) -> Result<(), String> {
+    self.bios.load(rom)
+  }
+
+  pub fn load_cartridge(&mut self, rom: Box<[u8]>) -> Result<(), String> {
+    self.cartridge.load(rom)
   }
 
   pub fn dma_step(&mut self) {
