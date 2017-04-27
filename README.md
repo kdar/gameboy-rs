@@ -9,9 +9,9 @@ Passes all the Blargg's CPU behavior tests.
 
 ![Screenshot2](https://github.com/kdar/gameboy-rs/raw/master/doc/screenshot2.png)
 
-![Screenshot3](https://github.com/kdar/gameboy-rs/raw/master/doc/screenshot1.png)
+![Screenshot3](https://github.com/kdar/gameboy-rs/raw/master/doc/screenshot3.png)
 
-![Screenshot4](https://github.com/kdar/gameboy-rs/raw/master/doc/screenshot2.png)
+![Screenshot4](https://github.com/kdar/gameboy-rs/raw/master/doc/screenshot4.png)
 
 ### Some unique features
 
