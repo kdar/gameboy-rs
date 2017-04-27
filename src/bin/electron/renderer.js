@@ -11,18 +11,13 @@ function run() {
 
   capi.run_threaded();
 
-  const back_canvas = document.createElement("canvas");
-  back_canvas.width = 160;
-  back_canvas.height = 144;
-  // document.body.appendChild(back_canvas);
-  const back_context = back_canvas.getContext("2d");
-  const back_screen = back_context.createImageData(160, 144);
-  back_context.putImageData(back_screen, 0, 0);
-
   const canvas = document.querySelector("#canvas");
-  canvas.width = 160*2;
-  canvas.height = 144*2;
+  canvas.style.display = "block";
+  canvas.style.width = (160*6) + "px";
+  canvas.style.height = (144*6) + "px";
+
   const context = canvas.getContext('2d');
+  var imageData = context.createImageData(160, 144);
   context.imageSmoothingEnabled = false;
 
   document.addEventListener('keydown', function (e) {
@@ -32,18 +27,36 @@ function run() {
      capi.set_button(e.which, false);
   });
 
-  setInterval(function() {
-    const data = capi.updated_frame();
-    if (data != null) {
-      for (var x = 0; x < data.length; x++) {
-        back_screen.data[x] = data[x];
-      }
-    }
-    back_context.putImageData(back_screen, 0, 0);
+  var prev_data = new Buffer(160*144*4);
+  var lastRender = Date.now();
+  var fps = 0;
+  function draw() {
+    requestAnimationFrame(draw);
 
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(back_canvas, 0, 0, 160, 144, 0, 0, 160*2, 144*2);
-  }, 1000/60);
+    // var delta = Date.now() - lastRender;
+    // if (delta > 1000) {
+    //   console.log(fps);
+    //   lastRender = Date.now();
+    //   fps = 0;
+    // }
+
+    const data = capi.updated_frame();
+    if (data == null) {
+      return;
+    }
+
+    for (var x = 0; x < data.length; x++) {
+      //if (prev_data[x] != data[x]) {
+        imageData.data[x] = data[x];
+      //  prev_data[x] = data[x];
+      //}
+    }
+
+    context.putImageData(imageData, 0, 0);
+    fps += 1;
+  }
+
+  draw();
 }
 
 run();
